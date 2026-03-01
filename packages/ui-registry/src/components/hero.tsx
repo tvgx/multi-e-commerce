@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export interface HeroProps {
     title: string;
@@ -9,9 +9,10 @@ export interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ title, subtitle, backgroundImageUrl, ctaText, ctaLink }) => {
+    const bgImage = backgroundImageUrl || '/hero-bg.png';
     return (
-        <div className="relative w-full h-[500px] flex items-center justify-center bg-gray-900 text-white" style={{ backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined, backgroundSize: 'cover' }}>
-            <div className="z-10 text-center p-8 bg-black bg-opacity-50 blur-sm rounded-lg backdrop-blur-md">
+        <div className="relative w-full h-[500px] flex items-center justify-center bg-gray-900 text-white" style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="z-10 text-center p-8 bg-black bg-opacity-50 rounded-lg backdrop-blur-md">
                 <h1 className="text-4xl md:text-6xl font-bold mb-4">{title}</h1>
                 {subtitle && <p className="text-xl mb-6">{subtitle}</p>}
                 {ctaText && ctaLink && (

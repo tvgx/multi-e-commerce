@@ -1,0 +1,132 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// A. Metadata & Global Database (PostgreSQL)
+// ==========================================
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String   @unique
+  phone         String?
+  password_hash String
+  role          Role     @default(CUSTOMER)
+  created_at    DateTime @default(now())
+
+  shops         Shop[]
+  groups        Group[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  OWNER
+  CUSTOMER
+}
+
+model Shop {
+  id            String   @id // Smart ID: e.g., 'CLO-uuid'
+  owner_id      String   @db.Uuid
+  category_code String
+  group_id      String?  @db.Uuid
+  status        String   @default("ACTIVE")
+  shard_id      String
+  created_at    DateTime @default(now())
+
+  owner         User     @relation(fields: [owner_id], references: [id])
+  category      Category @relation(fields: [category_code], references: [code])
+  group         Group?   @relation(fields: [group_id], references: [id])
+
+  @@map("shops")
+}
+
+model ShardMap {
+  id             String   @id // e.g., 'SHARD_1'
+  postgresql_url String
+  mongodb_url    String
+  is_active      Boolean  @default(true)
+
+  @@map("shard_map")
+}
+
+model Category {
+  code String @id // Unique, e.g., 'CLO', 'BAB'
+  name String
+
+  shops Shop[]
+
+  @@map("categories")
+}
+
+model Group {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name     String
+  owner_id String @db.Uuid
+
+  owner    User   @relation(fields: [owner_id], references: [id])
+  shops    Shop[]
+
+  @@map("groups")
+}
+
+// ==========================================
+// B. Sharded Data Storage - PostgreSQL
+// ==========================================
+
+model Customer {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id       String   // FK to Shop (logical, in same DB if sharded together)
+  email         String
+  phone         String?
+  password_hash String
+
+  orders        Order[]
+
+  @@unique([shop_id, email])
+  @@map("customers")
+}
+
+model Order {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id        String
+  customer_id    String      @db.Uuid
+  status         OrderStatus @default(PENDING)
+  total_amount   Decimal     @db.Decimal(10, 2)
+  payment_method String
+  created_at     DateTime    @default(now())
+
+  customer       Customer    @relation(fields: [customer_id], references: [id])
+  items          OrderItem[]
+
+  // Note: Table partitioning by created_at (month) requires Raw SQL migration
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+model OrderItem {
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id          String  @db.Uuid
+  product_id        String  // Smart-ID from MongoDB
+  quantity          Int
+  price_at_purchase Decimal @db.Decimal(10, 2)
+
+  order             Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
