@@ -1,53 +1,52 @@
-"use client";
-
-import { Hero, ProductCard, LargeLogo, SlideshowInset, CollectionBento, HeroBottomAligned, HeroMarquee } from "@ecommerce/ui-registry";
+import { Hero, FeaturedCollection } from "@ecommerce/ui-registry";
 
 export default function Home() {
-  const products = [ // Hard code for testing
-    { id: "1", name: "Modern Setup", price: 299.00, description: "Minimalist desk essentials for your workspace." },
-    { id: "2", name: "Premium Backpack", price: 145.00, description: "Durable and stylish backpack for everyday use." },
-    { id: "3", name: "Smart Device", price: 599.99, description: "Stay connected with the latest technology." },
-  ];
-
-  const bentoItems = [
-    { id: "b1", title: "Summer Collection", link: "/summer", colSpan: 2 as const, rowSpan: 2 as const },
-    { id: "b2", title: "Accessories", link: "/accessories", colSpan: 1 as const, rowSpan: 1 as const },
-    { id: "b3", title: "Footwear", link: "/footwear", colSpan: 1 as const, rowSpan: 1 as const },
+  const dummyProducts = [
+    {
+      id: "p1",
+      name: "Classic White Tee",
+      price: 29.99,
+      imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=60",
+      slug: "classic-white-tee"
+    },
+    {
+      id: "p2",
+      name: "Denim Jacket",
+      price: 89.99,
+      imageUrl: "https://images.unsplash.com/photo-1551537482-f209bfc4487b?auto=format&fit=crop&w=500&q=60",
+      slug: "denim-jacket"
+    },
+    {
+      id: "p3",
+      name: "Summer Dress",
+      price: 59.99,
+      imageUrl: "https://images.unsplash.com/photo-1572804013427-4d7ca7268217?auto=format&fit=crop&w=500&q=60",
+      slug: "summer-dress"
+    },
+    {
+      id: "p4",
+      name: "Leather Sneakers",
+      price: 119.99,
+      imageUrl: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=60",
+      slug: "leather-sneakers"
+    }
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 font-sans dark:bg-zinc-950">
-      <HeroMarquee marqueeText="Explore our latest products" />
-
-      <LargeLogo text="My Store" subtext="Made with care and unconditionally loved by our customers." />
-
-      <HeroBottomAligned
-        title="New arrivals"
-        subtitle="Made with care and unconditionally loved by our customers. Signature bestseller exceeds all expectations."
-        ctaText="Shop now"
-        ctaLink="/shop-now"
+    <>
+      <Hero
+        title="Spring Collection 2026"
+        subtitle="Discover our new arrivals and find your perfect style for this season."
+        ctaText="Shop Now"
+        ctaLink="/catalog"
+        backgroundImageUrl="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=80"
       />
 
-      <SlideshowInset
-        title="Elevate Your Space"
-        subtitle="Discover our newest curated collection for spring."
-        ctaText="Shop Collection"
-        ctaLink="/collections/spring"
+      <FeaturedCollection
+        title="Trending Now"
+        description="Our most popular pieces handpicked for you."
+        products={dummyProducts}
       />
-
-      <CollectionBento heading="Curated just for you" items={bentoItems} />
-
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-100">Featured Products</h2>
-          <a href="/shop" className="text-sm font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400">View all &rarr;</a>
-        </div>
-        <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
-        </div>
-      </main>
-    </div>
+    </>
   );
 }

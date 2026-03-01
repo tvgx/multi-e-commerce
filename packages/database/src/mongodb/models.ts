@@ -47,6 +47,31 @@ const ProductSchema: Schema = new Schema({
     attributes: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
+// 4. ShopPages (For content customization on pages)
+export interface IShopPage extends Document {
+    shop_id: string;
+    page_type: string; // e.g., 'home', 'catalog', 'contact', 'product', 'profile', 'cart', 'payment'
+    slug: string; // e.g., '/', '/catalog', etc.
+    components: {
+        component_id: string; // e.g., 'hero-1', 'featured-collection-1'
+        props: Record<string, any>; // The content variables like text, images, colors, etc.
+    }[];
+}
+
+const ShopPageSchema: Schema = new Schema({
+    shop_id: { type: String, required: true, index: true }, // Segment by shop
+    page_type: { type: String, required: true },
+    slug: { type: String, required: true },
+    components: [{
+        component_id: { type: String, required: true },
+        props: { type: Schema.Types.Mixed, default: {} }
+    }]
+}, { timestamps: true });
+
+// Ensure unique combination of shop_id and slug
+ShopPageSchema.index({ shop_id: 1, slug: 1 }, { unique: true });
+
 export const GlobalTemplate = mongoose.model<IGlobalTemplate>('GlobalTemplate', GlobalTemplateSchema);
 export const ShopLayout = mongoose.model<IShopLayout>('ShopLayout', ShopLayoutSchema);
 export const Product = mongoose.model<IProduct>('Product', ProductSchema);
+export const ShopPage = mongoose.model<IShopPage>('ShopPage', ShopPageSchema);
