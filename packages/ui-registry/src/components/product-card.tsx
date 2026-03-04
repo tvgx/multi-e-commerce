@@ -4,6 +4,7 @@ export interface ProductCardProps {
     id: string;
     name: string;
     price: number;
+    slug: string;
     imageUrl?: string;
     description?: string;
 }

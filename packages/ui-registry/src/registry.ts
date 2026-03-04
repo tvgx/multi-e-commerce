@@ -10,6 +10,7 @@ import { AnnouncementBar } from './components/announcement-bar';
 import { Header } from './components/header';
 import { Footer } from './components/footer';
 import { FeaturedCollection } from './components/featured-collection';
+import { CookieConsent } from './components/cookie-consent';
 
 export const registry: Record<string, any> = {
   Hero,
@@ -22,7 +23,8 @@ export const registry: Record<string, any> = {
   AnnouncementBar,
   Header,
   Footer,
-  FeaturedCollection
+  FeaturedCollection,
+  CookieConsent
 };
 
 export * from './components/hero';
@@ -36,3 +38,4 @@ export * from './components/announcement-bar';
 export * from './components/header';
 export * from './components/footer';
 export * from './components/featured-collection';
+export * from './components/cookie-consent';

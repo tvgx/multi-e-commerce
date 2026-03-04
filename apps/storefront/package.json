@@ -10,10 +10,14 @@
   },
   "dependencies": {
     "@ecommerce/ui-registry": "^0.1.0",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@types/uuid": "^10.0.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "scheduler": "^0.27.0"
+    "scheduler": "^0.27.0",
+    "uuid": "^13.0.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

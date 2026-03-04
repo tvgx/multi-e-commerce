@@ -3,8 +3,8 @@ import { ProductCard } from "@ecommerce/ui-registry";
 export default function Catalog() {
     const products = Array.from({ length: 12 }).map((_, i) => ({
         id: `cat-p${i}`,
-        title: `Product Name ${i + 1}`,
-        price: `$${(Math.random() * 100 + 20).toFixed(2)}`,
+        name: `Product Name ${i + 1}`,
+        price: parseFloat((Math.random() * 100 + 20).toFixed(2)),
         imageUrl: `https://images.unsplash.com/photo-${1500000000000 + i * 1000}?auto=format&fit=crop&w=500&q=60`, // placeholder
         slug: `product-${i + 1}`
     }));
