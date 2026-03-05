@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { ShopPage } from './mongodb/models';
+import { ShopTemplate, Product } from './mongodb/models';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
 
@@ -9,49 +9,75 @@ async function seed() {
         console.log('Connected to MongoDB');
 
         // Clear existing data for the shop
-        const shopId = 'shop_123';
-        await ShopPage.deleteMany({ shop_id: shopId });
+        const shopId = 'demo-shop-123';
+        await ShopTemplate.deleteMany({ shopId });
+        await Product.deleteMany({ shopId });
 
-        // 1. Home Page Configuration
-        const homePage = new ShopPage({
-            shop_id: shopId,
-            page_type: 'home',
-            slug: '/',
-            components: [
-                {
-                    component_id: 'announcement-bar',
-                    props: {
-                        text: 'Winter Collection 2026 is here! Free shipping over $50.',
-                        backgroundColor: '#171717',
-                        textColor: '#fafafa'
+        // 1. Seed ShopTemplate (Zustand layout)
+        const template = new ShopTemplate({
+            shopId: shopId,
+            publishedData: {
+                deviceMode: "desktop",
+                activeSectionId: null,
+                sections: [
+                    {
+                        id: "hero-1",
+                        type: "Hero",
+                        props: {
+                            title: "Welcome to the Future of Commerce",
+                            subtitle: "Powered by Headless CMS and Zero-File UI.",
+                            primaryCtaText: "Shop the Collection",
+                            primaryCtaLink: "/catalog",
+                            imageUrl: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=80"
+                        }
                     }
+                ]
+            },
+            draftData: {}
+        });
+        await template.save();
+        console.log('Seeded ShopTemplate successfully.');
+
+        // 2. Seed Universal Product
+        const product = new Product({
+            shopId: shopId,
+            name: "Tai nghe iPhone Bluetooth Thế Hệ 5",
+            description: "<p>Tai nghe chống ồn chủ động đỉnh cao</p>",
+            images: ["cover.jpg"],
+            category: "Electronics",
+            basePrice: { value: 150.00, currency: "USD" },
+            totalInventory: 100,
+            status: "ACTIVE",
+            attributes: [
+                { name: "Brand", value: "Apple" },
+                { name: "Warranty", value: "12 Months" }
+            ],
+            tierVariations: [
+                {
+                    name: "Màu sắc",
+                    options: ["Đen", "Bạc"],
+                    images: ["iphone-black.jpg", "iphone-silver.jpg"]
+                }
+            ],
+            variants: [
+                {
+                    sku: "IPH-BLK",
+                    tierIndex: [0],
+                    priceOverride: null,
+                    stock: 40,
+                    image: "iphone-black.jpg"
                 },
                 {
-                    component_id: 'hero',
-                    props: {
-                        title: 'Welcome to the Future of Commerce',
-                        subtitle: 'Powered by headless CMS and Zero-File UI.',
-                        primaryCtaText: 'Shop the Collection',
-                        primaryCtaLink: '/catalog',
-                        imageUrl: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=80'
-                    }
-                },
-                {
-                    component_id: 'featured-collection',
-                    props: {
-                        title: 'Top Picks For You',
-                        description: 'Curated products based on latest trends.',
-                        products: [
-                            { id: 'p1', title: 'Silk Blouse', price: '$89.00', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=60' },
-                            { id: 'p2', title: 'Leather Tote', price: '$120.00', imageUrl: 'https://images.unsplash.com/photo-1551537482-f209bfc4487b?auto=format&fit=crop&w=500&q=60' }
-                        ]
-                    }
+                    sku: "IPH-SLV",
+                    tierIndex: [1],
+                    priceOverride: { value: 160.00, currency: "USD" },
+                    stock: 60,
+                    image: "iphone-silver.jpg"
                 }
             ]
         });
-
-        await homePage.save();
-        console.log('Seeded Home Page configuration successfully.');
+        await product.save();
+        console.log('Seeded Universal Product successfully.');
 
     } catch (error) {
         console.error('Error seeding database:', error);

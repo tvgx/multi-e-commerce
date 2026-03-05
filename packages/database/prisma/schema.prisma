@@ -10,19 +10,25 @@ datasource db {
 }
 
 // ==========================================
-// A. Metadata & Global Database (PostgreSQL)
+// Core Database (PostgreSQL)
 // ==========================================
 
+// Users của Nền tảng (Platform)
 model User {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String   @unique
-  phone         String?
-  password_hash String
-  role          Role     @default(CUSTOMER)
-  created_at    DateTime @default(now())
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String
 
-  shops         Shop[]
-  groups        Group[]
+  // Thông tin cá nhân & Nhân thân (Đặc biệt quan trọng với Chủ Shop)
+  fullName       String? // Họ và tên đầy đủ
+  identityNumber String? // Căn cước công dân (CCCD) / Hộ chiếu
+  dateOfBirth    DateTime? // Ngày tháng năm sinh
+  gender         String? // Giới tính (MALE, FEMALE, OTHER)
+
+  role      Role     @default(OWNER) // ADMIN, OWNER
+  createdAt DateTime @default(now())
+
+  shops Shop[]
 
   @@map("users")
 }
@@ -30,103 +36,73 @@ model User {
 enum Role {
   ADMIN
   OWNER
-  CUSTOMER
 }
 
+// Cấu hình Cửa hàng (E-commerce Shop)
 model Shop {
-  id            String   @id // Smart ID: e.g., 'CLO-uuid'
-  owner_id      String   @db.Uuid
-  category_code String
-  group_id      String?  @db.Uuid
-  status        String   @default("ACTIVE")
-  shard_id      String
-  created_at    DateTime @default(now())
+  id      String  @id @default(uuid())
+  ownerId String
+  name    String
+  domain  String? @unique // Custom domain (vd: store.duck.com)
+  status  String  @default("DRAFT") // DRAFT, PUBLISHED
 
-  owner         User     @relation(fields: [owner_id], references: [id])
-  category      Category @relation(fields: [category_code], references: [code])
-  group         Group?   @relation(fields: [group_id], references: [id])
+  // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
+  mapAddress        String? // Tọa độ hoặc địa chỉ map
+  licenseImageUrl   String? // Ảnh giấy phép kinh doanh
+  licenseIssuedDate DateTime?
+  licenseIssuedBy   String? // Nơi cấp
+  licenseExpiryDate DateTime?
+
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  customers Customer[]
+  orders    Order[]
 
   @@map("shops")
 }
 
-model ShardMap {
-  id             String   @id // e.g., 'SHARD_1'
-  postgresql_url String
-  mongodb_url    String
-  is_active      Boolean  @default(true)
-
-  @@map("shard_map")
-}
-
-model Category {
-  code String @id // Unique, e.g., 'CLO', 'BAB'
-  name String
-
-  shops Shop[]
-
-  @@map("categories")
-}
-
-model Group {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name     String
-  owner_id String @db.Uuid
-
-  owner    User   @relation(fields: [owner_id], references: [id])
-  shops    Shop[]
-
-  @@map("groups")
-}
-
-// ==========================================
-// B. Sharded Data Storage - PostgreSQL
-// ==========================================
-
+// Khách hàng vãng lai (Của các shop)
 model Customer {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id       String   // FK to Shop (logical, in same DB if sharded together)
-  email         String
-  phone         String?
-  password_hash String
+  id     String  @id @default(uuid())
+  shopId String
+  email  String
+  name   String?
+  orders Order[]
 
-  orders        Order[]
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  @@unique([shop_id, email])
+  @@unique([shopId, email]) // Mỗi shop có tập khách hàng riêng
   @@map("customers")
 }
 
+// Giao dịch thanh toán
 model Order {
-  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id        String
-  customer_id    String      @db.Uuid
-  status         OrderStatus @default(PENDING)
-  total_amount   Decimal     @db.Decimal(10, 2)
-  payment_method String
-  created_at     DateTime    @default(now())
+  // Dùng uuid ngẫu nhiên toàn toàn (UUID v4) thay vì chuỗi gộp. 
+  // Điều này che giấu được thông tin của Shop & User ID và chống brute-force ID đơn hàng.
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  status      String   @default("PENDING") // PENDING, PAID, FULFILLED, CANCELLED
+  totalAmount Float
+  currency    String   @default("USD") // Đồng nhất loại tiền cho giao dịch này
+  createdAt   DateTime @default(now())
 
-  customer       Customer    @relation(fields: [customer_id], references: [id])
-  items          OrderItem[]
-
-  // Note: Table partitioning by created_at (month) requires Raw SQL migration
+  shop     Shop        @relation(fields: [shopId], references: [id])
+  customer Customer    @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
 
   @@map("orders")
 }
 
-enum OrderStatus {
-  PENDING
-  PAID
-  SHIPPED
-  CANCELLED
-}
-
 model OrderItem {
-  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id          String  @db.Uuid
-  product_id        String  // Smart-ID from MongoDB
-  quantity          Int
-  price_at_purchase Decimal @db.Decimal(10, 2)
+  id         String @id @default(uuid())
+  orderId    String
+  productId  String // Ánh xạ chuỗi ObjectId sang MongoDB
+  quantity   Int
+  priceAtBuy Float
 
-  order             Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
 }

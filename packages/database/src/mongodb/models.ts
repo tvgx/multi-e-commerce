@@ -1,77 +1,101 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 // ==========================================
-// B. Sharded Data Storage - MongoDB
+// MongoDB Collections for E-commerce Platform
 // ==========================================
 
-// 1. GlobalTemplates
-export interface IGlobalTemplate extends Document {
-    category_code: string;
-    base_layout: any[]; // JSON array of layout components
-    version: number;
+// ------------------------------------------
+// 1. ShopTemplates (UI-as-Code Configuration)
+// ------------------------------------------
+export interface IShopTemplate extends Document {
+    shopId: string; // Foreign key linking to PostgreSQL Shop.id
+    publishedData: Record<string, any>;
+    draftData: Record<string, any>;
 }
 
-const GlobalTemplateSchema: Schema = new Schema({
-    category_code: { type: String, required: true, unique: true, index: true }, // Shard Key
-    base_layout: { type: Schema.Types.Mixed, required: true },
-    version: { type: Number, default: 1 }
+const ShopTemplateSchema: Schema = new Schema({
+    shopId: { type: String, required: true, unique: true, index: true },
+    publishedData: { type: Schema.Types.Mixed, default: {} },
+    draftData: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
-// 2. ShopLayouts
-export interface IShopLayout extends Document {
-    shop_id: string;
-    custom_styles: Record<string, any>;
-    is_using_default: boolean;
-    overrides: any[];
-}
 
-const ShopLayoutSchema: Schema = new Schema({
-    shop_id: { type: String, required: true, unique: true, index: true }, // Shard Key
-    custom_styles: { type: Schema.Types.Mixed, default: {} },
-    is_using_default: { type: Boolean, default: true },
-    overrides: { type: Schema.Types.Mixed, default: [] }
-}, { timestamps: true });
-
-// 3. Products
+// ------------------------------------------
+// 2. Products (Universal / Tier Variation Pattern)
+// ------------------------------------------
 export interface IProduct extends Document {
-    id: string; // Smart-ID: 'CLO-P1'
-    shop_id: string;
+    shopId: string; // Foreign key linking to PostgreSQL Shop.id
     name: string;
-    attributes: Record<string, any>;
-}
+    description: string;
+    images: string[];
+    category: string;
+    basePrice: {
+        value: number;
+        currency: string;
+    };
+    totalInventory: number;
+    status: 'DRAFT' | 'ACTIVE';
 
-const ProductSchema: Schema = new Schema({
-    id: { type: String, required: true, unique: true },
-    shop_id: { type: String, required: true, index: true }, // Shard Key
-    name: { type: String, required: true },
-    attributes: { type: Schema.Types.Mixed, default: {} }
-}, { timestamps: true });
+    // General Attributes (e.g. Brand, Warranty)
+    attributes: { name: string; value: string }[];
 
-// 4. ShopPages (For content customization on pages)
-export interface IShopPage extends Document {
-    shop_id: string;
-    page_type: string; // e.g., 'home', 'catalog', 'contact', 'product', 'profile', 'cart', 'payment'
-    slug: string; // e.g., '/', '/catalog', etc.
-    components: {
-        component_id: string; // e.g., 'hero-1', 'featured-collection-1'
-        props: Record<string, any>; // The content variables like text, images, colors, etc.
+    // Tier Variations (e.g. Color, Capacity)
+    tierVariations: {
+        name: string;
+        options: string[];
+        images: string[]; // Mapping to options index
+    }[];
+
+    // Concrete Variants (SKU specific combinations)
+    variants: {
+        sku: string;
+        tierIndex: number[];
+        priceOverride: { value: number; currency: string } | null;
+        stock: number;
+        image: string | null;
     }[];
 }
 
-const ShopPageSchema: Schema = new Schema({
-    shop_id: { type: String, required: true, index: true }, // Segment by shop
-    page_type: { type: String, required: true },
-    slug: { type: String, required: true },
-    components: [{
-        component_id: { type: String, required: true },
-        props: { type: Schema.Types.Mixed, default: {} }
+const ProductSchema: Schema = new Schema({
+    shopId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    description: { type: String, default: "" },
+    images: [{ type: String }],
+    category: { type: String, default: 'Uncategorized' },
+    basePrice: {
+        value: { type: Number, required: true },
+        currency: { type: String, default: 'USD' }
+    },
+    totalInventory: { type: Number, default: 0 },
+    status: { type: String, enum: ['DRAFT', 'ACTIVE'], default: 'DRAFT' },
+
+    attributes: [{
+        name: { type: String, required: true },
+        value: { type: String, required: true },
+        _id: false
+    }],
+
+    tierVariations: [{
+        name: { type: String, required: true },
+        options: [{ type: String }],
+        images: [{ type: String }],
+        _id: false
+    }],
+
+    variants: [{
+        sku: { type: String, required: true },
+        tierIndex: [{ type: Number }],
+        priceOverride: {
+            value: { type: Number },
+            currency: { type: String }
+        },
+        stock: { type: Number, default: 0 },
+        image: { type: String },
+        _id: false
     }]
 }, { timestamps: true });
 
-// Ensure unique combination of shop_id and slug
-ShopPageSchema.index({ shop_id: 1, slug: 1 }, { unique: true });
+// Exports
+export const ShopTemplate = mongoose.models.ShopTemplate || mongoose.model<IShopTemplate>('ShopTemplate', ShopTemplateSchema);
+export const Product = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
 
-export const GlobalTemplate = mongoose.model<IGlobalTemplate>('GlobalTemplate', GlobalTemplateSchema);
-export const ShopLayout = mongoose.model<IShopLayout>('ShopLayout', ShopLayoutSchema);
-export const Product = mongoose.model<IProduct>('Product', ProductSchema);
-export const ShopPage = mongoose.model<IShopPage>('ShopPage', ShopPageSchema);
