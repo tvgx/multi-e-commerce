@@ -21,14 +21,14 @@ interface BuilderState {
     reorderSections: (startIndex: number, endIndex: number) => void;
     setActiveSection: (id: string | null) => void;
     setDeviceMode: (mode: 'desktop' | 'mobile') => void;
+
+    // API Integration
+    loadTemplate: (shopId: string) => Promise<void>;
+    saveTemplate: (shopId: string) => Promise<void>;
 }
 
-export const useBuilderStore = create<BuilderState>((set) => ({
-    sections: [
-        { id: 'default-announcement', type: 'AnnouncementBar' },
-        { id: 'default-hero', type: 'Hero' },
-        { id: 'default-collection', type: 'FeaturedCollection' }
-    ],
+export const useBuilderStore = create<BuilderState>((set, get) => ({
+    sections: [], // Start empty, handle loading state in components
     activeSectionId: null,
     deviceMode: 'desktop',
 
@@ -56,5 +56,56 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     }),
 
     setActiveSection: (id) => set({ activeSectionId: id }),
-    setDeviceMode: (mode) => set({ deviceMode: mode })
+    setDeviceMode: (mode) => set({ deviceMode: mode }),
+
+    loadTemplate: async (shopId: string) => {
+        try {
+            const response = await fetch(`http://localhost:3001/api/shops/${shopId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.uiStructure && data.uiStructure.sections) {
+                    set({
+                        sections: data.uiStructure.sections,
+                        deviceMode: data.uiStructure.deviceMode || 'desktop'
+                    });
+                } else {
+                    // Fallback to defaults if no custom structure exists yet
+                    set({
+                        sections: [
+                            { id: 'default-announcement', type: 'AnnouncementBar' },
+                            { id: 'default-hero', type: 'Hero' },
+                            { id: 'default-collection', type: 'FeaturedCollection' }
+                        ]
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load template", error);
+        }
+    },
+
+    saveTemplate: async (shopId: string) => {
+        try {
+            const state = get();
+            const payload = {
+                publishedData: {
+                    sections: state.sections,
+                    deviceMode: state.deviceMode
+                }
+            };
+
+            // To be implemented on backend side (PUT /api/shops/:id)
+            const response = await fetch(`http://localhost:3001/api/shops/${shopId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                console.error("Failed to save template");
+            }
+        } catch (error) {
+            console.error("Failed to save template", error);
+        }
+    }
 }));

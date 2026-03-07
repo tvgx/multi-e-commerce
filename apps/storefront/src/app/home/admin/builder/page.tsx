@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     Monitor, Smartphone, Save, Undo, Redo, LayoutTemplate,
@@ -13,8 +13,13 @@ import { PropertiesEditor } from "@/components/builder/properties-editor";
 import { useBuilderStore } from "@/store/builder-store";
 
 export default function ShopBuilder() {
-    const { deviceMode, setDeviceMode, activeSectionId } = useBuilderStore();
+    const { deviceMode, setDeviceMode, activeSectionId, loadTemplate, saveTemplate } = useBuilderStore();
     const [activeTab, setActiveTab] = useState<"sections" | "theme" | "settings">("sections");
+    const shopId = "demo-shop-123";
+
+    useEffect(() => {
+        loadTemplate(shopId);
+    }, [loadTemplate]);
 
     return (
         <div className="flex flex-col h-screen w-full bg-zinc-950 text-zinc-300 font-sans overflow-hidden">
@@ -58,7 +63,9 @@ export default function ShopBuilder() {
                     <button className="text-sm font-medium text-white bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 md:py-2 rounded-md transition-colors border border-zinc-700">
                         Preview
                     </button>
-                    <button className="text-sm font-medium text-black bg-emerald-400 hover:bg-emerald-500 px-4 py-1.5 md:py-2 rounded-md transition-colors flex items-center gap-2 shadow-sm">
+                    <button
+                        onClick={() => saveTemplate(shopId)}
+                        className="text-sm font-medium text-black bg-emerald-400 hover:bg-emerald-500 px-4 py-1.5 md:py-2 rounded-md transition-colors flex items-center gap-2 shadow-sm">
                         <Save className="h-4 w-4" />
                         <span className="hidden sm:inline">Save</span>
                     </button>
