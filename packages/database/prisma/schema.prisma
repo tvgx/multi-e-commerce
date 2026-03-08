@@ -58,6 +58,8 @@ model Shop {
   owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   customers Customer[]
   orders    Order[]
+  
+  mergedLayoutsCache MergedLayoutsCache?
 
   @@map("shops")
 }
@@ -105,4 +107,19 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+// ------------------------------------------
+// L2 Cache cho Zero-File Layout Engine
+// ------------------------------------------
+model MergedLayoutsCache {
+  id           String   @id @default(uuid())
+  shopId       String   @unique
+  layoutJson   Json     // Toàn bộ cục JSON đã được Merge hoàn chỉnh
+  lastSyncedAt DateTime @default(now())
+  
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("merged_layouts_cache")
 }

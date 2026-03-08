@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ShopModule } from './shop/shop.module';
 import { ProductModule } from './product/product.module';
 import { SystemModule } from './system/system.module';
+import { LayoutModule } from './layout/layout.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SystemModule } from './system/system.module';
     ShopModule,
     ProductModule,
     SystemModule,
+    LayoutModule,
   ],
   controllers: [AppController],
   providers: [AppService],

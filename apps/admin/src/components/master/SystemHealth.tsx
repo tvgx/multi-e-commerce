@@ -19,7 +19,6 @@ export default function SystemHealth() {
 
     useEffect(() => {
         loadHealth();
-        // Polling every 10 seconds for real-time monitoring
         const interval = setInterval(loadHealth, 10000);
         return () => clearInterval(interval);
     }, []);

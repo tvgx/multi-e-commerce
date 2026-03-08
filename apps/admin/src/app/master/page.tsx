@@ -1,5 +1,5 @@
 import React from 'react';
-import SystemHealth from '@/components/admin/SystemHealth';
+import SystemHealth from '@/components/master/SystemHealth';
 
 export default function MasterAdminPage() {
     return (

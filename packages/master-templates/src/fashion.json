@@ -1,0 +1,85 @@
+{
+    "shopId": "MASTER_FASHION",
+    "isMaster": true,
+    "baseLayoutId": null,
+    "global": {
+        "header": [
+            {
+                "componentId": "HeroMarquee",
+                "order": 0,
+                "props": {
+                    "text": "FREE SHIPPING ON ALL ORDERS OVER $100 • NEW SUMMER COLLECTION OUT NOW"
+                }
+            },
+            {
+                "componentId": "StandardHeader",
+                "order": 1,
+                "props": {
+                    "showSearch": true,
+                    "showCart": true
+                }
+            }
+        ],
+        "footer": [
+            {
+                "componentId": "StandardFooter",
+                "order": 0,
+                "props": {
+                    "newsletter": true
+                }
+            }
+        ]
+    },
+    "pages": {
+        "home": [
+            {
+                "componentId": "Hero",
+                "order": 0,
+                "props": {
+                    "title": "Autumn Edit 2025",
+                    "subtitle": "Elevate your wardrobe with transitional pieces.",
+                    "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80"
+                }
+            },
+            {
+                "componentId": "CollectionLinksSpotlight",
+                "order": 1
+            },
+            {
+                "componentId": "FeaturedCollectionCarousel",
+                "order": 2
+            },
+            {
+                "componentId": "SplitShowcase",
+                "order": 3
+            },
+            {
+                "componentId": "ImageWithText",
+                "order": 4
+            },
+            {
+                "componentId": "RecommendedProducts",
+                "order": 5
+            }
+        ],
+        "catalog": [
+            {
+                "componentId": "CollectionListsGrid",
+                "order": 0
+            },
+            {
+                "componentId": "AllProductsGrid",
+                "order": 1,
+                "props": {
+                    "showFilters": true,
+                    "itemsPerPage": 16
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "theme": "minimalist",
+        "primaryColor": "#10b981",
+        "fontFamily": "Inter"
+    }
+}

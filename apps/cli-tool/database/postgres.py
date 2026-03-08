@@ -56,16 +56,16 @@ def create_tenant_owner(email, full_name):
     finally:
         conn.close()
 
-def create_shop_record(name, owner_id):
+def create_shop_record(name, domain, owner_id):
     query = """
-    INSERT INTO "Shop" ("ownerId", name, status, "createdAt", "updatedAt")
-    VALUES (%s, %s, 'ACTIVE', NOW(), NOW())
+    INSERT INTO "Shop" ("ownerId", name, domain, status, "createdAt", "updatedAt")
+    VALUES (%s, %s, %s, 'ACTIVE', NOW(), NOW())
     RETURNING id;
     """
     conn = get_pg_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query, (owner_id, name))
+            cur.execute(query, (owner_id, name, domain))
             shop_id = cur.fetchone()['id']
             conn.commit()
             return shop_id
