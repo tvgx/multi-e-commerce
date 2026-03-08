@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Get, Param, UsePipes, BadRequestException } from '@nestjs/common';
 import { LayoutService } from './layout.service';
-import { CustomerLayout, CustomerLayoutSchema } from '@ecommerce/schema';
+import type { CustomerLayout } from '@ecommerce/schema';
+import { CustomerLayoutSchema } from '@ecommerce/schema';
 
 // NestJS Custom Zod Pipe for Strict Validation
 import { PipeTransform, ArgumentMetadata } from '@nestjs/common';
