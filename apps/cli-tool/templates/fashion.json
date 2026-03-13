@@ -1,0 +1,29 @@
+{
+    "deviceMode": "desktop",
+    "theme": {
+        "fontFamily": "Inter",
+        "colors": {
+            "primary": "#10b981",
+            "background": "#ffffff",
+            "text": "#0f172a"
+        }
+    },
+    "sections": [
+        {
+            "id": "hero-section-1",
+            "type": "Hero",
+            "props": {
+                "headline": "Welcome to the new Fashion Store",
+                "subheadline": "Explore the best quality threads.",
+                "buttonText": "Shop Now"
+            }
+        },
+        {
+            "id": "collection-1",
+            "type": "FeaturedCollection",
+            "props": {
+                "title": "Summer Arrivals"
+            }
+        }
+    ]
+}

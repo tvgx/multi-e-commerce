@@ -1,0 +1,24 @@
+{
+    "theme": "dark",
+    "components": [
+        {
+            "type": "Hero",
+            "props": {
+                "title": "New Collection",
+                "subtitle": "Discover our latest clothing line.",
+                "backgroundImageUrl": "https://example.com/clothes.jpg",
+                "ctaText": "Shop Now",
+                "ctaLink": "/products"
+            }
+        },
+        {
+            "type": "ProductCard",
+            "props": {
+                "id": "item-1",
+                "name": "Classic T-Shirt",
+                "price": 29.99,
+                "imageUrl": "https://example.com/tshirt.jpg"
+            }
+        }
+    ]
+}

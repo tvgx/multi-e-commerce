@@ -1,0 +1,76 @@
+{
+    "shopId": "MASTER_READY_TO_EAT",
+    "isMaster": true,
+    "baseLayoutId": null,
+    "global": {
+        "header": [
+            {
+                "componentId": "HeroMarquee",
+                "order": 0,
+                "props": {
+                    "text": "FAST DELIVERY IN 30 MINUTES • FRESH INGREDIENTS DAILY"
+                }
+            },
+            {
+                "componentId": "StandardHeader",
+                "order": 1,
+                "props": {
+                    "showSearch": true,
+                    "showCart": true
+                }
+            }
+        ],
+        "footer": [
+            {
+                "componentId": "StandardFooter",
+                "order": 0,
+                "props": {
+                    "newsletter": false
+                }
+            }
+        ]
+    },
+    "pages": {
+        "home": [
+            {
+                "componentId": "HeroBottomAligned",
+                "order": 0,
+                "props": {
+                    "title": "Delicious Meals, Ready in Minutes",
+                    "subtitle": "Chef-crafted recipes delivered straight to your door."
+                }
+            },
+            {
+                "componentId": "CollectionListsBento",
+                "order": 1
+            },
+            {
+                "componentId": "FeaturedCollectionCarousel",
+                "order": 2
+            },
+            {
+                "componentId": "PullQuote",
+                "order": 3
+            },
+            {
+                "componentId": "FAQ",
+                "order": 4
+            }
+        ],
+        "catalog": [
+            {
+                "componentId": "AllProductsGrid",
+                "order": 0,
+                "props": {
+                    "showFilters": false,
+                    "itemsPerPage": 24
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "theme": "vibrant",
+        "primaryColor": "#f97316",
+        "fontFamily": "Outfit"
+    }
+}

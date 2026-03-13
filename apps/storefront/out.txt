@@ -1,0 +1,76 @@
+﻿
+> storefront@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+node.exe : 
+At C:\Program Files\nod
+ejs\npm.ps1:29 char:3
++   & $NODE_EXE 
+$NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (:String) [],    
+ RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+> Build error occurred
+Error: Turbopack build 
+failed with 1 errors:
+./apps/storefront/node_
+modules/react-dom/cjs/r
+eact-dom-client.product
+ion.js:15:17
+Module not found: 
+Can't resolve 
+'scheduler'
+
+
+Import trace:
+  Browser:
+    ./apps/storefront/n
+ode_modules/react-dom/c
+js/react-dom-client.pro
+duction.js
+    ./apps/storefront/n
+ode_modules/react-dom/c
+lient.js
+    ./apps/storefront/n
+ode_modules/next/dist/c
+lient/index.js
+    ./apps/storefront/n
+ode_modules/next/dist/c
+lient/next-turbopack.js
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+
+    at <unknown> (https
+://nextjs.org/docs/mess
+ages/module-not-found)
+npm error Lifecycle 
+script `build` failed 
+with error:
+npm error code 1
+npm error path D:\Xuan\
+20252\DATN\ecommerce-pl
+atform\apps\storefront
+npm error workspace 
+storefront@0.1.0
+npm error location D:\X
+uan\20252\DATN\ecommerc
+e-platform\apps\storefr
+ont
+npm error command 
+failed
+npm error command C:\WI
+NDOWS\system32\cmd.exe 
+/d /s /c next build
