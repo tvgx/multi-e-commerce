@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { ShopTemplate, MongoProduct } from './mongodb/models';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
+const MONGODB_URI = process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce';
 
 async function seed() {
     try {
