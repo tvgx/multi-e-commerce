@@ -1,0 +1,152 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// Core Database (PostgreSQL)
+// ==========================================
+
+// Users của Nền tảng (Platform)
+model User {
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String
+
+  // Thông tin cá nhân & Nhân thân (Đặc biệt quan trọng với Chủ Shop)
+  fullName       String? // Họ và tên đầy đủ
+  identityNumber String? // Căn cước công dân (CCCD) / Hộ chiếu
+  dateOfBirth    DateTime? // Ngày tháng năm sinh
+  gender         String? // Giới tính (MALE, FEMALE, OTHER)
+
+  role      Role     @default(OWNER) // ADMIN, OWNER
+  createdAt DateTime @default(now())
+
+  shops Shop[]
+
+  @@map("users")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String   @unique // URL thân thiện (vd: ao-thun-nam)
+  basePrice   Float
+  currency    String   @default("VND") // Tiền tệ mặc định
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  
+  // Inventory & Tracking
+  inStock     Int      @default(0) // Số lượng tồn kho
+  sku         String?  // Mã SKU (Stock Keeping Unit)
+  barcode     String?  // Mã vạch
+
+  // Phân loại cơ bản
+  categoryId  String?
+  brand       String?
+  
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("products")
+}
+enum Role {
+  ADMIN
+  OWNER
+}
+
+// Cấu hình Cửa hàng (E-commerce Shop)
+model Shop {
+  id      String  @id @default(uuid())
+  ownerId String
+  name    String
+  domain  String? @unique // Custom domain (vd: store.duck.com)
+  status  String  @default("DRAFT") // DRAFT, PUBLISHED
+
+  // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
+  mapAddress        String? // Tọa độ hoặc địa chỉ map
+  licenseImageUrl   String? // Ảnh giấy phép kinh doanh
+  licenseIssuedDate DateTime?
+  licenseIssuedBy   String? // Nơi cấp
+  licenseExpiryDate DateTime?
+
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  customers Customer[]
+  orders    Order[]
+  products  Product[]
+  
+  mergedLayoutsCache MergedLayoutsCache?
+
+  @@map("shops")
+}
+
+// Khách hàng vãng lai (Của các shop)
+model Customer {
+  id     String  @id @default(uuid())
+  shopId String
+  email  String
+  name   String?
+  orders Order[]
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, email]) // Mỗi shop có tập khách hàng riêng
+  @@map("customers")
+}
+
+// Giao dịch thanh toán
+model Order {
+  // Dùng uuid ngẫu nhiên toàn toàn (UUID v4) thay vì chuỗi gộp. 
+  // Điều này che giấu được thông tin của Shop & User ID và chống brute-force ID đơn hàng.
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  status      String   @default("PENDING") // PENDING, PAID, FULFILLED, CANCELLED
+  totalAmount Float
+  currency    String   @default("USD") // Đồng nhất loại tiền cho giao dịch này
+  createdAt   DateTime @default(now())
+
+  shop     Shop        @relation(fields: [shopId], references: [id])
+  customer Customer    @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String @id @default(uuid())
+  orderId    String
+  productId  String // Ánh xạ chuỗi ObjectId sang MongoDB
+  quantity   Int
+  priceAtBuy Float
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+// ------------------------------------------
+// L2 Cache cho Zero-File Layout Engine
+// ------------------------------------------
+model MergedLayoutsCache {
+  id           String   @id @default(uuid())
+  shopId       String   @unique
+  layoutJson   Json     // Toàn bộ cục JSON đã được Merge hoàn chỉnh
+  lastSyncedAt DateTime @default(now())
+  
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("merged_layouts_cache")
+}

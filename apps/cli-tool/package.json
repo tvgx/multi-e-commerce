@@ -1,0 +1,21 @@
+{
+    "name": "cli-tool-node",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "sync:layout": "tsx scripts/sync-layout.ts",
+        "watch:layout": "tsx scripts/watch-layout.ts"
+    },
+    "dependencies": {
+        "chokidar": "^3.5.3",
+        "socket.io-client": "^4.7.4",
+        "zod": "^3.22.4",
+        "@ecommerce/schema": "*",
+        "@ecommerce/master-templates": "*"
+    },
+    "devDependencies": {
+        "tsx": "^4.7.1",
+        "typescript": "^5.0.0",
+        "@types/node": "^20.0.0"
+    }
+}

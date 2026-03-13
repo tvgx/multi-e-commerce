@@ -1,0 +1,81 @@
+{
+    "shopId": "MASTER_MOM_AND_BABY",
+    "isMaster": true,
+    "baseLayoutId": null,
+    "global": {
+        "header": [
+            {
+                "componentId": "HeroMarquee",
+                "order": 0,
+                "props": {
+                    "text": "WELCOME TO OUR FAMILY • GET 10% OFF YOUR FIRST ORDER"
+                }
+            },
+            {
+                "componentId": "StandardHeader",
+                "order": 1,
+                "props": {
+                    "showSearch": true,
+                    "showCart": true
+                }
+            }
+        ],
+        "footer": [
+            {
+                "componentId": "StandardFooter",
+                "order": 0,
+                "props": {
+                    "newsletter": true
+                }
+            }
+        ]
+    },
+    "pages": {
+        "home": [
+            {
+                "componentId": "Hero",
+                "order": 0,
+                "props": {
+                    "title": "Gentle Care for Little Ones",
+                    "subtitle": "Organic, safe, and loved by parents worldwide.",
+                    "imageUrl": "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80"
+                }
+            },
+            {
+                "componentId": "CollectionListsCarousel",
+                "order": 1
+            },
+            {
+                "componentId": "FeaturedProducts",
+                "order": 2
+            },
+            {
+                "componentId": "ImageWithText",
+                "order": 3
+            },
+            {
+                "componentId": "BlogPostGrid",
+                "order": 4
+            }
+        ],
+        "catalog": [
+            {
+                "componentId": "CollectionListsGrid",
+                "order": 0
+            },
+            {
+                "componentId": "AllProductsGrid",
+                "order": 1,
+                "props": {
+                    "showFilters": true,
+                    "itemsPerPage": 16
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "theme": "soft",
+        "primaryColor": "#f87171",
+        "fontFamily": "Nunito"
+    }
+}

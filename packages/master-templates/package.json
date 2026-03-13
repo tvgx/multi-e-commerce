@@ -1,0 +1,12 @@
+{
+    "name": "@ecommerce/master-templates",
+    "version": "0.1.0",
+    "private": true,
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}
