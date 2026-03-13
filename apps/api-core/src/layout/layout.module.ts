@@ -5,8 +5,8 @@ import { LayoutGateway } from './layout.gateway';
 import { MinioService } from '../storage/minio.service';
 
 @Module({
-    controllers: [LayoutController],
-    providers: [LayoutService, LayoutGateway, MinioService],
-    exports: [LayoutService],
+  controllers: [LayoutController],
+  providers: [LayoutService, LayoutGateway, MinioService],
+  exports: [LayoutService],
 })
-export class LayoutModule { }
+export class LayoutModule {}

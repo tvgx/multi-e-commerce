@@ -19,7 +19,7 @@ export const CollectionBento: React.FC<CollectionBentoProps> = ({ heading, items
         <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             {heading && <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-50 mb-8">{heading}</h2>}
             <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-[250px] gap-4">
-                {items.map((item, index) => {
+                {items.map((item) => {
                     const colSpanClass = item.colSpan === 2 ? 'md:col-span-2' : 'col-span-1';
                     const rowSpanClass = item.rowSpan === 2 ? 'row-span-2' : 'row-span-1';
                     const bgImage = item.imageUrl || '/shapes-bg.png';

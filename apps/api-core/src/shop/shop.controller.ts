@@ -3,15 +3,15 @@ import { ShopService } from './shop.service';
 
 @Controller('api/shops')
 export class ShopController {
-    constructor(private readonly shopService: ShopService) { }
+  constructor(private readonly shopService: ShopService) {}
 
-    @Get()
-    getAllShops() {
-        return this.shopService.getAllShops();
-    }
+  @Get()
+  getAllShops() {
+    return this.shopService.getAllShops();
+  }
 
-    @Get(':id')
-    getShopSettings(@Param('id') id: string) {
-        return this.shopService.getShopSettings(id);
-    }
+  @Get(':id')
+  getShopSettings(@Param('id') id: string) {
+    return this.shopService.getShopSettings(id);
+  }
 }

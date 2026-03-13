@@ -10,7 +10,7 @@ export default function RichText() {
                         We started this brand with a simple question: Why is it so difficult to find high-quality, unbranded essentials at a fair price?
                     </p>
                     <p className="text-slate-600 mb-6 leading-relaxed">
-                        The traditional retail model involves middlemen, high markups, and seasonal trends that encourage waste. We decided to strip all of that away. By working directly with some of the world's best factories—the same ones producing for major luxury houses—we're able to offer the same level of craftsmanship without the luxury markup.
+                        The traditional retail model involves middlemen, high markups, and seasonal trends that encourage waste. We decided to strip all of that away. By working directly with some of the world&apos;s best factories—the same ones producing for major luxury houses—we&apos;re able to offer the same level of craftsmanship without the luxury markup.
                     </p>
                     <p className="text-slate-600 mb-10 leading-relaxed font-medium">
                         Welcome to a smarter way to build your wardrobe.

@@ -1,1 +1,1 @@
-export * from './layout.schema';
+export * from './layout.schema.js';

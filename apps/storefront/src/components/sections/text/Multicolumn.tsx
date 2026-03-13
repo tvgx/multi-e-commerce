@@ -27,7 +27,7 @@ export default function Multicolumn() {
                     <div className="border-t-2 border-slate-900 pt-8 mt-8 md:mt-32">
                         <h3 className="text-2xl font-bold text-slate-900 mb-4 uppercase tracking-wider">03. Aesthetics</h3>
                         <p className="text-slate-600 leading-relaxed">
-                            Minimalism isn't about removing features; it's about perfect proportions. We spend months refining the cut and drape of a single shirt until it's perfect.
+                            Minimalism isn&apos;t about removing features; it&apos;s about perfect proportions. We spend months refining the cut and drape of a single shirt until it&apos;s perfect.
                         </p>
                     </div>
                 </div>

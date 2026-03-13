@@ -6,7 +6,7 @@ export default function FAQ() {
             <div className="max-w-3xl mx-auto px-4 md:px-12">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl font-bold text-slate-900 mb-4">Frequently Asked Questions</h2>
-                    <p className="text-slate-600">Got questions? We've got answers.</p>
+                    <p className="text-slate-600">Got questions? We&apos;ve got answers.</p>
                 </div>
 
                 <div className="space-y-4">

@@ -9,8 +9,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 // ------------------------------------------
 export interface IShopTemplate extends Document {
     shopId: string; // Foreign key linking to PostgreSQL Shop.id
-    publishedData: Record<string, any>;
-    draftData: Record<string, any>;
+    publishedData: Record<string, unknown>;
+    draftData: Record<string, unknown>;
 }
 
 const ShopTemplateSchema: Schema = new Schema({
@@ -97,5 +97,5 @@ const ProductSchema: Schema = new Schema({
 
 // Exports
 export const ShopTemplate = mongoose.models.ShopTemplate || mongoose.model<IShopTemplate>('ShopTemplate', ShopTemplateSchema);
-export const Product = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
+export const MongoProduct = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
 

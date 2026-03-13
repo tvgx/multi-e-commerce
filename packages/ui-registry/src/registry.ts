@@ -12,7 +12,7 @@ import { Footer } from './components/footer';
 import { FeaturedCollection } from './components/featured-collection';
 import { CookieConsent } from './components/cookie-consent';
 
-export const registry: Record<string, any> = {
+export const registry: Record<string, unknown> = {
   Hero,
   ProductCard,
   LargeLogo,

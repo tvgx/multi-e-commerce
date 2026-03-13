@@ -18,7 +18,7 @@ export default function FeaturedProducts() {
                 <div className="lg:w-1/2 w-full space-y-8 text-center lg:text-left">
                     <h2 className="text-5xl md:text-6xl font-black italic tracking-tighter">The Ultimate<br />Everyday Sneaker.</h2>
                     <p className="text-xl text-slate-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                        Engineered for all-day comfort with our proprietary cloud-foam tech. This isn't just a shoe, it's a statement.
+                        Engineered for all-day comfort with our proprietary cloud-foam tech. This isn&apos;t just a shoe, it&apos;s a statement.
                     </p>
 
                     <div className="flex items-center justify-center lg:justify-start gap-4">

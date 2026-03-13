@@ -2,7 +2,7 @@
 
 import React from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { GripVertical, MoreHorizontal, Image as ImageIcon, LayoutTemplate, Megaphone, Trash2 } from "lucide-react";
+import { GripVertical, Image as ImageIcon, LayoutTemplate, Megaphone, Trash2 } from "lucide-react";
 import { useBuilderStore, ComponentType } from "@/store/builder-store";
 import { AddSectionDropdown } from "./add-section-dropdown";
 

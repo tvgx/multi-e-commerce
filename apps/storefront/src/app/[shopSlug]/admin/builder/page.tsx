@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     Monitor, Smartphone, Save, Undo, Redo, LayoutTemplate,
-    Settings, Type, Image as ImageIcon, Plus, MoreHorizontal, ChevronLeft, GripVertical
+    Settings, Type, ChevronLeft, GripVertical
 } from "lucide-react";
 import { Header, Footer } from "@ecommerce/ui-registry";
 import { SidebarSections } from "@/components/builder/sidebar-sections";
@@ -31,7 +31,7 @@ export default function ShopBuilder() {
                     </Link>
                     <div className="h-4 w-px bg-zinc-700"></div>
                     <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white text-sm">Duck's Apparel Theme</span>
+                        <span className="font-semibold text-white text-sm">Duck&apos;s Apparel Theme</span>
                         <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400">Draft</span>
                     </div>
                 </div>

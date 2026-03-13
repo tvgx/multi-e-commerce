@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Plus, Store, MoreVertical, Edit, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Store, Edit, Trash2, ExternalLink } from "lucide-react";
 
 export default function AdminDashboard() {
     // Mock user's shops

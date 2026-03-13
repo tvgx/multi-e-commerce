@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { ShopTemplate, Product } from './mongodb/models';
+import { ShopTemplate, MongoProduct } from './mongodb/models';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
 
@@ -11,7 +11,7 @@ async function seed() {
         // Clear existing data for the shop
         const shopId = 'demo-shop-123';
         await ShopTemplate.deleteMany({ shopId });
-        await Product.deleteMany({ shopId });
+        await MongoProduct.deleteMany({ shopId });
 
         // 1. Seed ShopTemplate (Zustand layout)
         const template = new ShopTemplate({
@@ -39,7 +39,7 @@ async function seed() {
         console.log('Seeded ShopTemplate successfully.');
 
         // 2. Seed Universal Product
-        const product = new Product({
+        const productData = {
             shopId: shopId,
             name: "Tai nghe iPhone Bluetooth Thế Hệ 5",
             description: "<p>Tai nghe chống ồn chủ động đỉnh cao</p>",
@@ -75,9 +75,17 @@ async function seed() {
                     image: "iphone-silver.jpg"
                 }
             ]
-        });
-        await product.save();
-        console.log('Seeded Universal Product successfully.');
+        };
+
+        let existingMongoProduct = await MongoProduct.findOne({ shopId: productData.shopId, name: productData.name });
+
+        if (!existingMongoProduct) {
+            existingMongoProduct = new MongoProduct(productData);
+            await existingMongoProduct.save();
+            console.log(`[MongoDB]     (+) Created layout for product: ${productData.name}`);
+        } else {
+            console.log(`[MongoDB]     (~) Product already exists: ${productData.name}`);
+        }
 
     } catch (error) {
         console.error('Error seeding database:', error);

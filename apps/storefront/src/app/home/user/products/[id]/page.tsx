@@ -78,7 +78,7 @@ export default async function ProductDetails({ params }: { params: { id: string 
                                 Detailed Features
                             </h2>
                             <ul role="list" className="list-none text-muted-foreground space-y-2">
-                                {product.attributes.map((attr: any, idx: number) => (
+                                {product.attributes.map((attr: Record<string, string>, idx: number) => (
                                     <li key={idx} className="flex"><span className="font-medium w-32">{attr.name}:</span> {attr.value}</li>
                                 ))}
                             </ul>

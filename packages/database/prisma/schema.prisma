@@ -33,6 +33,32 @@ model User {
   @@map("users")
 }
 
+model Product {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String   @unique // URL thân thiện (vd: ao-thun-nam)
+  basePrice   Float
+  currency    String   @default("VND") // Tiền tệ mặc định
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  
+  // Inventory & Tracking
+  inStock     Int      @default(0) // Số lượng tồn kho
+  sku         String?  // Mã SKU (Stock Keeping Unit)
+  barcode     String?  // Mã vạch
+
+  // Phân loại cơ bản
+  categoryId  String?
+  brand       String?
+  
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("products")
+}
 enum Role {
   ADMIN
   OWNER
@@ -58,6 +84,7 @@ model Shop {
   owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   customers Customer[]
   orders    Order[]
+  products  Product[]
   
   mergedLayoutsCache MergedLayoutsCache?
 

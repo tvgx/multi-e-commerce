@@ -1,49 +1,57 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Product } from '@ecommerce/database';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { PrismaService } from '../database/prisma.service';
+import {
+  ProductLayout,
+  ProductDocument,
+} from './schemas/product-layout.schema';
 
 @Injectable()
 export class ProductService {
+  constructor(
+    private prisma: PrismaService,
+    @InjectModel(ProductLayout.name)
+    private productLayoutModel: Model<ProductDocument>,
+  ) {}
 
-    // Lấy ra danh sách sản phẩm hiển thị chung theo Shop (Ví dụ trang /catalog)
-    async getProductsByShop(shopId: string, limit: number = 20, lastId?: string) {
-        const query: any = { shopId, status: 'ACTIVE' };
+  async getProductsByShop(shopId: string, limit: number = 20) {
+    const products = await this.prisma.product.findMany({
+      where: { shopId, status: 'PUBLISHED' },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        basePrice: true,
+        inStock: true,
+        slug: true,
+      },
+    });
+    return products;
+  }
 
-        // Cursor-based Pagination logic placeholder cho performance cao hơn Offset/Limit
-        if (lastId) {
-            query._id = { $gt: lastId };
-        }
+  async getProductDetails(productId: string) {
+    const productPostgres = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
 
-        // Optimization: Lean Query (Mongoose trả về Vanilla Object thay vì Hydrated Document)
-        // Tốc độ nhanh hơn 5x. 
-        // Optimization: Projection, chỉ lấy vài field cơ bản để render thẻ Card sản phẩm
-        const products = await Product.find(
-            query,
-            { title: 1, name: 1, images: 1, basePrice: 1, category: 1, "variants.stock": 1 }
-        )
-            .limit(limit)
-            .lean();
-
-        return products;
+    if (!productPostgres) {
+      throw new NotFoundException('Product not found or unavailable');
     }
 
-    // Lấy chính xác nguyên bộ cấu hình sản phẩm để hiển thị chi tiết (Trang chi tiết /products/:id)
-    async getProductDetails(productId: string) {
-        // Không dùng Lean ở đây nếu cần thực thi các Mongoose methods sau này 
-        // Tuy nhiên hiện tại read-only nên vẫn dùng lean() để tăng tốc response API
-        const product = await Product.findById(productId).lean();
-        if (!product) {
-            throw new NotFoundException('Product not found or unavailable');
-        }
-        return product;
-    }
+    const layoutDoc = await this.productLayoutModel
+      .findOne({ productId })
+      .lean();
 
-    // Admin hoặc Hệ thống thêm sản phẩm mới
-    async createProduct(shopId: string, productData: any) {
-        const newProduct = new Product({
-            shopId,
-            ...productData,
-            status: 'ACTIVE'
-        });
-        return newProduct.save();
-    }
+    return {
+      ...productPostgres,
+      layout: layoutDoc,
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  createProduct(shopId: string, productData: unknown) {
+    // Placeholder function cho createProduct
+    return { status: 'Not implemented' };
+  }
 }

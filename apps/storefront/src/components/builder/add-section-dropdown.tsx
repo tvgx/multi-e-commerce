@@ -1,10 +1,10 @@
 "use client"
 
 import React, { useState } from "react";
-import { Plus, X, Search, LayoutTemplate, ImageIcon, Megaphone } from "lucide-react";
+import { Plus, X, LayoutTemplate, ImageIcon, Megaphone } from "lucide-react";
 import { useBuilderStore, ComponentType } from "@/store/builder-store";
 
-const ADDABLE_SECTIONS: { type: ComponentType, icon: any, label: string, desc: string }[] = [
+const ADDABLE_SECTIONS: { type: ComponentType, icon: React.ComponentType<any>, label: string, desc: string }[] = [
     { type: "Hero", icon: ImageIcon, label: "Image Banner", desc: "Large hero block with text and CTA." },
     { type: "FeaturedCollection", icon: LayoutTemplate, label: "Featured Collection", desc: "Grid of handpicked products." },
     { type: "AnnouncementBar", icon: Megaphone, label: "Announcement Bar", desc: "Thin strip for top-level notices." },

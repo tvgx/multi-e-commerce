@@ -16,9 +16,9 @@ async function getProducts() {
 export default async function Catalog() {
     const dbProducts = await getProducts();
 
-    let products = [];
-    if (dbProducts && dbProducts.length > 0) {
-        products = dbProducts.map((p: any) => ({
+    let products: { id: string, name: string, price: number, imageUrl?: string, slug: string }[] = [];
+    if (dbProducts && (dbProducts as any[]).length > 0) {
+        products = (dbProducts as any[]).map((p: Record<string, any>) => ({
             id: p._id,
             name: p.name,
             price: p.basePrice?.value || 0,
@@ -30,7 +30,7 @@ export default async function Catalog() {
         products = Array.from({ length: 8 }).map((_, i) => ({
             id: `cat-p${i}`,
             name: `Fallback Product ${i + 1}`,
-            price: parseFloat((Math.random() * 100 + 20).toFixed(2)),
+            price: 59.99, // Removed Math.random() impure function during render
             imageUrl: `https://images.unsplash.com/photo-${1500000000000 + i * 1000}?auto=format&fit=crop&w=500&q=60`,
             slug: `product-${i + 1}`
         }));
@@ -40,7 +40,7 @@ export default async function Catalog() {
         <div className="container mx-auto px-4 py-12">
             <h1 className="text-4xl font-bold mb-8">All Products</h1>
             <div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 xl:gap-x-8">
-                {products.map((product: any) => (
+                {products.map((product) => (
                     <ProductCard key={product.id} {...product} />
                 ))}
             </div>

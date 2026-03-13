@@ -8,9 +8,7 @@ export default function FeaturedCollectionEditorial() {
                 <div className="max-w-md mx-auto xl:ml-auto xl:mr-12 sticky top-24">
                     <span className="text-emerald-400 font-mono text-sm mb-6 block uppercase tracking-widest">The Edit</span>
                     <h2 className="text-5xl md:text-7xl font-bold mb-8 leading-none">Modern <br /><span className="text-emerald-500 italic">Classics</span></h2>
-                    <p className="text-emerald-200/80 text-xl mb-12 leading-relaxed">
-                        Pieces that transcend seasons. We've curated a selection of timeless garments that form the foundation of any sophisticated wardrobe.
-                    </p>
+                        Pieces that transcend seasons. We&apos;ve curated a selection of timeless garments that form the foundation of any sophisticated wardrobe.
                     <a href="#" className="inline-block border-b-2 border-emerald-400 pb-1 text-emerald-400 font-bold hover:text-white hover:border-white transition-colors uppercase tracking-widest text-sm">
                         Shop The Complete Edit
                     </a>

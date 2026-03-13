@@ -19,7 +19,7 @@ export function PropertiesEditor() {
     const activeSection = sections.find(s => s.id === activeSectionId);
     if (!activeSection) return null;
 
-    const handlePropChange = (key: string, value: any) => {
+    const handlePropChange = (key: string, value: unknown) => {
         updateSectionProps(activeSectionId, { [key]: value });
     };
 
@@ -46,8 +46,8 @@ export function PropertiesEditor() {
 
 function renderEditorFields(
     type: ComponentType,
-    currentProps: Record<string, any>,
-    onChange: (key: string, val: any) => void
+    currentProps: Record<string, unknown>,
+    onChange: (key: string, val: unknown) => void
 ) {
     // We mock the schema of what is editable for each component type
     switch (type) {
@@ -56,30 +56,30 @@ function renderEditorFields(
                 <>
                     <InputField
                         label="Heading"
-                        value={currentProps.title || "Welcome to Duck Store"}
+                        value={(currentProps.title as string) || "Welcome to Duck Store"}
                         onChange={(v) => onChange('title', v)}
                         icon={<TypeIcon />}
                     />
                     <TextAreaField
                         label="Subheading"
-                        value={currentProps.subtitle || "Built with our No-Code platform."}
+                        value={(currentProps.subtitle as string) || "Built with our No-Code platform."}
                         onChange={(v) => onChange('subtitle', v)}
                         icon={<AlignLeft className="w-4 h-4" />}
                     />
                     <InputField
                         label="Button Text"
-                        value={currentProps.ctaText || "Shop Now"}
+                        value={(currentProps.ctaText as string) || "Shop Now"}
                         onChange={(v) => onChange('ctaText', v)}
                     />
                     <InputField
                         label="Button Link"
-                        value={currentProps.ctaLink || "#"}
+                        value={(currentProps.ctaLink as string) || "#"}
                         onChange={(v) => onChange('ctaLink', v)}
                         icon={<Link className="w-4 h-4" />}
                     />
                     <InputField
                         label="Background Image URL"
-                        value={currentProps.backgroundImageUrl || ""}
+                        value={(currentProps.backgroundImageUrl as string) || ""}
                         onChange={(v) => onChange('backgroundImageUrl', v)}
                         icon={<ImageIcon className="w-4 h-4" />}
                         placeholder="https://..."
@@ -90,7 +90,7 @@ function renderEditorFields(
             return (
                 <InputField
                     label="Announcement Text"
-                    value={currentProps.text || "Free shipping on orders over $100!"}
+                    value={(currentProps.text as string) || "Free shipping on orders over $100!"}
                     onChange={(v) => onChange('text', v)}
                     icon={<TypeIcon />}
                 />
@@ -100,12 +100,12 @@ function renderEditorFields(
                 <>
                     <InputField
                         label="Collection Title"
-                        value={currentProps.title || "Featured Items"}
+                        value={(currentProps.title as string) || "Featured Items"}
                         onChange={(v) => onChange('title', v)}
                     />
                     <TextAreaField
                         label="Description"
-                        value={currentProps.description || "Handpicked selections."}
+                        value={(currentProps.description as string) || "Handpicked selections."}
                         onChange={(v) => onChange('description', v)}
                     />
 

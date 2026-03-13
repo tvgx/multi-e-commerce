@@ -24,7 +24,7 @@ export default function ProductHighlight() {
                                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">✦</div>
                                 <div>
                                     <h4 className="font-bold text-slate-900 text-lg">Solid Brass Hardware</h4>
-                                    <p className="text-slate-600">Custom cast hardware that won't rust, bend, or break under pressure.</p>
+                                    <p className="text-slate-600">Custom cast hardware that won&apos;t rust, bend, or break under pressure.</p>
                                 </div>
                             </li>
                             <li className="flex gap-4">

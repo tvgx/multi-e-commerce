@@ -6,6 +6,6 @@ import { DatabaseModule } from '../database/database.module';
 @Module({
   imports: [DatabaseModule],
   providers: [ShopService],
-  controllers: [ShopController]
+  controllers: [ShopController],
 })
-export class ShopModule { }
+export class ShopModule {}

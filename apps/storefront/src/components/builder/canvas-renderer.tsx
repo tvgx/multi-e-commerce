@@ -13,7 +13,7 @@ const COMPONENT_REGISTRY: Record<ComponentType, React.ComponentType<any>> = {
 };
 
 // Default props defining the fallback layout if user hasn't overridden them
-const DEFAULT_PROPS: Record<ComponentType, Record<string, any>> = {
+const DEFAULT_PROPS: Record<string, Record<string, unknown>> = {
     Hero: {
         title: "Welcome to Duck Store",
         subtitle: "Built with our No-Code platform.",
@@ -39,7 +39,7 @@ export function CanvasRenderer() {
         <div className="w-full min-h-[500px] pb-32 flex flex-col items-center">
             {sections.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center p-12 text-zinc-400 border border-dashed border-zinc-200 rounded-lg">
-                    No sections added yet. Drag or click "Add Section" from the sidebar.
+                    No sections added yet. Drag or click &quot;Add Section&quot; from the sidebar.
                 </div>
             ) : (
                 sections.map((section) => (

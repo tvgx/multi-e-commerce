@@ -1,7 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { Hero } from "@ecommerce/ui-registry"; // Reusing the generic Hero but customizing
-import Image from "next/image";
 
 export default function LandingPage() {
   return (

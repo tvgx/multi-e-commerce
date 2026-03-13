@@ -1,5 +1,5 @@
 import React from "react";
-import { Package, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 export default function OrdersPage() {
     const orders = [

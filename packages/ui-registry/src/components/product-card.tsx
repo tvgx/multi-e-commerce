@@ -9,7 +9,7 @@ export interface ProductCardProps {
     description?: string;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ id, name, price, imageUrl, description }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ name, price, imageUrl, description }) => {
     const imgSrc = imageUrl || '/product-default.png';
     return (
         <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">

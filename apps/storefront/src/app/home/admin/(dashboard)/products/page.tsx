@@ -1,12 +1,12 @@
 "use client";
 import React, { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Image as ImageIcon, X } from "lucide-react";
 
 export default function ProductsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Mock inventory
-    const [products, setProducts] = useState([
+    const [products] = useState([
         { id: "p1", name: "Classic Duck Tee", price: 29.99, stock: 45, status: "Active", img: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80" },
         { id: "p2", name: "Premium Yellow Hoodie", price: 59.99, stock: 12, status: "Active", img: "https://images.unsplash.com/photo-1556821840-0a63f95609a7?w=100&q=80" },
         { id: "p3", name: "Limited Edition Cap", price: 24.99, stock: 0, status: "Out of Stock", img: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=100&q=80" }

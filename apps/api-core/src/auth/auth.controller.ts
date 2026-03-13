@@ -3,12 +3,14 @@ import { AuthService } from './auth.service';
 
 @Controller('api/auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
-    @Post('login')
-    login(@Body() body: any) {
-        return this.authService.validateUser(body.email, body.password).then(user => {
-            return this.authService.login(user);
-        });
-    }
+  @Post('login')
+  login(@Body() body: Record<string, string>) {
+    return this.authService
+      .validateUser(body.email, body.password)
+      .then((user) => {
+        return this.authService.login(user);
+      });
+  }
 }
