@@ -1,63 +1,35 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  UsePipes,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, HttpStatus } from '@nestjs/common';
 import { LayoutService } from './layout.service';
-import type { CustomerLayout } from '@ecommerce/schema';
-import { CustomerLayoutSchema } from '@ecommerce/schema';
+import { Session } from '@thallesp/nestjs-better-auth';
+import type { UserSession } from '@thallesp/nestjs-better-auth';
+import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { CustomException } from '../common/exceptions/custom.exception';
+import { ResponseCodes } from '../common/constants/response-codes.constant';
 
-// NestJS Custom Zod Pipe for Strict Validation
-import { PipeTransform, ArgumentMetadata } from '@nestjs/common';
-
-export class ZodValidationPipe implements PipeTransform {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  transform(value: unknown, metadata: ArgumentMetadata) {
-    try {
-      return CustomerLayoutSchema.parse(value);
-    } catch (error) {
-      throw new BadRequestException('Validation failed');
-    }
-  }
-}
-
-@Controller('api/layouts')
+@Controller('api')
 export class LayoutController {
   constructor(private readonly layoutService: LayoutService) {}
 
-  @Post('sync')
-  @UsePipes(new ZodValidationPipe())
-  async syncLayout(@Body() layoutPayload: CustomerLayout) {
-    // 1. Auth Guard normally checks if user is allowed to sync this shop
-
-    // 2. Pass to service
-    await this.layoutService.syncLayout(layoutPayload);
-
-    return {
-      success: true,
-      message: `Layout synced successfully for shop ${layoutPayload.shopId}`,
-    };
+  @Get('storefront/:domain/layout')
+  async getStorefrontLayout(@Param('domain') domain: string): Promise<BaseResponseDto<any>> {
+    return this.layoutService.getLayoutByDomain(domain);
   }
 
-  @Get(':shopId')
-  async getLayout(@Param('shopId') shopId: string) {
-    const layout = await this.layoutService.getCompiledLayout(shopId);
+  @Post('layouts/publish')
+  async publishLayout(
+    @Session() session: UserSession,
+    @Body() payload: any,
+  ): Promise<BaseResponseDto<any>> {
+    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    
+    const { shopId, ...layoutData } = payload;
+    if (!shopId) throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'Parameter is not enought.', HttpStatus.BAD_REQUEST);
 
-    if (!layout) {
-      // Return 404 or empty template if not found
-      return {
-        success: false,
-        message: 'Layout not found for this shop.',
-      };
-    }
+    return this.layoutService.publishLayout(session.user.id, shopId, layoutData);
+  }
 
-    return {
-      success: true,
-      data: layout,
-    };
+  @Get('layouts/:shopId')
+  async getCompiledLayout(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+    return this.layoutService.getCompiledLayout(shopId);
   }
 }

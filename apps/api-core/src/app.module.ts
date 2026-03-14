@@ -7,8 +7,13 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ShopModule } from './shop/shop.module';
 import { ProductModule } from './product/product.module';
+import { CustomerModule } from './customer/customer.module';
+import { OrderModule } from './order/order.module';
 import { SystemModule } from './system/system.module';
 import { LayoutModule } from './layout/layout.module';
+
+import { auth } from './auth';
+import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 
 @Module({
   imports: [
@@ -23,10 +28,15 @@ import { LayoutModule } from './layout/layout.module';
       }),
       inject: [ConfigService],
     }),
+    BetterAuthModule.forRoot({
+      auth,
+    }),
     DatabaseModule,
     AuthModule,
     ShopModule,
     ProductModule,
+    CustomerModule,
+    OrderModule,
     SystemModule,
     LayoutModule,
   ],

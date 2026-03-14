@@ -1,15 +1,30 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, HttpStatus } from '@nestjs/common';
 import { ProductService } from './product.service';
+import { Session } from '@thallesp/nestjs-better-auth';
+import type { UserSession } from '@thallesp/nestjs-better-auth';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { CustomException } from '../common/exceptions/custom.exception';
+import { ResponseCodes } from '../common/constants/response-codes.constant';
 
 @Controller('api/products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @Post()
+  async createProduct(
+    @Session() session: UserSession,
+    @Body() dto: CreateProductDto,
+  ): Promise<BaseResponseDto<any>> {
+    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    return this.productService.createProduct(session.user.id, dto);
+  }
+
   @Get('shop/:shopId')
-  getShopProducts(
+  async getShopProducts(
     @Param('shopId') shopId: string,
     @Query('limit') limit: number,
-  ) {
+  ): Promise<BaseResponseDto<any>> {
     return this.productService.getProductsByShop(
       shopId,
       limit ? Number(limit) : 20,
@@ -17,7 +32,17 @@ export class ProductController {
   }
 
   @Get(':id')
-  getProductDetail(@Param('id') id: string) {
+  async getProductDetail(@Param('id') id: string): Promise<BaseResponseDto<any>> {
     return this.productService.getProductDetails(id);
+  }
+
+  @Put(':id')
+  async updateProduct(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ): Promise<BaseResponseDto<any>> {
+    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    return this.productService.updateProduct(session.user.id, id, dto);
   }
 }
