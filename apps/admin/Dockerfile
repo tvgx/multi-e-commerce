@@ -7,7 +7,7 @@ WORKDIR /app
 # Prune stage
 FROM base AS pruner
 COPY . .
-RUN turbo prune --scope=api-core --docker
+RUN turbo prune --scope=admin --docker
 
 # Build stage
 FROM base AS builder
@@ -23,25 +23,25 @@ RUN npm install
 # Copy source code and build
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
-RUN turbo run build --filter=api-core...
+RUN turbo run build --filter=admin...
 
 # Runner stage
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Don't run production as root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
-USER nestjs
-
-COPY --from=builder /app/apps/api-core/dist ./apps/api-core/dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/apps/api-core/package.json ./apps/api-core/package.json
-
-# Environment variables
 ENV NODE_ENV=production
 
-EXPOSE 3001
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+USER nextjs
 
-CMD ["node", "apps/api-core/dist/main"]
+# Next.js standalone output is preferred for K8s, but assuming standard build for now
+# If standalone is enabled in next.config.ts, we would copy .next/standalone
+COPY --from=builder /app/apps/admin/.next ./apps/admin/.next
+COPY --from=builder /app/apps/admin/public ./apps/admin/public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+
+CMD ["npx", "next", "start", "apps/admin"]

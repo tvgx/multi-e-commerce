@@ -1,47 +1,45 @@
-FROM node:18-alpine AS alpine
-RUN apk update
+# Base stage for pruning
+FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
-
-# Setup pnpm
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM alpine as builder
+RUN npm install -g turbo
 WORKDIR /app
-RUN pnpm install -g turbo
+
+# Prune stage
+FROM base AS pruner
 COPY . .
-RUN turbo prune storefront --docker
+RUN turbo prune --scope=storefront --docker
 
-FROM alpine AS installer
+# Build stage
+FROM base AS builder
 WORKDIR /app
 
-# First install dependencies (as they change less often)
-COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/package.json ./package.json
+# Copy pruned lockfile and package.json
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-RUN pnpm install
+# Install dependencies
+RUN npm install
 
-# Build the project
-COPY --from=builder /app/out/full/ .
+# Copy source code and build
+COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
-RUN pnpm turbo run build --filter=storefront...
+RUN turbo run build --filter=storefront...
 
-FROM alpine AS runner
+# Runner stage
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Don't run production as root
+ENV NODE_ENV=production
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-COPY --from=installer /app/apps/storefront/next.config.mjs .
-COPY --from=installer /app/apps/storefront/package.json .
+COPY --from=builder /app/apps/storefront/.next ./apps/storefront/.next
+COPY --from=builder /app/apps/storefront/public ./apps/storefront/public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=installer --chown=nextjs:nodejs /app/apps/storefront/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/storefront/.next/static ./apps/storefront/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/storefront/public ./apps/storefront/public
+EXPOSE 3002
 
-CMD ["node", "apps/storefront/server.js"]
+CMD ["npx", "next", "start", "apps/storefront"]

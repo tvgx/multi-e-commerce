@@ -1,8 +1,11 @@
 node_modules
-dist
-.turbo
 .next
-.DS_Store
-.env
-.env.*
-!.env.example
+dist
+build
+.git
+.turbo
+*.log
+.env*
+Dockerfile
+k8s
+scripts
