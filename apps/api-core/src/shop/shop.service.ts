@@ -99,4 +99,15 @@ export class ShopService {
     });
     return BaseResponseDto.success(shops);
   }
+
+  async getAllShops(): Promise<BaseResponseDto<any>> {
+    const shops = await this.prisma.shop.findMany({
+      include: {
+        owner: {
+          select: { fullName: true, email: true },
+        },
+      },
+    });
+    return BaseResponseDto.success(shops);
+  }
 }

@@ -10,6 +10,9 @@ export class CreateProductDto {
   @IsString()
   slug: string;
 
+  @IsString()
+  sku: string; // SKU is required for the variant
+
   @IsNumber()
   @Min(0)
   @Max(30000000) // 30M policy
@@ -39,10 +42,19 @@ export class UpdateProductDto {
   name?: string;
 
   @IsOptional()
+  @IsString()
+  sku?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(30000000)
   basePrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Max(20)
+  weight?: number;
 
   @IsOptional()
   @IsNumber()

@@ -46,4 +46,9 @@ export class ShopController {
     }
     return this.shopService.updateShop(session.user.id, id, dto);
   }
+
+  @Get('system/all-shops')
+  async getSystemAllShops(): Promise<BaseResponseDto<any>> {
+    return this.shopService.getAllShops();
+  }
 }

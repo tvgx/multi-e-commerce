@@ -37,16 +37,54 @@ export class ProductService {
         );
       }
 
-      // 3. Create in Postgres
-      const product = await this.prisma.product.create({
-        data: {
-          name: dto.name,
-          slug: dto.slug,
-          basePrice: dto.basePrice,
-          inStock: dto.inStock || 0,
-          shopId: dto.shopId,
-          status: 'PUBLISHED',
-        },
+      // 3. Create in Postgres (Product + Master Variant + StockLocation + StockItem)
+      const product = await this.prisma.$transaction(async (tx) => {
+        // 3.1 Create Product
+        const p = await tx.product.create({
+          data: {
+            name: dto.name,
+            slug: dto.slug,
+            shopId: dto.shopId,
+            status: 'PUBLISHED',
+          },
+        });
+
+        // 3.2 Create Master Variant
+        const variant = await tx.variant.create({
+          data: {
+            productId: p.id,
+            sku: dto.sku,
+            price: dto.basePrice,
+            weight: dto.weight,
+            isMaster: true,
+          },
+        });
+
+        // 3.3 Ensure a default StockLocation exists for the shop
+        let stockLocation = await tx.stockLocation.findFirst({
+          where: { shopId: dto.shopId, isDefault: true },
+        });
+
+        if (!stockLocation) {
+          stockLocation = await tx.stockLocation.create({
+            data: {
+              shopId: dto.shopId,
+              name: 'Default Warehouse',
+              isDefault: true,
+            },
+          });
+        }
+
+        // 3.4 Create StockItem
+        await tx.stockItem.create({
+          data: {
+            stockLocationId: stockLocation.id,
+            variantId: variant.id,
+            countOnHand: dto.inStock || 0,
+          },
+        });
+
+        return p;
       });
 
       // 4. Create in MongoDB
@@ -68,6 +106,16 @@ export class ProductService {
   async getProductsByShop(shopId: string, limit: number = 20): Promise<BaseResponseDto<any>> {
     const products = await this.prisma.product.findMany({
       where: { shopId },
+      include: {
+        variants: {
+          where: { isMaster: true },
+          include: {
+            stockItems: {
+              include: { stockLocation: true },
+            },
+          },
+        },
+      },
       take: limit,
     });
     
@@ -81,6 +129,15 @@ export class ProductService {
   async getProductDetails(productId: string): Promise<BaseResponseDto<any>> {
     const productPostgres = await this.prisma.product.findUnique({
       where: { id: productId },
+      include: {
+        variants: {
+          include: {
+            stockItems: {
+              include: { stockLocation: true },
+            },
+          },
+        },
+      },
     });
 
     if (!productPostgres) {
@@ -91,8 +148,14 @@ export class ProductService {
       .findOne({ productId })
       .lean();
 
+    // To maintain compatibility with existing frontend, we flatten the master variant's price and stock
+    const masterVariant = productPostgres.variants.find((v) => v.isMaster);
+    const totalStock = masterVariant?.stockItems.reduce((acc, item) => acc + item.countOnHand, 0) || 0;
+
     return BaseResponseDto.success({
       ...productPostgres,
+      basePrice: masterVariant?.price || 0,
+      inStock: totalStock,
       layout: layoutDoc,
     });
   }
@@ -106,13 +169,58 @@ export class ProductService {
     if (!product) throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
     if (product.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
 
-    const updatedPostgres = await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        name: dto.name,
-        basePrice: dto.basePrice,
-        inStock: dto.inStock,
-      },
+    const updatedPostgres = await this.prisma.$transaction(async (tx) => {
+      // 1. Update Product
+      const p = await tx.product.update({
+        where: { id: productId },
+        data: {
+          name: dto.name,
+        },
+      });
+
+      // 2. Update Master Variant
+      const masterVariant = await tx.variant.findFirst({
+        where: { productId, isMaster: true },
+      });
+
+      if (masterVariant) {
+        await tx.variant.update({
+          where: { id: masterVariant.id },
+          data: {
+            sku: dto.sku,
+            price: dto.basePrice,
+            weight: dto.weight,
+          },
+        });
+
+        // 3. Update StockItem (in default location)
+        if (dto.inStock !== undefined) {
+          const defaultLocation = await tx.stockLocation.findFirst({
+            where: { shopId: product.shopId, isDefault: true },
+          });
+
+          if (defaultLocation) {
+            await tx.stockItem.upsert({
+              where: {
+                stockLocationId_variantId: {
+                  stockLocationId: defaultLocation.id,
+                  variantId: masterVariant.id,
+                },
+              },
+              create: {
+                stockLocationId: defaultLocation.id,
+                variantId: masterVariant.id,
+                countOnHand: dto.inStock,
+              },
+              update: {
+                countOnHand: dto.inStock,
+              },
+            });
+          }
+        }
+      }
+
+      return p;
     });
 
     if (dto.extraMetadata) {

@@ -14,47 +14,70 @@ export class OrderService {
       // 1. Transaction to ensure atomicity
       return await this.prisma.$transaction(async (tx) => {
         let totalAmount = 0;
-        const orderItemsData = [];
+        const lineItemsData = [];
 
         for (const item of dto.items) {
+          // Get Product and its Master Variant
           const product = await tx.product.findUnique({
             where: { id: item.productId },
+            include: {
+              variants: {
+                where: { isMaster: true },
+                include: {
+                  stockItems: {
+                    include: { stockLocation: true },
+                  },
+                },
+              },
+            },
           });
 
           if (!product || product.shopId !== dto.shopId) {
             throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
           }
 
-          if (product.inStock < item.quantity) {
-            throw new CustomException(ResponseCodes.PRODUCT_SOLD, 'The product has been sold.', HttpStatus.BAD_REQUEST);
+          const masterVariant = product.variants[0];
+          if (!masterVariant) {
+            throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Master variant not found', HttpStatus.INTERNAL_SERVER_ERROR);
           }
 
-          // Reduce stock
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { inStock: { decrement: item.quantity } },
+          const totalStock = masterVariant.stockItems.reduce((acc, si) => acc + si.countOnHand, 0);
+          if (totalStock < item.quantity) {
+            throw new CustomException(ResponseCodes.PRODUCT_SOLD, 'The product has been sold or is out of stock.', HttpStatus.BAD_REQUEST);
+          }
+
+          // Reduce stock (simple: take from default location or first location)
+          const defaultStockItem = masterVariant.stockItems.find(si => si.stockLocation.isDefault) || masterVariant.stockItems[0];
+          
+          await tx.stockItem.update({
+            where: { id: defaultStockItem.id },
+            data: { countOnHand: { decrement: item.quantity } },
           });
 
-          totalAmount += product.basePrice * item.quantity;
-          orderItemsData.push({
-            productId: item.productId,
+          const priceAtBuy = masterVariant.price;
+          totalAmount += priceAtBuy * item.quantity;
+          
+          lineItemsData.push({
+            variantId: masterVariant.id,
             quantity: item.quantity,
-            priceAtBuy: product.basePrice,
+            price: priceAtBuy,
           });
         }
 
         // 2. Create Order
         const order = await tx.order.create({
           data: {
+            number: `R${Date.now()}`, // Generate a public order number
             shopId: dto.shopId,
             customerId: dto.customerId,
             totalAmount,
-            status: 'PENDING',
-            items: {
-              create: orderItemsData,
+            itemTotal: totalAmount,
+            state: 'confirm', // cart, address, delivery, payment, confirm, complete, canceled
+            lineItems: {
+              create: lineItemsData,
             },
           },
-          include: { items: true },
+          include: { lineItems: true },
         });
 
         return BaseResponseDto.success(order);
@@ -68,7 +91,7 @@ export class OrderService {
   async getOrder(orderId: string): Promise<BaseResponseDto<any>> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true, shop: true },
+      include: { lineItems: true, shop: true },
     });
     if (!order) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data', HttpStatus.NOT_FOUND);
     return BaseResponseDto.success(order);
