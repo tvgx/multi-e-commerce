@@ -52,6 +52,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ shopSlug: s
                     customerEmail: formData.customerEmail,
                     customerPhone: formData.customerPhone,
                     shippingAddress: formData.shippingAddress,
+                    paymentProvider: formData.paymentMethod,
                     items: items.map((i) => ({
                         productId: i.productId,
                         variantId: i.variantId,

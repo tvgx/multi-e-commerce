@@ -14,6 +14,7 @@ import { LayoutModule } from './layout/layout.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SystemCacheModule } from './system/cache/cache.module';
 import { CartModule } from './cart/cart.module';
+import { PaymentModule } from './payment/payment.module';
 
 import { auth } from './auth';
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
@@ -45,6 +46,7 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     AnalyticsModule,
     SystemCacheModule,
     CartModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

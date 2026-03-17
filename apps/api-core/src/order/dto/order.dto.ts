@@ -26,6 +26,9 @@ export class CreateOrderDto {
   @IsString()
   shippingAddress: string;
 
+  @IsString()
+  paymentProvider: string; // e.g., 'COD', 'MOCK_GATEWAY'
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)

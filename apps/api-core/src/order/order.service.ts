@@ -4,10 +4,14 @@ import { CreateOrderDto } from './dto/order.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentService: PaymentService,
+  ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<BaseResponseDto<any>> {
     try {
@@ -100,7 +104,52 @@ export class OrderService {
           include: { lineItems: true },
         });
 
-        return BaseResponseDto.success(order);
+        // 3. Process Payment
+        let paymentMethod = await tx.paymentMethod.findFirst({
+          where: { shopId: dto.shopId, type: dto.paymentProvider }
+        });
+        if (!paymentMethod) {
+          paymentMethod = await tx.paymentMethod.create({
+            data: {
+              shopId: dto.shopId,
+              name: dto.paymentProvider,
+              type: dto.paymentProvider,
+              active: true
+            }
+          });
+        }
+
+        const paymentIntent = await this.paymentService.processPayment(
+          dto.paymentProvider, 
+          totalAmount, 
+          'VND', 
+          order.id
+        );
+
+        await tx.payment.create({
+          data: {
+            orderId: order.id,
+            paymentMethodId: paymentMethod.id,
+            amount: totalAmount,
+            state: paymentIntent.status === 'SUCCEEDED' ? 'completed' : 'processing',
+            responseCode: paymentIntent.transactionId,
+          }
+        });
+
+        if (paymentIntent.status === 'SUCCEEDED') {
+          await tx.order.update({
+            where: { id: order.id },
+            data: { paymentState: 'paid' }
+          });
+        }
+
+        // Refetch order with payments
+        const finalOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          include: { lineItems: true, payments: true }
+        });
+
+        return BaseResponseDto.success(finalOrder);
       });
     } catch (error) {
       if (error instanceof CustomException) throw error;
