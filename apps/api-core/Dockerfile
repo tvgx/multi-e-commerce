@@ -25,6 +25,9 @@ COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 RUN turbo run build --filter=api-core...
 
+# Remove devDependencies to save space in the runner stage
+RUN npm prune --production
+
 # Runner stage
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -34,13 +37,14 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
 USER nestjs
 
+# Only copy necessary files and production node_modules
 COPY --from=builder /app/apps/api-core/dist ./apps/api-core/dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/apps/api-core/package.json ./apps/api-core/package.json
 
 # Environment variables
 ENV NODE_ENV=production
+ENV PORT=3001
 
 EXPOSE 3001
 

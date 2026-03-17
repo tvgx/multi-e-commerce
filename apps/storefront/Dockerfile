@@ -30,16 +30,27 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-USER nextjs
 
-COPY --from=builder /app/apps/storefront/.next ./apps/storefront/.next
+# Automatically leverage output traces to reduce image size
 COPY --from=builder /app/apps/storefront/public ./apps/storefront/public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+
+# Set the correct permission for prerender cache
+RUN mkdir -p apps/storefront/.next
+RUN chown nextjs:nodejs apps/storefront/.next
+
+# Copy the standalone output and static folder
+COPY --from=builder --chown=nextjs:nodejs /app/apps/storefront/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/storefront/.next/static ./apps/storefront/.next/static
+
+USER nextjs
 
 EXPOSE 3002
 
-CMD ["npx", "next", "start", "apps/storefront"]
+ENV PORT=3002
+# server.js is created by next build from the standalone output
+CMD ["node", "apps/storefront/server.js"]

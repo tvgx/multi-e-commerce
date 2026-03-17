@@ -1,0 +1,103 @@
+{
+  "info": {
+    "_postman_id": "b1b87a8f-28c0-4f90-8edb-7f154ea2c091",
+    "name": "API Caching Tests",
+    "description": "Tests to verify NestJS internal caching and Storefront invalidation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. GET Layout (First Time - No Cache)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/layouts/shop123",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "layouts",
+            "shop123"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. GET Layout (Second Time - Check Response Time < 10ms)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/layouts/shop123",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "layouts",
+            "shop123"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. POST Publish Layout (Invalidates Cache)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"shopId\": \"shop123\",\n  \"header\": \"New Header\",\n  \"footer\": \"New Footer\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/layouts/publish",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "layouts",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. GET Layout (Third Time - Cache Miss / New Data)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/layouts/shop123",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "layouts",
+            "shop123"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -28,7 +28,7 @@ metadata:
   name: api-core
   namespace: ecommerce
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: api-core
@@ -47,8 +47,8 @@ spec:
                 name: api-core-config
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "350Mi"
