@@ -7,6 +7,9 @@ export class CreateShopDto {
   @IsOptional()
   @IsString()
   domain?: string;
+
+  @IsOptional()
+  productsPerPage?: number;
 }
 
 export class UpdateShopDto {
@@ -25,4 +28,7 @@ export class UpdateShopDto {
   @IsOptional()
   @IsUrl()
   licenseImageUrl?: string;
+
+  @IsOptional()
+  productsPerPage?: number;
 }

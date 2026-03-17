@@ -29,6 +29,7 @@ export class ShopService {
           domain: dto.domain,
           ownerId: ownerId,
           status: 'DRAFT',
+          productsPerPage: dto.productsPerPage ?? 30,
         },
       });
 

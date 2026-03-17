@@ -250,6 +250,8 @@ model Shop {
   licenseIssuedBy   String? // Nơi cấp
   licenseExpiryDate DateTime?
 
+  productsPerPage   Int     @default(30)
+
   createdAt DateTime @default(now())
 
   owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)

@@ -16,4 +16,12 @@ export class OrderController {
   async getOrder(@Param('id') id: string): Promise<BaseResponseDto<any>> {
     return this.orderService.getOrder(id);
   }
+
+  @Get('shop/:shopId/customer/:email')
+  async getOrdersByCustomer(
+    @Param('shopId') shopId: string,
+    @Param('email') email: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.orderService.getOrdersByCustomerEmail(shopId, email);
+  }
 }

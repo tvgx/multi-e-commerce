@@ -1,8 +1,15 @@
 import { getShopProducts, getShopInfo } from '@/lib/api/storefront.api';
 import React from 'react';
+import FiltersSidebar from '@/components/products/FiltersSidebar';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;
+    searchParams?: Promise<{
+        search?: string;
+        category?: string;
+        minPrice?: string;
+        maxPrice?: string;
+    }>;
 }
 
 /**
@@ -11,14 +18,25 @@ interface Props {
  * Fetches real product list from the NestJS backend.
  * Products are cached server-side (30s TTL) and tagged for on-demand invalidation.
  */
-export default async function AllProductsPage({ params }: Props) {
+export default async function AllProductsPage({ params, searchParams }: Props) {
     const { shopSlug } = await params;
+    
+    // Resolve search params
+    const resolvedParams = searchParams ? await searchParams : {};
+    const { search, category, minPrice, maxPrice } = resolvedParams;
 
     // Fetch products and shop info in parallel
-    const [{ products }, shopInfo] = await Promise.all([
-        getShopProducts(shopSlug, 20),
-        getShopInfo(shopSlug),
-    ]);
+    // We first need the shop info to know the products per page
+    const shopInfo = await getShopInfo(shopSlug);
+    const limit = shopInfo?.productsPerPage || 30;
+
+    const { products } = await getShopProducts(shopSlug, {
+        limit,
+        search,
+        categoryId: category,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    });
 
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
 
@@ -33,40 +51,9 @@ export default async function AllProductsPage({ params }: Props) {
 
             <div className="flex flex-col md:flex-row gap-8">
                 {/* ── Filters Sidebar ── */}
-                <aside className="w-full md:w-64 space-y-6 shrink-0">
-                    {/* Categories — derived dynamically from the product list */}
-                    {products.length > 0 && (
-                        <div>
-                            <h3 className="font-semibold mb-3">Categories</h3>
-                            <div className="space-y-2 text-sm text-slate-600">
-                                {[...new Set(products.map((p) => p.category).filter(Boolean))].map(
-                                    (cat) => (
-                                        <label key={cat} className="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" className="accent-emerald-500" />
-                                            {cat}
-                                        </label>
-                                    ),
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Price Range */}
-                    <div>
-                        <h3 className="font-semibold mb-3">Price Range</h3>
-                        <input type="range" className="w-full accent-emerald-500" />
-                        <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>0đ</span>
-                            <span>Max</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="flex items-center gap-2 font-medium text-emerald-600 cursor-pointer">
-                            <input type="checkbox" className="accent-emerald-500" /> On Sale Only
-                        </label>
-                    </div>
-                </aside>
+                <FiltersSidebar 
+                    categories={[...new Set(products.map((p) => p.category).filter(Boolean))] as string[]}
+                />
 
                 {/* ── Product Grid ── */}
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">

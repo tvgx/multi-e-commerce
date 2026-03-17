@@ -1,98 +1,245 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# E-commerce Platform - `api-core`
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This is the core backend service for the multi-tenant E-commerce platform, built with **NestJS**. It acts as the central hub for data management, analytics, tenant shops, and business logic.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 📚 API Catalog & Testing Guide (Postman / cURL)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Below is the complete list of all available REST endpoints exposed by `api-core`. You can copy the provided `curl` commands and paste them directly into Postman (Import -> Raw text) or run them in your terminal.
 
-## Project setup
+> **💡 Authentication Note**: 
+> Endpoints marked with 🔒 require an active user session. Depending on your BetterAuth setup, this might be a cookie or a token. The examples assume a Bearer token if needed, or rely on existing session cookies if running from a browser environment.
+> Default host is assumed to be `http://localhost:3001`.
 
+### 1. 📊 Analytics (`/analytics`)
+
+#### Get Master Summary (Platform-wide)
+Retrieves high-level metrics for the entire platform (Super Admin).
 ```bash
-$ npm install
+curl -X GET http://localhost:3001/analytics/master-summary
 ```
 
-## Compile and run the project
-
+#### Get Master Charts (Platform-wide)
+Retrieves time-series data for the master dashboard.
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -X GET http://localhost:3001/analytics/master-charts
 ```
 
-## Run tests
-
+#### Get Shop Summary
+Retrieves specific metrics for an individual shop.
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X GET http://localhost:3001/analytics/shop/SHOP_ID_HERE/summary
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+#### Get Shop Charts
+Retrieves time-series and distribution data for an individual shop.
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+curl -X GET http://localhost:3001/analytics/shop/SHOP_ID_HERE/charts
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+### 2. 🔐 Auth (`/api/auth`)
 
-Check out a few resources that may come in handy when working with NestJS:
+#### Get Current User Profile 🔒
+Get details of the currently authenticated user.
+```bash
+curl -X GET http://localhost:3001/api/auth/me \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+#### Change Username 🔒
+Update the authenticated user's display name.
+```bash
+curl -X PUT http://localhost:3001/api/auth/change-username \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"newName": "New User Name"}'
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 3. 👥 Customer (`/api/customers`)
 
-## Stay in touch
+#### Subscribe Newsletter
+Subscribe a customer email to the shop's mailing list.
+```bash
+curl -X POST http://localhost:3001/api/customers/subscribe \
+  -H "Content-Type: application/json" \
+  -d '{"email": "customer@example.com", "shopId": "SHOP_ID_HERE"}'
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+### 4. 🎨 Layout (`/api/layouts` & `/api/storefront`)
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+#### Get Published Layout for Storefront
+Fetch the compiled JSON layout for a specific tenant domain (used by Next.js Front-end).
+```bash
+curl -X GET http://localhost:3001/api/storefront/shop.yourdomain.com/layout
+```
+
+#### Publish Shop Layout 🔒
+Save and publish a new drag-and-drop layout configuration for a shop.
+```bash
+curl -X POST http://localhost:3001/api/layouts/publish \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"shopId": "SHOP_ID_HERE", "nodes": [], "theme": {}}'
+```
+
+#### Get Compiled Layout By Shop ID
+Fetch the raw layout JSON by shop ID.
+```bash
+curl -X GET http://localhost:3001/api/layouts/SHOP_ID_HERE
+```
+
+---
+
+### 5. 🛒 Order (`/api/orders`)
+
+#### Create Order (Checkout)
+Place a new order on a specific shop.
+```bash
+curl -X POST http://localhost:3001/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shopId": "SHOP_ID_HERE",
+    "customerName": "John Doe",
+    "customerEmail": "john@example.com",
+    "customerPhone": "123456789",
+    "shippingAddress": "123 Main St",
+    "items": [
+      {
+        "productId": "PROD_ID_HERE",
+        "variantId": "VARIANT_ID_HERE",
+        "quantity": 2,
+        "price": 50000
+      }
+    ],
+    "totalAmount": 100000
+  }'
+```
+
+#### Get Order Details
+Retrieve specific order information.
+```bash
+curl -X GET http://localhost:3001/api/orders/ORDER_ID_HERE
+```
+
+---
+
+### 6. 📦 Product (`/api/products`)
+
+#### Create Product 🔒
+Create a new product with default variant and stock.
+```bash
+curl -X POST http://localhost:3001/api/products \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shopId": "SHOP_ID_HERE",
+    "name": "New Awesome Product",
+    "description": "Product detailed description",
+    "price": 150000,
+    "stock": 100,
+    "images": ["url1.jpg", "url2.jpg"]
+  }'
+```
+
+#### Get Shop Products
+List products for a specific shop (with optional limit).
+```bash
+curl -X GET "http://localhost:3001/api/products/shop/SHOP_ID_HERE?limit=20"
+```
+
+#### Get Product Detail
+Get full details of a specific product.
+```bash
+curl -X GET http://localhost:3001/api/products/PRODUCT_ID_HERE
+```
+
+#### Update Product 🔒
+Update product details.
+```bash
+curl -X PUT http://localhost:3001/api/products/PRODUCT_ID_HERE \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Format Name",
+    "price": 160000
+  }'
+```
+
+---
+
+### 7. 🏪 Shop (`/api/shops`)
+
+#### Create Shop 🔒
+Register a new tenant shop for the authenticated user.
+```bash
+curl -X POST http://localhost:3001/api/shops \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My New Store",
+    "domain": "mystore.ecommerce.local"
+  }'
+```
+
+#### Get My Shops 🔒
+Retrieve a list of shops owned by the authenticated user.
+```bash
+curl -X GET http://localhost:3001/api/shops/my-shops \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+#### Get All Platform Shops (Admin)
+List all registered shops on the platform.
+```bash
+curl -X GET http://localhost:3001/api/shops/system/all-shops
+```
+
+#### Get Shop Settings
+Get settings and metadata for a specific shop.
+```bash
+curl -X GET http://localhost:3001/api/shops/SHOP_ID_HERE
+```
+
+#### Update Shop Settings 🔒
+Modify shop metadata (name, domain, active status).
+```bash
+curl -X PUT http://localhost:3001/api/shops/SHOP_ID_HERE \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Store Name"
+  }'
+```
+
+---
+
+### 8. ⚙️ System (`/api/system`)
+
+#### System Health Check
+Verify API uptime and database connectivity.
+```bash
+curl -X GET http://localhost:3001/api/system/health
+```
+
+#### Validate JSON Setup
+Check if a payload matches the required layout schema.
+```bash
+curl -X POST http://localhost:3001/api/system/validate-json \
+  -H "Content-Type: application/json" \
+  -d '{"jsonConfig": "{...}"}'
+```
+
+#### Mass Sync Feature (Internal)
+Utility to sync data models across shards/tenants.
+```bash
+curl -X POST http://localhost:3001/api/system/mass-sync \
+  -H "Content-Type: application/json" \
+  -d '{"targetAttr": "featureFlags", "newValue": "on"}'
+```

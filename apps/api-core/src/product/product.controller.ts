@@ -23,11 +23,21 @@ export class ProductController {
   @Get('shop/:shopId')
   async getShopProducts(
     @Param('shopId') shopId: string,
-    @Query('limit') limit: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
   ): Promise<BaseResponseDto<any>> {
     return this.productService.getProductsByShop(
       shopId,
       limit ? Number(limit) : 20,
+      {
+        search,
+        categoryId,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      }
     );
   }
 

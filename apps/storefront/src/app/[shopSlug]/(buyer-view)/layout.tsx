@@ -1,5 +1,9 @@
 import { getShopInfo } from '@/lib/api/storefront.api';
 import React from 'react';
+import CartInitializer from '@/components/cart/CartInitializer';
+import CartSidebar from '@/components/cart/CartSidebar';
+import CartTrigger from '@/components/cart/CartTrigger';
+import SearchBar from '@/components/products/SearchBar';
 
 interface Props {
     children: React.ReactNode;
@@ -23,6 +27,8 @@ export default async function BuyerLayout({ children, params }: Props) {
 
     return (
         <div className="flex flex-col min-h-screen">
+            {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
+            <CartSidebar />
             {/* ── Header ── */}
             <header
                 className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm"
@@ -46,14 +52,7 @@ export default async function BuyerLayout({ children, params }: Props) {
                     </a>
 
                     {/* Search Bar */}
-                    <div className="flex-1 max-w-xl px-8">
-                        <input
-                            type="text"
-                            placeholder={`Search in ${shopName}...`}
-                            className="w-full bg-slate-100 border-none rounded-full px-6 py-2 text-sm focus:ring-2 outline-none transition-shadow"
-                            style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                        />
-                    </div>
+                    <SearchBar />
 
                     {/* Nav Links */}
                     <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
@@ -63,12 +62,7 @@ export default async function BuyerLayout({ children, params }: Props) {
                         >
                             All Products
                         </a>
-                        <a
-                            href={`/${shopSlug}/cart`}
-                            className="hover:text-emerald-500 transition-colors"
-                        >
-                            Cart
-                        </a>
+                        <CartTrigger />
                         <a
                             href={`/${shopSlug}/profile`}
                             className="hover:text-emerald-500 transition-colors"

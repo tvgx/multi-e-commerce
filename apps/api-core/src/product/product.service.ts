@@ -103,12 +103,33 @@ export class ProductService {
     }
   }
 
-  async getProductsByShop(shopId: string, limit: number = 20): Promise<BaseResponseDto<any>> {
+  async getProductsByShop(
+    shopId: string, 
+    limit: number = 20,
+    filters?: { search?: string; categoryId?: string; minPrice?: number; maxPrice?: number }
+  ): Promise<BaseResponseDto<any>> {
+    const whereClause: any = { shopId };
+
+    if (filters?.search) {
+      whereClause.name = { contains: filters.search, mode: 'insensitive' };
+    }
+    
+    if (filters?.categoryId) {
+      whereClause.categoryId = filters.categoryId;
+    }
+
+    const priceFilter: any = {};
+    if (filters?.minPrice !== undefined) priceFilter.gte = filters.minPrice;
+    if (filters?.maxPrice !== undefined) priceFilter.lte = filters.maxPrice;
+
     const products = await this.prisma.product.findMany({
-      where: { shopId },
+      where: whereClause,
       include: {
         variants: {
-          where: { isMaster: true },
+          where: { 
+            isMaster: true,
+            ...(Object.keys(priceFilter).length > 0 ? { price: priceFilter } : {})
+          },
           include: {
             stockItems: {
               include: { stockLocation: true },

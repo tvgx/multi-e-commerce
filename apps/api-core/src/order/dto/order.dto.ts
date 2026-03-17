@@ -15,7 +15,16 @@ export class CreateOrderDto {
   shopId: string;
 
   @IsString()
-  customerId: string;
+  customerName: string;
+
+  @IsString()
+  customerEmail: string;
+
+  @IsString()
+  customerPhone?: string;
+
+  @IsString()
+  shippingAddress: string;
 
   @IsArray()
   @ValidateNested({ each: true })

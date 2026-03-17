@@ -13,6 +13,26 @@ export class OrderService {
     try {
       // 1. Transaction to ensure atomicity
       return await this.prisma.$transaction(async (tx) => {
+        // 0. Find or create Customer
+        let customer = await tx.customer.findUnique({
+          where: {
+            shopId_email: {
+              shopId: dto.shopId,
+              email: dto.customerEmail,
+            },
+          },
+        });
+
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: {
+              shopId: dto.shopId,
+              email: dto.customerEmail,
+              name: dto.customerName,
+            },
+          });
+        }
+
         let totalAmount = 0;
         const lineItemsData = [];
 
@@ -69,7 +89,7 @@ export class OrderService {
           data: {
             number: `R${Date.now()}`, // Generate a public order number
             shopId: dto.shopId,
-            customerId: dto.customerId,
+            customerId: customer.id,
             totalAmount,
             itemTotal: totalAmount,
             state: 'confirm', // cart, address, delivery, payment, confirm, complete, canceled
@@ -95,5 +115,25 @@ export class OrderService {
     });
     if (!order) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data', HttpStatus.NOT_FOUND);
     return BaseResponseDto.success(order);
+  }
+
+  async getOrdersByCustomerEmail(shopId: string, email: string): Promise<BaseResponseDto<any>> {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        shopId_email: { shopId, email },
+      },
+    });
+
+    if (!customer) {
+      return BaseResponseDto.success([]);
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: { shopId, customerId: customer.id },
+      include: { lineItems: { include: { variant: { include: { product: true } } } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return BaseResponseDto.success(orders);
   }
 }

@@ -24,6 +24,7 @@ export interface ShopInfo {
     primaryColor?: string;
     navLinks?: { label: string; href: string }[];
     owner?: { fullName: string; email: string };
+    productsPerPage?: number;
 }
 
 export interface ProductCard {
@@ -106,21 +107,30 @@ export async function getShopLayout(shopId: string) {
 // ─────────────────────────────────────────
 
 /**
- * Fetches a paginated list of products for a shop.
- * Uses cursor-based pagination (lastId) to avoid offset-memory issues at scale.
+ * Fetches a paginated list of products for a shop with filtering.
  *
  * @param shopId  - the shop's ID (slug)
- * @param limit   - number of products per page (default 20)
- * @param lastId  - cursor: last product _id from the previous page
+ * @param options - filtering and pagination options
  */
 export async function getShopProducts(
     shopId: string,
-    limit = 20,
-    lastId?: string,
+    options?: {
+        limit?: number;
+        lastId?: string;
+        search?: string;
+        categoryId?: string;
+        minPrice?: number;
+        maxPrice?: number;
+    }
 ): Promise<ShopProductsResult> {
     try {
+        const limit = options?.limit ?? 20;
         const params = new URLSearchParams({ limit: String(limit) });
-        if (lastId) params.set('lastId', lastId);
+        if (options?.lastId) params.set('lastId', options.lastId);
+        if (options?.search) params.set('search', options.search);
+        if (options?.categoryId) params.set('categoryId', options.categoryId);
+        if (options?.minPrice !== undefined) params.set('minPrice', String(options.minPrice));
+        if (options?.maxPrice !== undefined) params.set('maxPrice', String(options.maxPrice));
 
         const res = await fetch(
             `${API_BASE_URL}/api/products/shop/${encodeURIComponent(shopId)}?${params}`,
@@ -134,14 +144,64 @@ export async function getShopProducts(
 
         if (!res.ok) return { products: [], hasMore: false };
 
-        const products: ProductCard[] = await res.json();
+        const body = await res.json();
+        const products: ProductCard[] = body.data || body || [];
 
         return {
             products,
-            hasMore: products.length === limit, // if we got a full page, there's likely more
+            hasMore: products.length === limit,
         };
     } catch (err) {
         console.error(`[storefront.api] getShopProducts failed for shopId=${shopId}`, err);
         return { products: [], hasMore: false };
+    }
+}
+
+/**
+ * Fetches details for a single product by ID.
+ *
+ * @param shopId  - the shop's ID (slug)
+ * @param productId - the product's ID
+ */
+export async function getShopProductDetails(shopId: string, productId: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
+            next: {
+                tags: [`product-${productId}`],
+                revalidate: 30,
+            },
+        });
+
+        if (!res.ok) return null;
+
+        const body = await res.json();
+        if (!body.success) return { product: null };
+
+        return { product: body.data };
+    } catch (err) {
+        console.error(`[storefront.api] getShopProductDetails failed for productId=${productId}`, err);
+        return { product: null };
+    }
+}
+
+/**
+ * Fetches order history for a customer by email.
+ *
+ * @param shopId - the shop's ID (slug)
+ * @param email - customer's email
+ */
+export async function getCustomerOrders(shopId: string, email: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/orders/shop/${encodeURIComponent(shopId)}/customer/${encodeURIComponent(email)}`, {
+            cache: 'no-store' // Orders should always be fresh
+        });
+
+        if (!res.ok) return [];
+
+        const body = await res.json();
+        return body.data || [];
+    } catch (err) {
+        console.error(`[storefront.api] getCustomerOrders failed for email=${email}`, err);
+        return [];
     }
 }
