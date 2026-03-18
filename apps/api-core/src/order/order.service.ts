@@ -185,4 +185,25 @@ export class OrderService {
 
     return BaseResponseDto.success(orders);
   }
+
+  async getOrdersByShop(shopId: string): Promise<BaseResponseDto<any>> {
+    const orders = await this.prisma.order.findMany({
+      where: { shopId },
+      include: { 
+        lineItems: { include: { variant: { include: { product: true } } } },
+        customer: true,
+        payments: true
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return BaseResponseDto.success(orders);
+  }
+
+  async updateOrderState(orderId: string, state: string): Promise<BaseResponseDto<any>> {
+    const order = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state },
+    });
+    return BaseResponseDto.success(order);
+  }
 }

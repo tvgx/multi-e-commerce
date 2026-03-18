@@ -1,16 +1,86 @@
 "use client";
-import React, { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Image as ImageIcon, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Search, Filter, MoreHorizontal, Image as ImageIcon, X, Loader2, AlertCircle } from "lucide-react";
+import { useBuilderStore } from "@/store/builder-store";
 
 export default function ProductsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const shopId = "shop-1"; // Default for now
 
-    // Mock inventory
-    const [products] = useState([
-        { id: "p1", name: "Classic Duck Tee", price: 29.99, stock: 45, status: "Active", img: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80" },
-        { id: "p2", name: "Premium Yellow Hoodie", price: 59.99, stock: 12, status: "Active", img: "https://images.unsplash.com/photo-1556821840-0a63f95609a7?w=100&q=80" },
-        { id: "p3", name: "Limited Edition Cap", price: 24.99, stock: 0, status: "Out of Stock", img: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=100&q=80" }
-    ]);
+    const [newProduct, setNewProduct] = useState({
+        name: "",
+        price: "",
+        stock: "",
+        slug: "",
+        sku: ""
+    });
+
+    const fetchProducts = async () => {
+        try {
+            setLoading(true);
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const res = await fetch(`${getApiUrl()}/api/products/shop/${shopId}?limit=50`);
+            const data = await res.json();
+            if (data.data) {
+                setProducts(data.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch products", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, [shopId]);
+
+    const handleSave = async () => {
+        if (!newProduct.name || !newProduct.price || !newProduct.slug || !newProduct.sku) {
+            setError('Please fill in Name, Slug, SKU, and Price.');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setError('');
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const payload = {
+                shopId,
+                name: newProduct.name,
+                slug: newProduct.slug,
+                sku: newProduct.sku,
+                basePrice: Number(newProduct.price),
+                inStock: Number(newProduct.stock) || 0,
+                weight: 0.5,
+                images: ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80"]
+            };
+
+            const res = await fetch(`${getApiUrl()}/api/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok && data.code === '1000' || data.success) {
+                setIsAddModalOpen(false);
+                setNewProduct({ name: "", price: "", stock: "", slug: "", sku: "" });
+                fetchProducts();
+            } else {
+                setError(data.message || 'Failed to create product (Authentication required?)');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Exception occurred while saving product.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="p-8">
@@ -33,9 +103,6 @@ export default function ProductsPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                         <input type="text" placeholder="Search products..." className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 border border-zinc-200 text-zinc-600 rounded-lg text-sm font-medium hover:bg-zinc-50 transition-colors">
-                        <Filter className="w-4 h-4" /> Filter
-                    </button>
                 </div>
 
                 <table className="w-full text-left text-sm text-zinc-600">
@@ -49,24 +116,38 @@ export default function ProductsPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200">
-                        {products.map(product => (
-                            <tr key={product.id} className="hover:bg-zinc-50/50 transition-colors">
+                        {loading ? (
+                            <tr>
+                                <td colSpan={5} className="py-12 text-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
+                                </td>
+                            </tr>
+                        ) : products.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="py-12 text-center text-zinc-500">
+                                    No products found for {shopId}.
+                                </td>
+                            </tr>
+                        ) : products.map(product => {
+                           const stock = product.variants?.[0]?.stockItems?.reduce((a:any, b:any) => a + b.countOnHand, 0) || 0;
+                           return (
+                            <tr key={product._id || product.id} className="hover:bg-zinc-50/50 transition-colors">
                                 <td className="px-6 py-4 flex items-center gap-4">
-                                    <img src={product.img} alt={product.name} className="w-10 h-10 rounded-md object-cover border border-zinc-200" />
+                                    <img src={product.images?.[0] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80'} alt={product.name} className="w-10 h-10 rounded-md object-cover border border-zinc-200" />
                                     <span className="font-medium text-zinc-900">{product.name}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${product.stock > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                                        {product.status}
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${stock > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                                        {stock > 0 ? "Active" : "Out of Stock"}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4">{product.stock} in stock</td>
-                                <td className="px-6 py-4">${product.price}</td>
+                                <td className="px-6 py-4">{stock} in stock</td>
+                                <td className="px-6 py-4">${product.basePrice}</td>
                                 <td className="px-6 py-4 text-right">
                                     <button className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors"><MoreHorizontal className="w-4 h-4" /></button>
                                 </td>
                             </tr>
-                        ))}
+                        )})}
                     </tbody>
                 </table>
             </div>
@@ -83,27 +164,52 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="p-6 space-y-6">
+                            {error && (
+                                <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-lg flex items-center gap-3 text-sm font-medium">
+                                    <AlertCircle className="w-4 h-4" /> {error}
+                                </div>
+                            )}
                             <div className="grid grid-cols-3 gap-6">
                                 <div className="col-span-1 space-y-2">
                                     <label className="text-sm border-2 border-dashed border-zinc-200 rounded-xl h-32 flex flex-col items-center justify-center text-zinc-500 hover:border-emerald-500 hover:text-emerald-500 transition-colors cursor-pointer bg-zinc-50 hover:bg-emerald-50/50">
                                         <ImageIcon className="w-6 h-6 mb-2" />
-                                        <span className="text-xs font-medium">Upload Image</span>
+                                        <span className="text-xs font-medium">Upload Image (Mocked)</span>
                                         <input type="file" className="hidden" />
                                     </label>
                                 </div>
                                 <div className="col-span-2 space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 mb-1">Product Name</label>
-                                        <input type="text" placeholder="e.g. Summer T-Shirt" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                        <input 
+                                            value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                                            type="text" placeholder="e.g. Summer T-Shirt" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 mb-1">Slug URL</label>
+                                            <input 
+                                                value={newProduct.slug} onChange={e => setNewProduct({...newProduct, slug: e.target.value})}
+                                                type="text" placeholder="summer-tshirt" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 mb-1">SKU</label>
+                                            <input 
+                                                value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})}
+                                                type="text" placeholder="TSHIRT-001" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-700 mb-1">Price ($)</label>
-                                            <input type="number" placeholder="0.00" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                            <input 
+                                                value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})}
+                                                type="number" placeholder="0.00" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-zinc-700 mb-1">Stock</label>
-                                            <input type="number" placeholder="0" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                            <label className="block text-sm font-medium text-zinc-700 mb-1">Initial Stock</label>
+                                            <input 
+                                                value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
+                                                type="number" placeholder="0" className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                                         </div>
                                     </div>
                                 </div>
@@ -114,8 +220,8 @@ export default function ProductsPage() {
                             <button onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-200/50 rounded-lg transition-colors">
                                 Cancel
                             </button>
-                            <button className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors">
-                                Save Product
+                            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors disabled:opacity-50">
+                                {saving ? "Saving..." : "Save Product"}
                             </button>
                         </div>
                     </div>

@@ -24,4 +24,14 @@ export class OrderController {
   ): Promise<BaseResponseDto<any>> {
     return this.orderService.getOrdersByCustomerEmail(shopId, email);
   }
+
+  @Get('shop/:shopId')
+  async getOrdersByShop(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+    return this.orderService.getOrdersByShop(shopId);
+  }
+
+  @Post(':id/state')
+  async updateOrderState(@Param('id') id: string, @Body('state') state: string): Promise<BaseResponseDto<any>> {
+    return this.orderService.updateOrderState(id, state);
+  }
 }
