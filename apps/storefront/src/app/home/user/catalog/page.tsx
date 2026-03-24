@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ProductCard } from "@ecommerce/ui-registry";
 
 async function getProducts() {

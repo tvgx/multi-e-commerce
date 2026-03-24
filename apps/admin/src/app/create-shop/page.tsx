@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Rocket, CheckCircle2, ChevronRight, Store, LayoutTemplate, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, LayoutTemplate, Link as LinkIcon, Loader2 } from "lucide-react";
 
 const TEMPLATES = [
   { id: "MASTER_FASHION", name: "Thời trang", desc: "Layout phù hợp cho shop quần áo, phụ kiện.", icon: "👗" },
@@ -49,16 +49,15 @@ export default function CreateShopPage() {
           {/* Progress Bar */}
           {step < 4 && (
             <div className="mb-8 relative flex items-center justify-between before:absolute before:top-1/2 before:left-0 before:h-0.5 before:w-full before:-translate-y-1/2 before:bg-white/10 before:-z-10">
-              <div 
-                className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-indigo-500 transition-all duration-500 -z-10" 
+              <div
+                className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-indigo-500 transition-all duration-500 -z-10"
                 style={{ width: `${((step - 1) / 2) * 100}%` }}
               />
               {[1, 2, 3].map((s) => (
-                <div 
-                  key={s} 
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
-                    s < step ? "bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]" : s === step ? "bg-indigo-600 text-white ring-4 ring-indigo-500/30" : "bg-slate-900 border border-white/10 text-slate-500"
-                  }`}
+                <div
+                  key={s}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${s < step ? "bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]" : s === step ? "bg-indigo-600 text-white ring-4 ring-indigo-500/30" : "bg-slate-900 border border-white/10 text-slate-500"
+                    }`}
                 >
                   {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
                 </div>
@@ -75,13 +74,13 @@ export default function CreateShopPage() {
                   </h2>
                   <p className="text-slate-400">Tên này sẽ hiển thị ở tiêu đề trang web OmniCommerce.</p>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                       <Store className="w-4 h-4 text-indigo-400" /> Tên cửa hàng
                     </label>
-                    <input 
+                    <input
                       type="text"
                       className="w-full px-5 py-3 rounded-xl bg-black/50 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="VD: Sneaker Head Store"
@@ -92,7 +91,7 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="mt-10 flex justify-end">
-                  <button 
+                  <button
                     onClick={handleNext}
                     disabled={!formData.shopName.trim()}
                     className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200 disabled:opacity-50 disabled:pointer-events-none"
@@ -111,14 +110,14 @@ export default function CreateShopPage() {
                   </h2>
                   <p className="text-slate-400">Khách hàng sẽ truy cập cửa hàng của bạn qua địa chỉ này.</p>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                       <LinkIcon className="w-4 h-4 text-emerald-400" /> Domain tùy chỉnh
                     </label>
                     <div className="flex bg-black/50 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
-                      <input 
+                      <input
                         type="text"
                         className="flex-1 bg-transparent px-5 py-3 text-white placeholder:text-slate-600 focus:outline-none"
                         placeholder="my-shop"
@@ -136,13 +135,13 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="mt-10 flex justify-between">
-                  <button 
+                  <button
                     onClick={handlePrev}
                     className="inline-flex items-center px-6 py-3 font-medium text-slate-400 hover:text-white transition-colors"
                   >
                     Quay lại
                   </button>
-                  <button 
+                  <button
                     onClick={handleNext}
                     disabled={!formData.domain.trim()}
                     className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200 disabled:opacity-50 disabled:pointer-events-none"
@@ -161,17 +160,16 @@ export default function CreateShopPage() {
                   </h2>
                   <p className="text-slate-400">Master Template chứa sẵn các khối (sections) tối ưu cho ngành hàng của bạn.</p>
                 </div>
-                
+
                 <div className="space-y-4">
-                  {TEMPLATES.map((tmpl) =>(
-                    <div 
+                  {TEMPLATES.map((tmpl) => (
+                    <div
                       key={tmpl.id}
                       onClick={() => setFormData({ ...formData, templateId: tmpl.id })}
-                      className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${
-                        formData.templateId === tmpl.id 
-                          ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500" 
+                      className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${formData.templateId === tmpl.id
+                          ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
                           : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       <div className="text-3xl">{tmpl.icon}</div>
                       <div>
@@ -180,7 +178,7 @@ export default function CreateShopPage() {
                       </div>
                       <div className="ml-auto flex items-center justify-center pt-2">
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${formData.templateId === tmpl.id ? 'border-indigo-400' : 'border-slate-700 group-hover:border-slate-500'}`}>
-                           {formData.templateId === tmpl.id && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
+                          {formData.templateId === tmpl.id && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
                         </div>
                       </div>
                     </div>
@@ -188,14 +186,14 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="mt-10 flex justify-between items-center">
-                  <button 
+                  <button
                     onClick={handlePrev}
                     disabled={loading}
                     className="inline-flex items-center px-6 py-3 font-medium text-slate-400 hover:text-white transition-colors disabled:opacity-50"
                   >
                     Quay lại
                   </button>
-                  <button 
+                  <button
                     onClick={handleSubmit}
                     disabled={loading}
                     className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50"
@@ -222,14 +220,14 @@ export default function CreateShopPage() {
                   Cửa hàng <strong>{formData.shopName || "Của Bạn"}</strong> đã được khởi tạo hoàn tất trên hệ thống OmniCommerce với kiến trúc Hybrid Database.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-                  <a 
-                    href={`http://${formData.domain || "my-shop"}.localhost:3000`} 
+                  <a
+                    href={`http://${formData.domain || "my-shop"}.localhost:3000`}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200"
                   >
                     Xem Storefront
                   </a>
-                  <a 
+                  <a
                     href="/dashboard"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-500/20 border border-indigo-500/50 px-8 py-3 font-semibold text-indigo-300 transition-all hover:bg-indigo-500/30"
                   >

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Store, Settings, ExternalLink, Download, ChevronDown, ChevronUp, BarChart2, Loader2, AlertCircle } from 'lucide-react';
-import { ShopAnalyticsChart } from '@/components/ShopAnalyticsChart';
+import { ShopAnalyticsChart } from '../../../../admin/src/components/ShopAnalyticsChart';
 
 export default function ShopsManagementPage() {
     const [shops, setShops] = useState<any[]>([]);
@@ -112,7 +112,7 @@ export default function ShopsManagementPage() {
                                     </td>
                                     <td className="p-5">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button 
+                                            <button
                                                 onClick={() => fetchAnalytics(shop.id)}
                                                 className={`p-2 rounded-lg transition-all ${expandedShopId === shop.id ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'}`}
                                             >
@@ -151,15 +151,15 @@ export default function ShopsManagementPage() {
 
                                                     {/* Visualizations */}
                                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                                        <ShopAnalyticsChart 
-                                                            type="line" 
-                                                            title="Xu hướng doanh thu (7 ngày)" 
-                                                            data={shopAnalytics.charts.lineChart} 
+                                                        <ShopAnalyticsChart
+                                                            type="line"
+                                                            title="Xu hướng doanh thu (7 ngày)"
+                                                            data={shopAnalytics.charts.lineChart}
                                                         />
-                                                        <ShopAnalyticsChart 
-                                                            type="pie" 
-                                                            title="Phân bố đơn hàng theo trạng thái" 
-                                                            data={shopAnalytics.charts.pieChart} 
+                                                        <ShopAnalyticsChart
+                                                            type="pie"
+                                                            title="Phân bố đơn hàng theo trạng thái"
+                                                            data={shopAnalytics.charts.pieChart}
                                                         />
                                                     </div>
                                                 </div>
@@ -175,16 +175,16 @@ export default function ShopsManagementPage() {
 
             <div className="bg-indigo-900/10 border border-indigo-500/20 p-5 rounded-2xl text-indigo-300 text-sm backdrop-blur-sm">
                 <div className="flex items-start gap-4">
-                   <div className="p-2 bg-indigo-500/20 rounded-lg">
-                      <Settings className="w-5 h-5 text-indigo-400" />
-                   </div>
-                   <div>
-                     <p className="font-bold text-indigo-200">System Administrator Control</p>
-                     <p className="mt-1 opacity-80 leading-relaxed italic">
-                       Dữ liệu hiển thị dựa trên giao dịch thực tế của từng tenant. Bạn có thể sử dụng các lệnh local để debug sâu hơn 
-                       bằng cách click chuột phải vào hàng của shop hoặc chọn Eject codebase.
-                     </p>
-                   </div>
+                    <div className="p-2 bg-indigo-500/20 rounded-lg">
+                        <Settings className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                        <p className="font-bold text-indigo-200">System Administrator Control</p>
+                        <p className="mt-1 opacity-80 leading-relaxed italic">
+                            Dữ liệu hiển thị dựa trên giao dịch thực tế của từng tenant. Bạn có thể sử dụng các lệnh local để debug sâu hơn
+                            bằng cách click chuột phải vào hàng của shop hoặc chọn Eject codebase.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

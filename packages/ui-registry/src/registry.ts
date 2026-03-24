@@ -11,6 +11,11 @@ import { Header } from './components/header';
 import { Footer } from './components/footer';
 import { FeaturedCollection } from './components/featured-collection';
 import { CookieConsent } from './components/cookie-consent';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './components/ui/card';
+import { Progress } from './components/ui/progress';
+import { Label } from './components/ui/label';
 
 export const registry: Record<string, unknown> = {
   Hero,
@@ -24,7 +29,17 @@ export const registry: Record<string, unknown> = {
   Header,
   Footer,
   FeaturedCollection,
-  CookieConsent
+  CookieConsent,
+  Button,
+  Input,
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Progress,
+  Label
 };
 
 export * from './components/hero';
@@ -39,3 +54,8 @@ export * from './components/header';
 export * from './components/footer';
 export * from './components/featured-collection';
 export * from './components/cookie-consent';
+export * from './components/ui/button';
+export * from './components/ui/input';
+export * from './components/ui/card';
+export * from './components/ui/progress';
+export * from './components/ui/label';
