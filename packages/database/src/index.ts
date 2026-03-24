@@ -1,3 +1,3 @@
 // packages/database/src/index.ts
 export * from '@prisma/client';
-export * from './mongodb/models.js';
+export * from './mongodb/models';

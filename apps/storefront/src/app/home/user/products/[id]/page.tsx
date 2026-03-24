@@ -4,7 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 
 async function getProductDetails(id: string) {
     try {
-        const res = await fetch(`http://localhost:3001/api/products/${id}`, { cache: 'no-store' });
+        const res = await fetch(`http://localhost:3000/api/products/${id}`, { cache: 'no-store' });
         if (!res.ok) return null;
         return res.json();
     } catch (e) {

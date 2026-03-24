@@ -17,7 +17,7 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${getApiUrl()}/api/orders/shop/${shopId}`);
             const data = await res.json();
             if (data.data) {
@@ -48,7 +48,7 @@ export default function OrdersPage() {
         setOrders(orders.map(o => o.id === orderId ? { ...o, state: stateId } : o));
 
         try {
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${getApiUrl()}/api/orders/${orderId}/state`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

@@ -12,7 +12,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:3001/api/layouts/shop123",
+          "raw": "http://localhost:3000/api/layouts/shop123",
           "protocol": "http",
           "host": [
             "localhost"
@@ -33,7 +33,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:3001/api/layouts/shop123",
+          "raw": "http://localhost:3000/api/layouts/shop123",
           "protocol": "http",
           "host": [
             "localhost"
@@ -63,7 +63,7 @@
           "raw": "{\n  \"shopId\": \"shop123\",\n  \"header\": \"New Header\",\n  \"footer\": \"New Footer\"\n}"
         },
         "url": {
-          "raw": "http://localhost:3001/api/layouts/publish",
+          "raw": "http://localhost:3000/api/layouts/publish",
           "protocol": "http",
           "host": [
             "localhost"
@@ -84,7 +84,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:3001/api/layouts/shop123",
+          "raw": "http://localhost:3000/api/layouts/shop123",
           "protocol": "http",
           "host": [
             "localhost"

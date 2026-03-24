@@ -18,7 +18,7 @@ export default function SettingsPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
                 const res = await fetch(`${getApiUrl()}/api/shops/${shopId}`);
                 if (res.ok) {
                     const data = await res.json();
@@ -46,7 +46,7 @@ export default function SettingsPage() {
             setError("");
             setSuccess("");
 
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${getApiUrl()}/api/shops/${shopId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

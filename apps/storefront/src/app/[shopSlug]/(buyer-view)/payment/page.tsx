@@ -39,7 +39,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ shopSlug: s
         setError('');
 
         try {
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${getApiUrl()}/api/orders`, {
                 method: 'POST',
                 headers: {

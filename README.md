@@ -29,7 +29,7 @@ MONGO_DB_ATLAS="mongodb://localhost:27017/ecommerce_layouts"
 # Auth & App
 PORT=3001
 BETTER_AUTH_SECRET="your_secret_key"
-BETTER_AUTH_URL="http://localhost:3001"
+BETTER_AUTH_URL="http://localhost:3000"
 ```
 
 ### 4. Khởi tạo Cơ sở dữ liệu

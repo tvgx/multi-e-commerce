@@ -16,7 +16,7 @@ export default function ShopsManagementPage() {
         const fetchShops = async () => {
             try {
                 setLoading(true);
-                const res = await fetch('http://localhost:3001/api/shops/system/all-shops');
+                const res = await fetch('http://localhost:3000/api/shops/system/all-shops');
                 const data = await res.json();
                 if (data.code === 200) {
                     setShops(data.data);
@@ -42,8 +42,8 @@ export default function ShopsManagementPage() {
             setAnalyticsLoading(true);
             setExpandedShopId(shopId);
             const [sumRes, chartRes] = await Promise.all([
-                fetch(`http://localhost:3001/analytics/shop/${shopId}/summary`),
-                fetch(`http://localhost:3001/analytics/shop/${shopId}/charts`)
+                fetch(`http://localhost:3000/analytics/shop/${shopId}/summary`),
+                fetch(`http://localhost:3000/analytics/shop/${shopId}/charts`)
             ]);
             const summary = await sumRes.json();
             const charts = await chartRes.json();

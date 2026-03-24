@@ -22,7 +22,7 @@ export default function ProductsPage() {
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${getApiUrl()}/api/products/shop/${shopId}?limit=50`);
             const data = await res.json();
             if (data.data) {
@@ -48,7 +48,7 @@ export default function ProductsPage() {
         try {
             setSaving(true);
             setError('');
-            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const payload = {
                 shopId,
                 name: newProduct.name,

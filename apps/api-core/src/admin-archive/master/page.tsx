@@ -43,8 +43,8 @@ export default function MasterDashboard() {
       try {
         setLoading(true);
         const [sumRes, chartRes] = await Promise.all([
-          fetch("http://localhost:3001/analytics/master-summary"),
-          fetch("http://localhost:3001/analytics/master-charts"),
+          fetch("http://localhost:3000/analytics/master-summary"),
+          fetch("http://localhost:3000/analytics/master-charts"),
         ]);
 
         if (!sumRes.ok || !chartRes.ok) throw new Error("Failed to fetch data");

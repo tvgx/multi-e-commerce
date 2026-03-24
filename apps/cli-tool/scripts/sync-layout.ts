@@ -62,9 +62,9 @@ async function syncLayout(dryRun: boolean = false) {
         }
 
         // 3. Push to NestJS API
-        console.log(`[3] Pushing to NestJS Backend API (http://localhost:3001/api/layouts/sync)`);
+        console.log(`[3] Pushing to NestJS Backend API (http://localhost:3000/api/layouts/sync)`);
 
-        const response = await fetch('http://localhost:3001/api/layouts/sync', {
+        const response = await fetch('http://localhost:3000/api/layouts/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dev_token' },
             body: JSON.stringify(validatedData)

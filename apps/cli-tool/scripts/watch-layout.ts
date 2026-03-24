@@ -4,7 +4,7 @@ import * as path from 'path';
 
 // Config path to watch
 const WATCH_DIR = path.resolve(__dirname, '../../storefront/src/lib/layout/');
-const WEBSOCKET_URL = 'http://localhost:3001/layout-watcher';
+const WEBSOCKET_URL = 'http://localhost:3000/layout-watcher';
 
 console.log(`\n👀 Starting Layout Watcher Mode...`);
 console.log(`Watching directory: ${WATCH_DIR}`);

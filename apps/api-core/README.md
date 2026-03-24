@@ -10,32 +10,32 @@ Below is the complete list of all available REST endpoints exposed by `api-core`
 
 > **💡 Authentication Note**: 
 > Endpoints marked with 🔒 require an active user session. Depending on your BetterAuth setup, this might be a cookie or a token. The examples assume a Bearer token if needed, or rely on existing session cookies if running from a browser environment.
-> Default host is assumed to be `http://localhost:3001`.
+> Default host is assumed to be `http://localhost:3000`.
 
 ### 1. 📊 Analytics (`/analytics`)
 
 #### Get Master Summary (Platform-wide)
 Retrieves high-level metrics for the entire platform (Super Admin).
 ```bash
-curl -X GET http://localhost:3001/analytics/master-summary
+curl -X GET http://localhost:3000/analytics/master-summary
 ```
 
 #### Get Master Charts (Platform-wide)
 Retrieves time-series data for the master dashboard.
 ```bash
-curl -X GET http://localhost:3001/analytics/master-charts
+curl -X GET http://localhost:3000/analytics/master-charts
 ```
 
 #### Get Shop Summary
 Retrieves specific metrics for an individual shop.
 ```bash
-curl -X GET http://localhost:3001/analytics/shop/SHOP_ID_HERE/summary
+curl -X GET http://localhost:3000/analytics/shop/SHOP_ID_HERE/summary
 ```
 
 #### Get Shop Charts
 Retrieves time-series and distribution data for an individual shop.
 ```bash
-curl -X GET http://localhost:3001/analytics/shop/SHOP_ID_HERE/charts
+curl -X GET http://localhost:3000/analytics/shop/SHOP_ID_HERE/charts
 ```
 
 ---
@@ -45,14 +45,14 @@ curl -X GET http://localhost:3001/analytics/shop/SHOP_ID_HERE/charts
 #### Get Current User Profile 🔒
 Get details of the currently authenticated user.
 ```bash
-curl -X GET http://localhost:3001/api/auth/me \
+curl -X GET http://localhost:3000/api/auth/me \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 #### Change Username 🔒
 Update the authenticated user's display name.
 ```bash
-curl -X PUT http://localhost:3001/api/auth/change-username \
+curl -X PUT http://localhost:3000/api/auth/change-username \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{"newName": "New User Name"}'
@@ -65,7 +65,7 @@ curl -X PUT http://localhost:3001/api/auth/change-username \
 #### Subscribe Newsletter
 Subscribe a customer email to the shop's mailing list.
 ```bash
-curl -X POST http://localhost:3001/api/customers/subscribe \
+curl -X POST http://localhost:3000/api/customers/subscribe \
   -H "Content-Type: application/json" \
   -d '{"email": "customer@example.com", "shopId": "SHOP_ID_HERE"}'
 ```
@@ -77,13 +77,13 @@ curl -X POST http://localhost:3001/api/customers/subscribe \
 #### Get Published Layout for Storefront
 Fetch the compiled JSON layout for a specific tenant domain (used by Next.js Front-end).
 ```bash
-curl -X GET http://localhost:3001/api/storefront/shop.yourdomain.com/layout
+curl -X GET http://localhost:3000/api/storefront/shop.yourdomain.com/layout
 ```
 
 #### Publish Shop Layout 🔒
 Save and publish a new drag-and-drop layout configuration for a shop.
 ```bash
-curl -X POST http://localhost:3001/api/layouts/publish \
+curl -X POST http://localhost:3000/api/layouts/publish \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{"shopId": "SHOP_ID_HERE", "nodes": [], "theme": {}}'
@@ -92,7 +92,7 @@ curl -X POST http://localhost:3001/api/layouts/publish \
 #### Get Compiled Layout By Shop ID
 Fetch the raw layout JSON by shop ID.
 ```bash
-curl -X GET http://localhost:3001/api/layouts/SHOP_ID_HERE
+curl -X GET http://localhost:3000/api/layouts/SHOP_ID_HERE
 ```
 
 ---
@@ -102,7 +102,7 @@ curl -X GET http://localhost:3001/api/layouts/SHOP_ID_HERE
 #### Create Order (Checkout)
 Place a new order on a specific shop.
 ```bash
-curl -X POST http://localhost:3001/api/orders \
+curl -X POST http://localhost:3000/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "shopId": "SHOP_ID_HERE",
@@ -125,7 +125,7 @@ curl -X POST http://localhost:3001/api/orders \
 #### Get Order Details
 Retrieve specific order information.
 ```bash
-curl -X GET http://localhost:3001/api/orders/ORDER_ID_HERE
+curl -X GET http://localhost:3000/api/orders/ORDER_ID_HERE
 ```
 
 ---
@@ -135,7 +135,7 @@ curl -X GET http://localhost:3001/api/orders/ORDER_ID_HERE
 #### Create Product 🔒
 Create a new product with default variant and stock.
 ```bash
-curl -X POST http://localhost:3001/api/products \
+curl -X POST http://localhost:3000/api/products \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -151,19 +151,19 @@ curl -X POST http://localhost:3001/api/products \
 #### Get Shop Products
 List products for a specific shop (with optional limit).
 ```bash
-curl -X GET "http://localhost:3001/api/products/shop/SHOP_ID_HERE?limit=20"
+curl -X GET "http://localhost:3000/api/products/shop/SHOP_ID_HERE?limit=20"
 ```
 
 #### Get Product Detail
 Get full details of a specific product.
 ```bash
-curl -X GET http://localhost:3001/api/products/PRODUCT_ID_HERE
+curl -X GET http://localhost:3000/api/products/PRODUCT_ID_HERE
 ```
 
 #### Update Product 🔒
 Update product details.
 ```bash
-curl -X PUT http://localhost:3001/api/products/PRODUCT_ID_HERE \
+curl -X PUT http://localhost:3000/api/products/PRODUCT_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -179,7 +179,7 @@ curl -X PUT http://localhost:3001/api/products/PRODUCT_ID_HERE \
 #### Create Shop 🔒
 Register a new tenant shop for the authenticated user.
 ```bash
-curl -X POST http://localhost:3001/api/shops \
+curl -X POST http://localhost:3000/api/shops \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -191,26 +191,26 @@ curl -X POST http://localhost:3001/api/shops \
 #### Get My Shops 🔒
 Retrieve a list of shops owned by the authenticated user.
 ```bash
-curl -X GET http://localhost:3001/api/shops/my-shops \
+curl -X GET http://localhost:3000/api/shops/my-shops \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 #### Get All Platform Shops (Admin)
 List all registered shops on the platform.
 ```bash
-curl -X GET http://localhost:3001/api/shops/system/all-shops
+curl -X GET http://localhost:3000/api/shops/system/all-shops
 ```
 
 #### Get Shop Settings
 Get settings and metadata for a specific shop.
 ```bash
-curl -X GET http://localhost:3001/api/shops/SHOP_ID_HERE
+curl -X GET http://localhost:3000/api/shops/SHOP_ID_HERE
 ```
 
 #### Update Shop Settings 🔒
 Modify shop metadata (name, domain, active status).
 ```bash
-curl -X PUT http://localhost:3001/api/shops/SHOP_ID_HERE \
+curl -X PUT http://localhost:3000/api/shops/SHOP_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -225,13 +225,13 @@ curl -X PUT http://localhost:3001/api/shops/SHOP_ID_HERE \
 #### System Health Check
 Verify API uptime and database connectivity.
 ```bash
-curl -X GET http://localhost:3001/api/system/health
+curl -X GET http://localhost:3000/api/system/health
 ```
 
 #### Validate JSON Setup
 Check if a payload matches the required layout schema.
 ```bash
-curl -X POST http://localhost:3001/api/system/validate-json \
+curl -X POST http://localhost:3000/api/system/validate-json \
   -H "Content-Type: application/json" \
   -d '{"jsonConfig": "{...}"}'
 ```
@@ -239,7 +239,7 @@ curl -X POST http://localhost:3001/api/system/validate-json \
 #### Mass Sync Feature (Internal)
 Utility to sync data models across shards/tenants.
 ```bash
-curl -X POST http://localhost:3001/api/system/mass-sync \
+curl -X POST http://localhost:3000/api/system/mass-sync \
   -H "Content-Type: application/json" \
   -d '{"targetAttr": "featureFlags", "newValue": "on"}'
 ```

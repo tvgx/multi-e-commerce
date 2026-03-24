@@ -75,7 +75,7 @@ describe('SystemCacheService', () => {
     });
 
     it('should return false if fetch request fails', async () => {
-      configService.get.mockReturnValueOnce('http://localhost:3000');
+      configService.get.mockReturnValueOnce('http://localhost:5201');
       configService.get.mockReturnValueOnce('dev_secret');
       
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -86,7 +86,7 @@ describe('SystemCacheService', () => {
       const result = await service.revalidateStorefront('test-tag');
       
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:3000/api/revalidate?tag=test-tag&secret=dev_secret',
+        'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
         { method: 'POST' }
       );
       expect(result).toBe(false);
@@ -94,7 +94,7 @@ describe('SystemCacheService', () => {
 
     it('should return true if fetch request is successful', async () => {
       configService.get.mockImplementation((key: string) => {
-        if (key === 'STOREFRONT_URL') return 'http://localhost:3000';
+        if (key === 'STOREFRONT_URL') return 'http://localhost:5201';
         if (key === 'REVALIDATE_SECRET') return 'dev_secret';
       });
 
@@ -106,7 +106,7 @@ describe('SystemCacheService', () => {
       const result = await service.revalidateStorefront('test-tag');
       
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:3000/api/revalidate?tag=test-tag&secret=dev_secret',
+        'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
         { method: 'POST' }
       );
       expect(result).toBe(true);
@@ -114,7 +114,7 @@ describe('SystemCacheService', () => {
     
     it('should return false if fetch throws an error', async () => {
       configService.get.mockImplementation((key: string) => {
-        if (key === 'STOREFRONT_URL') return 'http://localhost:3000';
+        if (key === 'STOREFRONT_URL') return 'http://localhost:5201';
         if (key === 'REVALIDATE_SECRET') return 'dev_secret';
       });
 

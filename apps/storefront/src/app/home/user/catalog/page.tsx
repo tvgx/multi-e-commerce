@@ -2,7 +2,7 @@ import { ProductCard } from "@ecommerce/ui-registry";
 
 async function getProducts() {
     try {
-        const res = await fetch('http://localhost:3001/api/products/shop/demo-shop-123', {
+        const res = await fetch('http://localhost:3000/api/products/shop/demo-shop-123', {
             cache: 'no-store' // Always fetch latest for this MVP
         });
         if (!res.ok) return null;
