@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Body, Param, Query, HttpStatus } from '@nes
 import { ProductService } from './product.service';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/product-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
@@ -15,7 +15,7 @@ export class ProductController {
   async createProduct(
     @Session() session: UserSession,
     @Body() dto: CreateProductDto,
-  ): Promise<BaseResponseDto<any>> {
+  ): Promise<BaseResponseDto<object>> {
     if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
     return this.productService.createProduct(session.user.id, dto);
   }
@@ -28,7 +28,7 @@ export class ProductController {
     @Query('categoryId') categoryId?: string,
     @Query('minPrice') minPrice?: number,
     @Query('maxPrice') maxPrice?: number,
-  ): Promise<BaseResponseDto<any>> {
+  ): Promise<BaseResponseDto<object[]>> {
     return this.productService.getProductsByShop(
       shopId,
       limit ? Number(limit) : 20,
@@ -42,7 +42,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  async getProductDetail(@Param('id') id: string): Promise<BaseResponseDto<any>> {
+  async getProductDetail(@Param('id') id: string): Promise<BaseResponseDto<object>> {
     return this.productService.getProductDetails(id);
   }
 
@@ -51,7 +51,7 @@ export class ProductController {
     @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
-  ): Promise<BaseResponseDto<any>> {
+  ): Promise<BaseResponseDto<object>> {
     if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
     return this.productService.updateProduct(session.user.id, id, dto);
   }

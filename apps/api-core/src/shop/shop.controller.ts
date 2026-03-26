@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Body, Param, HttpStatus } from '@nestjs/com
 import { ShopService } from './shop.service';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CreateShopDto, UpdateShopDto } from './dto/shop.dto';
+import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
@@ -15,7 +15,7 @@ export class ShopController {
   async createShop(
     @Session() session: UserSession,
     @Body() dto: CreateShopDto,
-  ): Promise<BaseResponseDto<any>> {
+  ): Promise<BaseResponseDto<object>> {
     if (!session) {
       throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
     }
@@ -23,7 +23,7 @@ export class ShopController {
   }
 
   @Get('my-shops')
-  async getMyShops(@Session() session: UserSession): Promise<BaseResponseDto<any>> {
+  async getMyShops(@Session() session: UserSession): Promise<BaseResponseDto<object[]>> {
     if (!session) {
       throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
     }
@@ -31,7 +31,7 @@ export class ShopController {
   }
 
   @Get(':id')
-  async getShopSettings(@Param('id') id: string): Promise<BaseResponseDto<any>> {
+  async getShopSettings(@Param('id') id: string): Promise<BaseResponseDto<object>> {
     return this.shopService.getShopSettings(id);
   }
 
@@ -40,7 +40,7 @@ export class ShopController {
     @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateShopDto,
-  ): Promise<BaseResponseDto<any>> {
+  ): Promise<BaseResponseDto<object>> {
     if (!session) {
       throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
     }
@@ -48,7 +48,7 @@ export class ShopController {
   }
 
   @Get('system/all-shops')
-  async getSystemAllShops(): Promise<BaseResponseDto<any>> {
+  async getSystemAllShops(): Promise<BaseResponseDto<object[]>> {
     return this.shopService.getAllShops();
   }
 }

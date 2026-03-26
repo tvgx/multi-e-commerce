@@ -15,6 +15,9 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { SystemCacheModule } from './system/cache/cache.module';
 import { CartModule } from './cart/cart.module';
 import { PaymentModule } from './payment/payment.module';
+import { CommonModule } from './common/common.module';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 
 import { auth } from './auth';
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
@@ -29,6 +32,7 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        maxPoolSize: 10, // Optimized for 16GB RAM limit
       }),
       inject: [ConfigService],
     }),
@@ -47,8 +51,13 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     SystemCacheModule,
     CartModule,
     PaymentModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('*');
+  }
+}

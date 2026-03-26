@@ -4,7 +4,7 @@ metadata:
   name: api-core-config
   namespace: ecommerce
 data:
-  PORT: "3001"
+  PORT: "3000"
   NODE_ENV: "production"
   DATABASE_URL_SHARD_1: "postgresql://postgres:lordfedder222@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
   DATABASE_URL_SHARD_2: "postgresql://postgres:lordfedder222@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
@@ -18,7 +18,7 @@ metadata:
   namespace: ecommerce
 spec:
   ports:
-    - port: 3001
+    - port: 3000
   selector:
     app: api-core
 ---
@@ -41,7 +41,7 @@ spec:
         - name: api-core
           image: ecommerce-api-core:latest # This would be replaced by actual registry image
           ports:
-            - containerPort: 3001
+            - containerPort: 3000
           envFrom:
             - configMapRef:
                 name: api-core-config

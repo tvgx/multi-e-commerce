@@ -10,7 +10,7 @@
     "test:ui": "playwright test"
   },
   "dependencies": {
-    "@ecommerce/ui-registry": "workspace:*",
+    "@ecommerce/ui-registry": "*",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "react": "19.2.3",

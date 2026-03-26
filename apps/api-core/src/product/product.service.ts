@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PrismaService } from '../database/prisma.service';
@@ -10,25 +10,32 @@ import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { TenantService } from '../common/services/tenant.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     private prisma: PrismaService,
+    private tenantService: TenantService,
     @InjectModel(ProductLayout.name)
     private productLayoutModel: Model<ProductDocument>,
   ) {}
 
-  async createProduct(ownerId: string, dto: CreateProductDto): Promise<BaseResponseDto<any>> {
+  async createProduct(ownerId: string, dto: CreateProductDto): Promise<BaseResponseDto<object>> {
     try {
+      const shopId = this.tenantService.getTenantId() || dto.shopId;
+      if (!shopId) {
+        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      }
+
       // 1. Verify shop ownership
-      const shop = await this.prisma.shop.findUnique({ where: { id: dto.shopId } });
+      const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
       if (!shop) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Shop not found', HttpStatus.NOT_FOUND);
       if (shop.ownerId !== ownerId) {
         throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
       }
 
-      // 2. Policy check (Weight/Price) - although handled by class-validator, we do double check
+      // 2. Policy check
       if (dto.basePrice > 30000000 || (dto.weight && dto.weight > 20)) {
         throw new CustomException(
           ResponseCodes.POLICY_VIOLATION,
@@ -37,19 +44,17 @@ export class ProductService {
         );
       }
 
-      // 3. Create in Postgres (Product + Master Variant + StockLocation + StockItem)
+      // 3. Create in Postgres
       const product = await this.prisma.$transaction(async (tx) => {
-        // 3.1 Create Product
         const p = await tx.product.create({
           data: {
             name: dto.name,
             slug: dto.slug,
-            shopId: dto.shopId,
+            shopId: shopId,
             status: 'PUBLISHED',
           },
         });
 
-        // 3.2 Create Master Variant
         const variant = await tx.variant.create({
           data: {
             productId: p.id,
@@ -60,22 +65,20 @@ export class ProductService {
           },
         });
 
-        // 3.3 Ensure a default StockLocation exists for the shop
         let stockLocation = await tx.stockLocation.findFirst({
-          where: { shopId: dto.shopId, isDefault: true },
+          where: { shopId, isDefault: true },
         });
 
         if (!stockLocation) {
           stockLocation = await tx.stockLocation.create({
             data: {
-              shopId: dto.shopId,
+              shopId,
               name: 'Default Warehouse',
               isDefault: true,
             },
           });
         }
 
-        // 3.4 Create StockItem
         await tx.stockItem.create({
           data: {
             stockLocationId: stockLocation.id,
@@ -90,7 +93,7 @@ export class ProductService {
       // 4. Create in MongoDB
       const layout = new this.productLayoutModel({
         productId: product.id,
-        shopId: dto.shopId,
+        shopId: shopId,
         metadata: dto.extraMetadata || {},
         images: dto.images || [],
       });
@@ -99,16 +102,23 @@ export class ProductService {
       return BaseResponseDto.success(product);
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Exception error.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new InternalServerErrorException('Failed to create product');
     }
   }
 
   async getProductsByShop(
-    shopId: string, 
+    shopId: string,
     limit: number = 20,
-    filters?: { search?: string; categoryId?: string; minPrice?: number; maxPrice?: number }
-  ): Promise<BaseResponseDto<any>> {
-    const whereClause: any = { shopId };
+    filters?: { search?: string; categoryId?: string; minPrice?: number; maxPrice?: number },
+  ): Promise<BaseResponseDto<object[]>> {
+    const currentShopId = this.tenantService.getTenantId();
+    const targetShopId = shopId || currentShopId;
+
+    if (!targetShopId) {
+      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+    }
+
+    const whereClause: any = { shopId: targetShopId };
 
     if (filters?.search) {
       whereClause.name = { contains: filters.search, mode: 'insensitive' };
@@ -147,7 +157,7 @@ export class ProductService {
     return BaseResponseDto.success(products);
   }
 
-  async getProductDetails(productId: string): Promise<BaseResponseDto<any>> {
+  async getProductDetails(productId: string): Promise<BaseResponseDto<object>> {
     const productPostgres = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -165,11 +175,14 @@ export class ProductService {
       throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
     }
 
-    const layoutDoc = await this.productLayoutModel
-      .findOne({ productId })
-      .lean();
+    // Tenant isolation check
+    const currentShopId = this.tenantService.getTenantId();
+    if (currentShopId && productPostgres.shopId !== currentShopId) {
+      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+    }
 
-    // To maintain compatibility with existing frontend, we flatten the master variant's price and stock
+    const layoutDoc = await this.productLayoutModel.findOne({ productId }).lean();
+
     const masterVariant = productPostgres.variants.find((v) => v.isMaster);
     const totalStock = masterVariant?.stockItems.reduce((acc, item) => acc + item.countOnHand, 0) || 0;
 

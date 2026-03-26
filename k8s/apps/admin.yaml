@@ -5,7 +5,7 @@ metadata:
   namespace: ecommerce
 spec:
   ports:
-    - port: 3000
+    - port: 5200
   selector:
     app: admin
 ---
@@ -28,7 +28,7 @@ spec:
         - name: admin
           image: ecommerce-admin:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 5200
           env:
             - name: NEXT_PUBLIC_API_URL
               value: "http://api.ecommerce.local"

@@ -4,7 +4,7 @@ metadata:
   name: storefront-config
   namespace: ecommerce
 data:
-  PORT: "3002"
+  PORT: "5201"
   NODE_ENV: "production"
   REVALIDATE_SECRET: "dev_secret"
 ---
@@ -15,8 +15,8 @@ metadata:
   namespace: ecommerce
 spec:
   ports:
-    - port: 3002
-      targetPort: 3002
+    - port: 5201
+      targetPort: 5201
   selector:
     app: storefront
 ---
@@ -39,7 +39,7 @@ spec:
         - name: storefront
           image: ecommerce-storefront:latest
           ports:
-            - containerPort: 3002
+            - containerPort: 5201
           envFrom:
             - configMapRef:
                 name: storefront-config
