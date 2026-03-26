@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'nestjs-zod/z';
 import { createZodDto } from 'nestjs-zod';
 
 export const CreateShopSchema = z.object({
@@ -15,5 +15,5 @@ export const UpdateShopSchema = z.object({
   productsPerPage: z.number().int().positive().optional(),
 });
 
-export class CreateShopDto extends createZodDto(CreateShopSchema) {}
-export class UpdateShopDto extends createZodDto(UpdateShopSchema) {}
+export class CreateShopDto extends createZodDto(CreateShopSchema as any) {}
+export class UpdateShopDto extends createZodDto(UpdateShopSchema as any) {}

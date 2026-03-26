@@ -1,7 +1,7 @@
 import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ShopTemplate } from '@ecommerce/database';
-import { CreateShopDto, UpdateShopDto } from './dto/shop.dto';
+import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';

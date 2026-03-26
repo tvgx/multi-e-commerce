@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'nestjs-zod/z';
 import { createZodDto } from 'nestjs-zod';
 
 export const CreateProductSchema = z.object({
@@ -10,7 +10,7 @@ export const CreateProductSchema = z.object({
   weight: z.number().max(20, 'Weight over 20KG policy violation').optional(),
   inStock: z.number().int().min(0).optional().default(0),
   images: z.array(z.string()).optional().default([]),
-  extraMetadata: z.record(z.any()).optional().default({}),
+  extraMetadata: z.record(z.string(), z.any()).optional().default({}),
 });
 
 export const UpdateProductSchema = z.object({
@@ -19,8 +19,8 @@ export const UpdateProductSchema = z.object({
   basePrice: z.number().min(0).max(30000000).optional(),
   weight: z.number().max(20).optional(),
   inStock: z.number().int().min(0).optional(),
-  extraMetadata: z.record(z.any()).optional(),
+  extraMetadata: z.record(z.string(), z.any()).optional(),
 });
 
-export class CreateProductDto extends createZodDto(CreateProductSchema) {}
-export class UpdateProductDto extends createZodDto(UpdateProductSchema) {}
+export class CreateProductDto extends createZodDto(CreateProductSchema as any) {}
+export class UpdateProductDto extends createZodDto(UpdateProductSchema as any) {}

@@ -6,7 +6,7 @@ import {
   ProductLayout,
   ProductDocument,
 } from './schemas/product-layout.schema';
-import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/product-zod.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
