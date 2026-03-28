@@ -45,7 +45,7 @@ export class ProductService {
       }
 
       // 3. Create in Postgres
-      const product = await this.prisma.$transaction(async (tx) => {
+      const product = await this.prisma.$transaction(async (tx: any) => {
         const p = await tx.product.create({
           data: {
             name: dto.name,
@@ -183,8 +183,8 @@ export class ProductService {
 
     const layoutDoc = await this.productLayoutModel.findOne({ productId }).lean();
 
-    const masterVariant = productPostgres.variants.find((v) => v.isMaster);
-    const totalStock = masterVariant?.stockItems.reduce((acc, item) => acc + item.countOnHand, 0) || 0;
+    const masterVariant = productPostgres.variants.find((v: any) => v.isMaster);
+    const totalStock = masterVariant?.stockItems.reduce((acc: any, item: any) => acc + item.countOnHand, 0) || 0;
 
     return BaseResponseDto.success({
       ...productPostgres,
@@ -203,7 +203,7 @@ export class ProductService {
     if (!product) throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
     if (product.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
 
-    const updatedPostgres = await this.prisma.$transaction(async (tx) => {
+    const updatedPostgres = await this.prisma.$transaction(async (tx: any) => {
       // 1. Update Product
       const p = await tx.product.update({
         where: { id: productId },

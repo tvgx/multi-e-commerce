@@ -16,7 +16,7 @@ export class OrderService {
   async createOrder(dto: CreateOrderDto): Promise<BaseResponseDto<any>> {
     try {
       // 1. Transaction to ensure atomicity
-      return await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx: any) => {
         // 0. Find or create Customer
         let customer = await tx.customer.findUnique({
           where: {
@@ -65,13 +65,13 @@ export class OrderService {
             throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Master variant not found', HttpStatus.INTERNAL_SERVER_ERROR);
           }
 
-          const totalStock = masterVariant.stockItems.reduce((acc, si) => acc + si.countOnHand, 0);
+          const totalStock = masterVariant.stockItems.reduce((acc: any, si: any) => acc + si.countOnHand, 0);
           if (totalStock < item.quantity) {
             throw new CustomException(ResponseCodes.PRODUCT_SOLD, 'The product has been sold or is out of stock.', HttpStatus.BAD_REQUEST);
           }
 
           // Reduce stock (simple: take from default location or first location)
-          const defaultStockItem = masterVariant.stockItems.find(si => si.stockLocation.isDefault) || masterVariant.stockItems[0];
+          const defaultStockItem = masterVariant.stockItems.find((si: any) => si.stockLocation.isDefault) || masterVariant.stockItems[0];
           
           await tx.stockItem.update({
             where: { id: defaultStockItem.id },
