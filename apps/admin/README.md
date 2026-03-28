@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛡️ Admin Dashboard - `apps/admin`
 
-## Getting Started
+Đây là bảng điều khiển quản trị trung tâm dành cho người dùng Merchant (Chủ shop) và Super Admin. Ứng dụng này cung cấp giao diện trực quan để quản lý mọi khía cạnh của một hệ thống SaaS e-commerce.
 
-First, run the development server:
+---
 
+## 🌟 Chức năng chính
+
+### 1. Quản lý Tenant (Shops)
+*   **Đăng ký và cấu hình domain**: Tạo shop mới và gắn tên miền riêng.
+*   **Trạng thái hoạt động**: Kích hoạt hoặc tạm ngưng các cửa hàng.
+
+### 2. Thiết kế Giao diện (Visual Layout Builder)
+Đây là công cụ quan trọng nhất của Admin:
+*   **Kéo thả Block**: Thay đổi cấu trúc giao diện Storefront mà không cần code.
+*   **Preview**: Xem trước thay đổi theo thời gian thực trước khi `Publish` lên Database.
+
+### 3. Quản lý thương mại
+*   **Sản phẩm & Tồn kho**: Quản lý danh mục, SKU, biến thể sản phẩm.
+*   **Đơn hàng**: Theo dõi quy trình xử lý đơn hàng và thanh toán.
+*   **Khách hàng**: Quản lý danh sách thành viên và phân phối voucher.
+
+### 4. Báo cáo & Phân tích
+*   **Analytics Dashboard**: Tổng số đơn hàng, doanh thu, tỉ lệ chuyển đổi qua các biểu đồ động.
+
+---
+
+## 🏗️ Công nghệ sử dụng
+*   **Next.js 15 (App Router)**: Framework nền tảng.
+*   **Better Auth**: Quản lý phiên làm việc và phân quyền.
+*   **React Hook Form & Zod**: Xử lý form và validate dữ liệu chặt chẽ.
+*   **Recharts**: Thư viện vẽ biểu đồ phân tích.
+
+---
+
+## 🛠️ Phát triển Local
+Để chạy ứng dụng admin độc lập:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Truy cập qua: `http://localhost:5200` (mặc định cho admin).
 
-Open [http://localhost:5201](http://localhost:5201) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> [!TIP]
+> Các cấu hình layout được lưu trực tiếp vào MongoDB dưới dạng JSON diff để đảm bảo tính nhẹ nhàng và linh hoạt của hệ thống Zero-file.

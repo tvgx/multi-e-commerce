@@ -4,7 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { ShopModule } from './shop/shop.module';
 import { ProductModule } from './product/product.module';
 import { CustomerModule } from './customer/customer.module';
@@ -19,7 +19,7 @@ import { CommonModule } from './common/common.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 
-import { auth } from './auth';
+import { auth } from './auth.config';
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 
 @Module({
@@ -31,7 +31,7 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
+        uri: configService.get<string>('MONGO_DB_ATLAS'),
         maxPoolSize: 10, // Optimized for 16GB RAM limit
       }),
       inject: [ConfigService],

@@ -1,15 +1,26 @@
-# Platform Multi-tenant E-commerce (Zero-File Layout Engine)
+# 🛒 Multi-tenant E-commerce Platform (SaaS Engine)
 
-Chào mừng bạn đến với nền tảng thương mại điện tử đa kênh (multi-tenant) thế hệ mới, được tích hợp công cụ thiết kế giao diện động (Zero-File Layout Engine) và kiến trúc dữ liệu Hybrid tối ưu cho hiệu năng và khả năng mở rộng.
+Chào mừng bạn đến với nền tảng thương mại điện tử đa kênh (multi-tenant) thế hệ mới. Đây không chỉ là một website bán hàng đơn lẻ, mà là một **SaaS Engine** được thiết kế theo triết lý **"Zero-File Doctrine"**.
+
+---
+
+## 🏗️ Kiến trúc Core: "Zero-File" Doctrine
+
+Hệ thống được thiết kế để phục vụ hàng ngàn khách hàng (Tenants) mà không cần tạo thêm bất kỳ file code giao diện (`.tsx` hoặc `.page.tsx`) nào cho từng shop.
+
+*   **Registry**: Toàn bộ UI Components nằm tập trung tại `packages/ui-library` (dựa trên shadcn/ui).
+*   **Blueprint**: Cấu trúc mặc định của các ngành hàng (Thời trang, Điện tử,...) được định nghĩa qua `MasterTemplate` (MongoDB).
+*   **Override**: Mỗi cửa hàng (Tenant) sẽ có một bản `TenantLayout` (MongoDB) chứa các thay đổi riêng biệt (JSON diff).
+*   **Engine**: `apps/storefront` (Next.js 15) nhận `tenantId`, gọi API lấy JSON cấu hình và sử dụng **Dynamic Component Resolver** để render giao diện tương ứng.
 
 ---
 
 ## 🚀 Hướng dẫn cài đặt nhanh
 
 ### 1. Yêu cầu hệ thống
-- **Node.js**: Phiên bản >= 18.
-- **Docker**: Để chạy PostgreSQL và MongoDB (hoặc cài đặt trực tiếp trên máy).
-- **Package Manager**: NPM (khuyến nghị v11+).
+*   **Node.js**: Phiên bản >= 18.
+*   **Docker**: Để chạy PostgreSQL và MongoDB (hoặc cài đặt trực tiếp trên máy).
+*   **Bộ nhớ**: Khuyên dùng tối thiểu 16GB RAM (Tối ưu hóa cho WSL2).
 
 ### 2. Cài đặt Dependencies
 Từ thư mục gốc của project:
@@ -18,7 +29,7 @@ npm install
 ```
 
 ### 3. Cấu hình biến môi trường
-Tạo hoặc chỉnh sửa file `.env` ở thư mục gốc:
+Tạo file `.env` ở thư mục gốc:
 ```env
 # PostgreSQL (Prisma)
 DATABASE_URL="postgresql://user:password@localhost:5432/ecommerce"
@@ -37,66 +48,59 @@ BETTER_AUTH_URL="http://localhost:3000"
 # Tạo Prisma Client
 npx prisma generate --schema packages/database/prisma/schema.prisma
 
-# Chạy migration để khởi tạo bảng trong PostgreSQL
-npx prisma migrate dev --name init --schema packages/database/prisma/schema.prisma
+# Chạy migration khởi tạo bảng
+npx prisma migrate dev --schema packages/database/prisma/schema.prisma
 ```
 
 ### 5. Chạy project
-Sử dụng Turborepo để chạy tất cả các ứng dụng (API, Admin, Storefront) cùng lúc:
+Sử dụng **Turborepo** để khởi chạy toàn bộ hệ thống:
 ```bash
 npm run dev
 ```
 
 ---
 
-## 🏗️ Thiết kế Cơ sở dữ liệu Hybrid
+## 🛠️ CLI & Workflow (Quan trọng)
 
-Dự án sử dụng mô hình **Hybrid SQL/NoSQL** để tận dụng ưu điểm của cả hai thế giới:
+Để quản lý Layout và Template hiệu quả, hãy sử dụng các lệnh CLI sau thay vì thao tác tay vào Database:
 
-### 1. PostgreSQL (via Prisma) - Core Transactional Data
-Quản lý các dữ liệu có cấu trúc chặt chẽ, yêu cầu tính toàn vẹn cao (ACID):
-- **Users & Auth**: Thông tin người dùng, session, quyền hạn.
-- **Shops**: Danh sách các cửa hàng trên nền tảng.
-- **Products & Variants**: Thông tin sản phẩm cơ bản, giá, mã SKU, thuộc tính.
-- **Inventory**: Quản lý tồn kho theo kho hàng (Stock Locations).
-- **Orders & Payments**: Quy trình xử lý đơn hàng và thanh toán.
+*   **Đồng bộ Layout**: Cập nhật cấu hình từ file `layout.config.ts` vào MongoDB.
+    ```bash
+    npm run sync:layout --shop-id=<id>
+    ```
+*   **Tạo Template mẫu**: Khởi tạo layout mặc định cho một ngành hàng mới.
+    ```bash
+    npm run generate:master --industry=<type>
+    ```
 
-### 2. MongoDB (via Mongoose) - Flexible Layout Data
-Quản lý các dữ liệu phi cấu trúc hoặc cấu trúc linh hoạt, tần suất đọc cao:
-- **Product Layouts**: Nội dung mô tả sản phẩm (HTML), gallery ảnh, các thuộc tính linh hoạt.
-- **Master Templates**: Các mẫu giao diện cửa hàng có sẵn.
-- **Layout Caching**: Lưu trữ các phiên bản giao diện đã được merge để phục vụ rendering tốc độ cao.
+---
+
+## 💻 Tech Stack & Monorepo Mapping
+
+*   `apps/api-core` (**NestJS 11**):
+    *   Prisma cho PostgreSQL (Metadata: Owners, Shops, Orders).
+    *   Mongoose cho MongoDB (Layouts: Master & Child JSON).
+    *   Multi-tenancy qua `AsyncLocalStorage` để cô lập dữ liệu.
+*   `apps/storefront` (**Next.js 15 - App Router**):
+    *   Sử dụng Server Components làm mặc định.
+    *   Dynamic Rendering dựa trên Tenant JSON.
+*   `packages/ui-library` (**Shared UI**):
+    *   Sử dụng **shadcn/ui** (Radix).
+    *   Mọi component phải hỗ trợ `className` qua hàm `cn()`.
+*   `packages/schema` (**Shared Zod**):
+    *   Nguồn sự thật duy nhất (Single Source of Truth) cho các JSON Layout.
+
+---
+
+## ⚡ Giới hạn Tài nguyên (16GB RAM Rule)
+
+Dự án được tối ưu cho môi trường máy cá nhân:
+*   **Quản lý bộ nhớ**: Luôn đóng kết nối DB khi không sử dụng.
+*   **Tốc độ**: Sử dụng Cache linh hoạt để tránh gọi API lặp lại.
+*   **WSL2**: Toàn bộ project nên đặt ở ổ đĩa logic (D:) và được mount đúng cách vào WSL để đạt hiệu năng tốt nhất.
+
+---
 
 > [!TIP]
-> Sự kết hợp này giúp hệ thống vừa đảm bảo tính chính xác của đơn hàng/kho hàng (SQL), vừa cho phép các chủ cửa hàng tùy biến giao diện cực kỳ linh hoạt mà không cần thay đổi schema database (NoSQL).
+> Khi bạn chỉnh sửa bất kỳ Component nào trong `ui-library`, hãy nhớ kiểm tra tính tương thích với JSON Schema tại `packages/schema`.
 
----
-
-## 🎨 Hướng dẫn Master Templates
-
-Hệ thống cung cấp một bộ các **Master Templates** giúp bạn khởi tạo giao diện cho cửa hàng mới chỉ trong vài giây.
-
-### Vị trí Templates
-Các template mặc định được lưu trữ dưới dạng JSON tại: `packages/master-templates/src/`.
-- `fashion.json`: Dành cho cửa hàng thời trang.
-- `home-appliances.json`: Dành cho điện máy, gia dụng.
-- `mom-and-baby.json`: Dành cho mẹ và bé.
-- `ready-to-eat.json`: Dành cho thực phẩm, đồ ăn nhanh.
-
-### Cách sử dụng
-Khi tạo một Shop mới thông qua API hoặc Admin Dashboard, bạn có thể chọn một `templateId`. Hệ thống sẽ:
-1. Đọc file JSON tương ứng từ package `master-templates`.
-2. Lưu dữ liệu này vào `ShopTemplate` trong MongoDB của Shop đó.
-3. Đồng bộ hóa với `MergedLayoutsCache` để Storefront có thể hiển thị ngay lập tức.
-
-### Tùy chỉnh Template
-Bạn có thể chỉnh sửa các file JSON trong `packages/master-templates` để thay đổi giao diện mặc định cho toàn bộ nền tảng, hoặc tùy chỉnh riêng cho từng shop thông qua công cụ **Visual Builder** trong Storefront.
-
----
-
-## 🛠️ Stack Công nghệ
-- **Monorepo**: Turborepo.
-- **Backend**: NestJS, Prisma, Mongoose.
-- **Frontend**: Next.js 15 (App Router), TailwindCSS.
-- **Authentication**: Better Auth.
-- **UI System**: Shadcn/UI (Registry).

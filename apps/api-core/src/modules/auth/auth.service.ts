@@ -1,8 +1,8 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
-import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { PrismaService } from '../../database/prisma.service';
+import { CustomException } from '../../common/exceptions/custom.exception';
+import { ResponseCodes } from '../../common/constants/response-codes.constant';
+import { BaseResponseDto } from '../../common/dto/base-response.dto';
 
 @Injectable()
 export class AuthService {

@@ -1,245 +1,84 @@
-# E-commerce Platform - `api-core`
+# 🚀 E-commerce Platform - `api-core`
 
-This is the core backend service for the multi-tenant E-commerce platform, built with **NestJS**. It acts as the central hub for data management, analytics, tenant shops, and business logic.
+Đây là dịch vụ backend trung tâm của nền tảng thương mại điện tử multi-tenant, được xây dựng bằng **NestJS 11**. `api-core` chịu trách nhiệm quản lý dữ liệu, xác thực, và cung cấp API cho cả Admin Dashboard và Storefront Engine.
 
 ---
 
-## 📚 API Catalog & Testing Guide (Postman / cURL)
+## 🏗️ Kiến trúc Hệ thống
 
-Below is the complete list of all available REST endpoints exposed by `api-core`. You can copy the provided `curl` commands and paste them directly into Postman (Import -> Raw text) or run them in your terminal.
+### 1. Hybrid Database Strategy
+Chúng tôi sử dụng sự kết hợp giữa SQL và NoSQL để tối ưu hóa hiệu suất:
+*   **PostgreSQL (Prisma)**: Lưu trữ dữ liệu có cấu trúc, yêu cầu tính toàn vẹn cao (ACID) như: Người dùng, Cửa hàng (Shops), Sản phẩm cơ bản, Đơn hàng, Tồn kho.
+*   **MongoDB (Mongoose)**: Lưu trữ dữ liệu linh hoạt, phi cấu trúc như: Layout cấu hình của từng shop, Master Templates, Content blocks.
 
-> **💡 Authentication Note**: 
-> Endpoints marked with 🔒 require an active user session. Depending on your BetterAuth setup, this might be a cookie or a token. The examples assume a Bearer token if needed, or rely on existing session cookies if running from a browser environment.
-> Default host is assumed to be `http://localhost:3000`.
+### 2. Isolation & Multi-tenancy
+Để đảm bảo an toàn dữ liệu giữa các khách hàng (Tenants):
+*   **AsyncLocalStorage**: Sử dụng để lưu trữ `tenantId` (shopId) xuyên suốt vòng đời của một request.
+*   **TenantInterceptor**: Tự động trích xuất shopId từ domain hoặc header và gán vào context.
+*   **Database Scoping**: Mọi câu lệnh truy vấn Prisma/Mongoose đều được tự động filter theo `shopId` hiện tại.
+
+---
+
+## 📚 Danh mục API & Hướng dẫn Testing
+
+Dưới đây là danh sách các endpoints chính. Bạn có thể sử dụng `curl` để test nhanh.
+*Mặc định host là `http://localhost:3000`.*
 
 ### 1. 📊 Analytics (`/analytics`)
+*   **Tổng quan toàn hệ thống (Admin)**:
+    ```bash
+    curl -X GET http://localhost:3000/analytics/master-summary
+    ```
+*   **Thống kê chi tiết từng Shop**:
+    ```bash
+    curl -X GET http://localhost:3000/analytics/shop/ID_SHOP/summary
+    ```
 
-#### Get Master Summary (Platform-wide)
-Retrieves high-level metrics for the entire platform (Super Admin).
-```bash
-curl -X GET http://localhost:3000/analytics/master-summary
-```
+### 2. 🎨 Layout & Storefront (`/api/layouts` & `/api/storefront`)
+Đây là phần cốt lõi của **Zero-File Engine**.
+*   **Lấy Layout đã compile cho Storefront**:
+    ```bash
+    curl -X GET http://localhost:3000/api/storefront/shop.yourdomain.com/layout
+    ```
+*   **Publish Layout mới (Visual Builder)**: 🔒
+    ```bash
+    curl -X POST http://localhost:3000/api/layouts/publish \
+      -H "Content-Type: application/json" \
+      -d '{"shopId": "ID_SHOP", "nodes": [], "theme": {}}'
+    ```
 
-#### Get Master Charts (Platform-wide)
-Retrieves time-series data for the master dashboard.
-```bash
-curl -X GET http://localhost:3000/analytics/master-charts
-```
+### 3. 📦 Sản phẩm (`/api/products`)
+*   **Tạo sản phẩm mới**: 🔒
+    ```bash
+    curl -X POST http://localhost:3000/api/products \
+      -H "Content-Type: application/json" \
+      -d '{"shopId": "ID_SHOP", "name": "Sản phẩm mới", "price": 150000, "stock": 100}'
+    ```
+*   **Danh sách sản phẩm theo Shop**:
+    ```bash
+    curl -X GET "http://localhost:3000/api/products/shop/ID_SHOP?limit=20"
+    ```
 
-#### Get Shop Summary
-Retrieves specific metrics for an individual shop.
-```bash
-curl -X GET http://localhost:3000/analytics/shop/SHOP_ID_HERE/summary
-```
-
-#### Get Shop Charts
-Retrieves time-series and distribution data for an individual shop.
-```bash
-curl -X GET http://localhost:3000/analytics/shop/SHOP_ID_HERE/charts
-```
-
----
-
-### 2. 🔐 Auth (`/api/auth`)
-
-#### Get Current User Profile 🔒
-Get details of the currently authenticated user.
-```bash
-curl -X GET http://localhost:3000/api/auth/me \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-```
-
-#### Change Username 🔒
-Update the authenticated user's display name.
-```bash
-curl -X PUT http://localhost:3000/api/auth/change-username \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{"newName": "New User Name"}'
-```
+### 4. 🏪 Cửa hàng (`/api/shops`)
+*   **Tạo Shop mới (Đăng ký Tenant)**: 🔒
+    ```bash
+    curl -X POST http://localhost:3000/api/shops \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Cửa hàng của tôi", "domain": "my-store.local"}'
+    ```
 
 ---
 
-### 3. 👥 Customer (`/api/customers`)
+## 🛠️ Cài đặt & Chạy Local
 
-#### Subscribe Newsletter
-Subscribe a customer email to the shop's mailing list.
-```bash
-curl -X POST http://localhost:3000/api/customers/subscribe \
-  -H "Content-Type: application/json" \
-  -d '{"email": "customer@example.com", "shopId": "SHOP_ID_HERE"}'
-```
+1.  **Cài đặt**: `npm install`
+2.  **Biến môi trường**: Copy `.env.example` thành `.env` và điền thông số.
+3.  **Database**:
+    ```bash
+    npx prisma generate
+    npx prisma migrate dev
+    ```
+4.  **Chạy Dev**: `npm run start:dev`
 
----
-
-### 4. 🎨 Layout (`/api/layouts` & `/api/storefront`)
-
-#### Get Published Layout for Storefront
-Fetch the compiled JSON layout for a specific tenant domain (used by Next.js Front-end).
-```bash
-curl -X GET http://localhost:3000/api/storefront/shop.yourdomain.com/layout
-```
-
-#### Publish Shop Layout 🔒
-Save and publish a new drag-and-drop layout configuration for a shop.
-```bash
-curl -X POST http://localhost:3000/api/layouts/publish \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{"shopId": "SHOP_ID_HERE", "nodes": [], "theme": {}}'
-```
-
-#### Get Compiled Layout By Shop ID
-Fetch the raw layout JSON by shop ID.
-```bash
-curl -X GET http://localhost:3000/api/layouts/SHOP_ID_HERE
-```
-
----
-
-### 5. 🛒 Order (`/api/orders`)
-
-#### Create Order (Checkout)
-Place a new order on a specific shop.
-```bash
-curl -X POST http://localhost:3000/api/orders \
-  -H "Content-Type: application/json" \
-  -d '{
-    "shopId": "SHOP_ID_HERE",
-    "customerName": "John Doe",
-    "customerEmail": "john@example.com",
-    "customerPhone": "123456789",
-    "shippingAddress": "123 Main St",
-    "items": [
-      {
-        "productId": "PROD_ID_HERE",
-        "variantId": "VARIANT_ID_HERE",
-        "quantity": 2,
-        "price": 50000
-      }
-    ],
-    "totalAmount": 100000
-  }'
-```
-
-#### Get Order Details
-Retrieve specific order information.
-```bash
-curl -X GET http://localhost:3000/api/orders/ORDER_ID_HERE
-```
-
----
-
-### 6. 📦 Product (`/api/products`)
-
-#### Create Product 🔒
-Create a new product with default variant and stock.
-```bash
-curl -X POST http://localhost:3000/api/products \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "shopId": "SHOP_ID_HERE",
-    "name": "New Awesome Product",
-    "description": "Product detailed description",
-    "price": 150000,
-    "stock": 100,
-    "images": ["url1.jpg", "url2.jpg"]
-  }'
-```
-
-#### Get Shop Products
-List products for a specific shop (with optional limit).
-```bash
-curl -X GET "http://localhost:3000/api/products/shop/SHOP_ID_HERE?limit=20"
-```
-
-#### Get Product Detail
-Get full details of a specific product.
-```bash
-curl -X GET http://localhost:3000/api/products/PRODUCT_ID_HERE
-```
-
-#### Update Product 🔒
-Update product details.
-```bash
-curl -X PUT http://localhost:3000/api/products/PRODUCT_ID_HERE \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Updated Format Name",
-    "price": 160000
-  }'
-```
-
----
-
-### 7. 🏪 Shop (`/api/shops`)
-
-#### Create Shop 🔒
-Register a new tenant shop for the authenticated user.
-```bash
-curl -X POST http://localhost:3000/api/shops \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "My New Store",
-    "domain": "mystore.ecommerce.local"
-  }'
-```
-
-#### Get My Shops 🔒
-Retrieve a list of shops owned by the authenticated user.
-```bash
-curl -X GET http://localhost:3000/api/shops/my-shops \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-```
-
-#### Get All Platform Shops (Admin)
-List all registered shops on the platform.
-```bash
-curl -X GET http://localhost:3000/api/shops/system/all-shops
-```
-
-#### Get Shop Settings
-Get settings and metadata for a specific shop.
-```bash
-curl -X GET http://localhost:3000/api/shops/SHOP_ID_HERE
-```
-
-#### Update Shop Settings 🔒
-Modify shop metadata (name, domain, active status).
-```bash
-curl -X PUT http://localhost:3000/api/shops/SHOP_ID_HERE \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Updated Store Name"
-  }'
-```
-
----
-
-### 8. ⚙️ System (`/api/system`)
-
-#### System Health Check
-Verify API uptime and database connectivity.
-```bash
-curl -X GET http://localhost:3000/api/system/health
-```
-
-#### Validate JSON Setup
-Check if a payload matches the required layout schema.
-```bash
-curl -X POST http://localhost:3000/api/system/validate-json \
-  -H "Content-Type: application/json" \
-  -d '{"jsonConfig": "{...}"}'
-```
-
-#### Mass Sync Feature (Internal)
-Utility to sync data models across shards/tenants.
-```bash
-curl -X POST http://localhost:3000/api/system/mass-sync \
-  -H "Content-Type: application/json" \
-  -d '{"targetAttr": "featureFlags", "newValue": "on"}'
-```
+> [!WARNING]
+> Luôn sử dụng DTO và Zod Schema để validate dữ liệu đầu vào. Tuyệt đối không sử dụng `any` trong code backend.

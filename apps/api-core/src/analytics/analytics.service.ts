@@ -172,7 +172,7 @@ export class AnalyticsService {
       _count: { id: true },
     });
 
-    const distribution = orderStates.map((s) => ({
+    const distribution = (orderStates as any[]).map((s: any) => ({
       label: s.state.charAt(0).toUpperCase() + s.state.slice(1),
       value: s._count.id,
       percent: 0, // Will calculate below
