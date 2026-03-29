@@ -1,6 +1,6 @@
 import { getShopProducts, getShopInfo } from '@/lib/api/storefront.api';
 import React from 'react';
-import FiltersSidebar from '@/components/products/FiltersSidebar';
+import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;

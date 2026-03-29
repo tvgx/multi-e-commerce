@@ -2,15 +2,20 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, LayoutTemplate, Link as LinkIcon, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
 
 const TEMPLATES = [
-  { id: "MASTER_FASHION", name: "Thời trang", desc: "Layout phù hợp cho shop quần áo, phụ kiện.", icon: "👗" },
-  { id: "MASTER_HOME_APPLIANCES", name: "Điện máy", desc: "Tối ưu hiển thị cấu hình sản phẩm điện tử.", icon: "💻" },
-  { id: "MASTER_MOM_AND_BABY", name: "Mẹ và Bé", desc: "Màu sắc tươi sáng, an toàn, thân thiện.", icon: "👶" },
+  { id: "MASTER_FASHION", name: "Thời trang", desc: "Layout thời trang, phụ kiện.", icon: "👗" },
+  { id: "MASTER_HOME_APPLIANCES", name: "Điện tử", desc: "Tối ưu hiển thị đồ công nghệ.", icon: "💻" },
+  { id: "MASTER_MOM_AND_BABY", name: "Mẹ và Bé", desc: "Màu sắc tươi sáng, an toàn.", icon: "👶" },
+  { id: "MASTER_SPORTS", name: "Thể thao", desc: "Thiết kế năng động, mạnh mẽ.", icon: "🏅" },
+  { id: "MASTER_PACKAGED_FOOD", name: "Đồ ăn đóng gói", desc: "Hiển thị thực phẩm, siêu thị.", icon: "🍪" },
+  { id: "CUSTOM_DESIGN", name: "Tự thiết kế", desc: "Tự do trải nghiệm kéo thả layout.", icon: "🎨" },
 ];
 
 export default function CreateShopPage() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,7 +29,14 @@ export default function CreateShopPage() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    // Giả lập gọi API tạo cửa hàng và publish layout
+    
+    // Nếu chọn tự thiết kế, forward qua Builder
+    if (formData.templateId === "CUSTOM_DESIGN") {
+      router.push(`/create-shop/design?shopName=${encodeURIComponent(formData.shopName)}&domain=${encodeURIComponent(formData.domain)}`);
+      return;
+    }
+    
+    // Giả lập gọi API tạo cửa hàng và publish layout cho các giao diện khác
     await new Promise((resolve) => setTimeout(resolve, 3000));
     setLoading(false);
     setStep(4); // Success step
@@ -221,7 +233,7 @@ export default function CreateShopPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                   <a
-                    href={`http://${formData.domain || "my-shop"}.localhost:3000`}
+                    href={`http://${formData.domain || "my-shop"}.localhost:5201`}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200"
                   >

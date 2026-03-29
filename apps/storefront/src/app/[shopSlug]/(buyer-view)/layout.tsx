@@ -1,9 +1,9 @@
 import { getShopInfo } from '@/lib/api/storefront.api';
 import React from 'react';
-import CartInitializer from '@/components/cart/CartInitializer';
-import CartSidebar from '@/components/cart/CartSidebar';
-import CartTrigger from '@/components/cart/CartTrigger';
-import SearchBar from '@/components/products/SearchBar';
+import { CartInitializer } from '@ecommerce/ui-registry/src/components/cart/CartInitializer';
+import { CartSidebar } from '@ecommerce/ui-registry/src/components/cart/CartSidebar';
+import { CartTrigger } from '@ecommerce/ui-registry/src/components/cart/CartTrigger';
+import { SearchBar } from '@ecommerce/ui-registry/src/components/products/SearchBar';
 
 interface Props {
     children: React.ReactNode;

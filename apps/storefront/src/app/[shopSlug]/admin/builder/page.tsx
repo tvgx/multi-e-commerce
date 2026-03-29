@@ -7,9 +7,9 @@ import {
     Settings, Type, ChevronLeft, GripVertical
 } from "lucide-react";
 import { Header, Footer } from "@ecommerce/ui-registry";
-import { SidebarSections } from "@/components/builder/sidebar-sections";
-import { CanvasRenderer } from "@/components/builder/canvas-renderer";
-import { PropertiesEditor } from "@/components/builder/properties-editor";
+import { SidebarSections } from '@ecommerce/ui-registry/src/components/builder/sidebar-sections';
+import { CanvasRenderer } from '@ecommerce/ui-registry/src/components/builder/canvas-renderer';
+import { PropertiesEditor } from '@ecommerce/ui-registry/src/components/builder/properties-editor';
 import { useBuilderStore } from "@/store/builder-store";
 
 export default function ShopBuilder() {

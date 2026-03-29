@@ -1,6 +1,6 @@
 import { getShopProductDetails, getShopInfo } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
-import AddToCartButton from '@/components/cart/AddToCartButton';
+import { AddToCartButton } from '@ecommerce/ui-registry/src/components/cart/AddToCartButton';
 
 interface Props {
   params: Promise<{ shopSlug: string; productId: string }>;

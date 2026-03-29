@@ -1,0 +1,27 @@
+import React from 'react';
+
+export function BlogPostGrid() {
+    return (
+        <section className="w-full py-20 px-4 md:px-12 bg-white">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-bold text-slate-900 mb-4">Latest Insights</h2>
+                    <a href="#" className="font-bold uppercase tracking-widest text-emerald-600 text-sm hover:text-emerald-500">View All Posts &rarr;</a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <a href="#" key={i} className="group flex flex-col">
+                            <div className="aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden mb-6 relative">
+                                <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 5000}?auto=format&fit=crop&q=80`} alt="Blog Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold text-slate-900">Design</div>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors leading-tight mb-3">Understanding the shift towards sustainable materials in 2024</h3>
+                            <p className="text-slate-500 text-sm mt-auto">By Alex Parker • 5 min read</p>
+                        </a>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+}
