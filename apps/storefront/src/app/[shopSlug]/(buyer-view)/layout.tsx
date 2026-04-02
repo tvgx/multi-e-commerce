@@ -1,4 +1,4 @@
-import { getShopInfo } from '@/lib/api/storefront.api';
+import { getShopInfo, getNavigationMenu } from '@/lib/api/storefront.api';
 import React from 'react';
 import { CartInitializer } from '@ecommerce/ui-registry/src/components/cart/CartInitializer';
 import { CartSidebar } from '@ecommerce/ui-registry/src/components/cart/CartSidebar';
@@ -10,65 +10,49 @@ interface Props {
     params: Promise<{ shopSlug: string }>;
 }
 
-/**
- * Buyer Layout — React Server Component (RSC)
- *
- * Fetches real shop info (name, logo, primaryColor) from the API.
- * Falls back gracefully to the shopSlug if the API is down.
- */
 export default async function BuyerLayout({ children, params }: Props) {
     const { shopSlug } = await params;
 
-    // Server-side fetch — cached 5 minutes, invalidated via revalidateTag(`shop-${shopSlug}`)
-    const shopInfo = await getShopInfo(shopSlug);
+    // Parallel fetch for shop info and menus
+    const [shopInfo, mainMenu, footerMenu] = await Promise.all([
+        getShopInfo(shopSlug),
+        getNavigationMenu(shopSlug, 'main-menu'),
+        getNavigationMenu(shopSlug, 'footer-menu'),
+    ]);
 
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
-    const primaryColor = shopInfo?.primaryColor || '#10b981'; // emerald-500 default
 
     return (
         <div className="flex flex-col min-h-screen">
             {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
             <CartSidebar />
+            
             {/* ── Header ── */}
-            <header
-                className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm"
-            >
+            <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    {/* Shop Logo / Name */}
-                    <a
-                        href={`/${shopSlug}`}
-                        className="flex items-center gap-2 font-bold text-xl text-slate-800 hover:opacity-80 transition-opacity"
-                    >
+                    <a href={`/${shopSlug}`} className="flex items-center gap-2 font-bold text-xl text-slate-800 hover:opacity-80 transition-opacity">
                         {shopInfo?.logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={shopInfo.logoUrl}
-                                alt={shopName}
-                                className="h-8 w-auto object-contain"
-                            />
+                            <img src={shopInfo.logoUrl} alt={shopName} className="h-8 w-auto object-contain" />
                         ) : (
                             <span>{shopName}</span>
                         )}
                     </a>
 
-                    {/* Search Bar */}
                     <SearchBar />
 
-                    {/* Nav Links */}
                     <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
-                        <a
-                            href={`/${shopSlug}/all-products`}
-                            className="hover:text-emerald-500 transition-colors"
-                        >
-                            All Products
-                        </a>
+                        {mainMenu?.items?.map((item: any, idx: number) => (
+                            <a key={idx} href={`/${shopSlug}${item.url}`} className="hover:text-emerald-500 transition-colors">
+                                {item.title}
+                            </a>
+                        ))}
+                        {!mainMenu && (
+                            <a href={`/${shopSlug}/all-products`} className="hover:text-emerald-500 transition-colors">
+                                All Products
+                            </a>
+                        )}
                         <CartTrigger />
-                        <a
-                            href={`/${shopSlug}/profile`}
-                            className="hover:text-emerald-500 transition-colors"
-                        >
-                            Profile
-                        </a>
                     </nav>
                 </div>
             </header>
@@ -78,10 +62,32 @@ export default async function BuyerLayout({ children, params }: Props) {
 
             {/* ── Footer ── */}
             <footer className="border-t border-slate-200 py-12 mt-20">
-                <div className="container mx-auto px-4 text-center text-slate-500 text-sm">
-                    &copy; {new Date().getFullYear()}{' '}
-                    <span className="font-medium text-slate-700">{shopName}</span>
-                    {'. '}Powered by E-commerce OS.
+                <div className="container mx-auto px-4">
+                    <div className="flex flex-wrap justify-between gap-8 mb-8">
+                        <div className="max-w-xs">
+                            <h3 className="font-bold text-slate-800 mb-4">{shopName}</h3>
+                            <p className="text-slate-500 text-sm">Powered by ShopVolo E-commerce Engine.</p>
+                        </div>
+                        <div className="flex gap-12">
+                            {footerMenu?.items && (
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase text-slate-400 mb-4">Links</h4>
+                                    <ul className="space-y-2">
+                                        {footerMenu.items.map((item: any, idx: number) => (
+                                            <li key={idx}>
+                                                <a href={`/${shopSlug}${item.url}`} className="text-sm text-slate-600 hover:text-emerald-500">
+                                                    {item.title}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="pt-8 border-t border-slate-100 text-center text-slate-500 text-xs">
+                        &copy; {new Date().getFullYear()} {shopName}. All rights reserved.
+                    </div>
                 </div>
             </footer>
         </div>

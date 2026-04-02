@@ -67,12 +67,12 @@ export class SystemService {
 
       // Basic schema check
       if (!parsed.sections || !Array.isArray(parsed.sections)) {
-        throw new Error("Missing 'sections' array in JSON.");
+        throw new BadRequestException("Missing 'sections' array in JSON.");
       }
 
       parsed.sections.forEach((sec: Record<string, unknown>, index: number) => {
         if (!sec.id || !sec.type) {
-          throw new Error(
+          throw new BadRequestException(
             `Section at index ${index} is missing 'id' or 'type'.`,
           );
         }
@@ -83,6 +83,9 @@ export class SystemService {
         message: 'JSON is structurally valid for Zero-File Rendering.',
       };
     } catch (error: unknown) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new BadRequestException({
         valid: false,
         message: error instanceof Error ? error.message : 'Unknown error',

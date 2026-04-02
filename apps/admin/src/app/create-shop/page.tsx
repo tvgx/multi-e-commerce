@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
 
 const TEMPLATES = [
   { id: "MASTER_FASHION", name: "Thời trang", desc: "Layout thời trang, phụ kiện.", icon: "👗" },
@@ -29,17 +30,25 @@ export default function CreateShopPage() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    
-    // Nếu chọn tự thiết kế, forward qua Builder
-    if (formData.templateId === "CUSTOM_DESIGN") {
-      router.push(`/create-shop/design?shopName=${encodeURIComponent(formData.shopName)}&domain=${encodeURIComponent(formData.domain)}`);
-      return;
+    try {
+      // 1. Create the shop metadata
+      const res = await apiClient.post<any>("/api/shops", {
+        name: formData.shopName,
+        domain: formData.domain,
+        templateType: formData.templateId === "CUSTOM_DESIGN" ? "standard" : formData.templateId.toLowerCase().replace('master_', ''),
+        productsPerPage: 30,
+      });
+
+      const shopId = res.data.id;
+
+      // 2. If custom design, we might want to do extra logic, but for now just redirect to dashboard
+      // The dashboard will guide them to the builder in Step 5
+      setLoading(false);
+      router.push(`/dashboard/${shopId}`);
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+      setLoading(false);
     }
-    
-    // Giả lập gọi API tạo cửa hàng và publish layout cho các giao diện khác
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setLoading(false);
-    setStep(4); // Success step
   };
 
   return (

@@ -22,5 +22,5 @@ export const UpdateProductSchema = z.object({
   extraMetadata: z.record(z.string(), z.any()).optional(),
 });
 
-export class CreateProductDto extends createZodDto(CreateProductSchema as any) {}
-export class UpdateProductDto extends createZodDto(UpdateProductSchema as any) {}
+export class CreateProductDto extends createZodDto(CreateProductSchema) {}
+export class UpdateProductDto extends createZodDto(UpdateProductSchema) {}

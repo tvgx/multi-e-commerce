@@ -154,7 +154,25 @@ export class ProductService {
       throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.OK);
     }
 
-    return BaseResponseDto.success(products);
+    // Merge images from MongoDB
+    const productIds = products.map((p: any) => p.id);
+    const layouts = await this.productLayoutModel.find({ productId: { $in: productIds } }).lean();
+    
+    const layoutMap = new Map();
+    layouts.forEach((item: any) => layoutMap.set(item.productId, item));
+
+    const enrichedProducts = products.map((p: any) => {
+      const layout = layoutMap.get(p.id);
+      const masterVariant = p.variants.find((v: any) => v.isMaster) || p.variants[0];
+      return {
+        ...p,
+        _id: p.id,
+        basePrice: masterVariant?.price || 0,
+        images: layout?.imageUrls || [],
+      };
+    });
+
+    return BaseResponseDto.success(enrichedProducts);
   }
 
   async getProductDetails(productId: string): Promise<BaseResponseDto<object>> {

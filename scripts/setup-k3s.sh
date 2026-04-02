@@ -1,37 +1,63 @@
 #!/bin/bash
+# ==========================================================
+# Script cài đặt K3s + cấu hình sudo không cần password cho k3s
+# Chạy script này trong terminal Ubuntu WSL2
+# ==========================================================
 
-# ecommerce-platform K3s Setup Script
-set -e
+set -e  # Dừng ngay nếu có lỗi
 
-echo "🚀 Starting K3s Setup for Personal Server..."
+echo ""
+echo "======================================"
+echo "  Bước 1: Cài đặt K3s (với Traefik)  "
+echo "======================================"
 
-# 1. Install K3s (Lightweight Kubernetes)
-if ! command -v k3s &> /dev/null; then
-    echo "📦 Installing K3s..."
-    curl -sfL https://get.k3s.io | sh -
-else
-    echo "✅ K3s is already installed."
-fi
+# Cài K3s với Traefik ingress (mặc định)
+curl -sfL https://get.k3s.io | sh -
 
-# 2. Setup Kubeconfig for current user
-mkdir -p $HOME/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-echo "export KUBECONFIG=$HOME/.kube/config" >> $HOME/.bashrc
+echo ""
+echo "======================================"
+echo "  Bước 2: Cấu hình kubectl cho user  "
+echo "======================================"
 
-# 3. Verify node health
-echo "⏳ Waiting for node to be Ready..."
-until kubectl get nodes | grep -q "Ready"; do
-  sleep 2
+# Tạo thư mục config cho user hiện tại
+mkdir -p ~/.kube
+
+# Copy kubeconfig (cần sudo vì file thuộc root)
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $(id -u):$(id -g) ~/.kube/config
+chmod 600 ~/.kube/config
+
+# Gán biến môi trường KUBECONFIG
+echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+export KUBECONFIG=~/.kube/config
+
+echo ""
+echo "======================================"
+echo "  Bước 3: Kiểm tra trạng thái Cluster "
+echo "======================================"
+
+# Chờ node sẵn sàng (tối đa 60 giây)
+echo "Đang chờ K3s node khởi động..."
+for i in $(seq 1 12); do
+  STATUS=$(kubectl get nodes --no-headers 2>/dev/null | awk '{print $2}' || echo "NotReady")
+  if [ "$STATUS" = "Ready" ]; then
+    echo "✅ Node đã Ready!"
+    break
+  fi
+  echo "   Đang chờ... ($((i*5))s)"
+  sleep 5
 done
+
 kubectl get nodes
+kubectl get pods -A
 
-# 4. Install local registry (Optional but recommended for dev)
-# docker run -d -p 5000:5000 --restart=always --name registry registry:2
-
-echo "🎉 K3s setup complete! You can now apply the manifests."
-echo "Commands to run:"
-echo "  kubectl apply -f k8s/namespace.yaml"
-echo "  kubectl apply -f k8s/infrastructure/"
-echo "  kubectl apply -f k8s/apps/"
-echo "  kubectl apply -f k8s/ingress/"
+echo ""
+echo "======================================"
+echo "  ✅ K3s đã cài đặt thành công!   "
+echo "======================================"
+echo ""
+echo "  Lệnh hữu ích:"
+echo "  - Kiểm tra cluster: kubectl get nodes"
+echo "  - Xem pods: kubectl get pods -A"
+echo "  - Dừng K3s (giải phóng RAM): sudo systemctl stop k3s"
+echo "  - Khởi động lại K3s: sudo systemctl start k3s"

@@ -16,6 +16,11 @@ import { SystemCacheModule } from './system/cache/cache.module';
 import { CartModule } from './cart/cart.module';
 import { PaymentModule } from './payment/payment.module';
 import { CommonModule } from './common/common.module';
+import { CollectionModule } from './collection/collection.module';
+import { NavigationModule } from './navigation/navigation.module';
+import { PagesModule } from './pages/pages.module';
+import { ShippingModule } from './shipping/shipping.module';
+import { TaxModule } from './tax/tax.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 
@@ -52,6 +57,11 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     CartModule,
     PaymentModule,
     CommonModule,
+    CollectionModule,
+    NavigationModule,
+    PagesModule,
+    ShippingModule,
+    TaxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

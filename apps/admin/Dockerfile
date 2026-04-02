@@ -1,5 +1,5 @@
 # Base stage for pruning
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 RUN npm install -g turbo
 WORKDIR /app
@@ -44,4 +44,7 @@ COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 
-CMD ["npx", "next", "start", "apps/admin"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["npx", "next", "start", "--dir", "apps/admin", "-p", "3000"]

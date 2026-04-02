@@ -1,6 +1,6 @@
 import dynamic from 'next/dynamic';
 import React from 'react';
-import { CustomerLayout, UIComponentRef } from '@ecommerce/schema';
+import { ShopLayout, UIComponentRef } from '@ecommerce/schema';
 
 // 1. Component Registry Map
 // This maps the string 'componentId' from the JSON database to actual React Components.
@@ -98,34 +98,29 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
 }
 
 interface LayoutRendererProps {
-    layout: CustomerLayout;
+    layout: ShopLayout;
     pageKey: string; // e.g. 'home', 'catalog', 'productDetail'
 }
 
 /**
- * Renders an entire Page wrapped in the Global Layout (Header/Footer)
+ * Renders an entire Page Content within the shop's styling.
+ * Global elements (Header/Footer) are now managed by BuyerLayout.tsx
  */
 export function LayoutRenderer({ layout, pageKey }: LayoutRendererProps) {
     const pageComponents = layout.pages?.[pageKey] || [];
 
     return (
         <div
-            className="storefront-layout-wrapper flex flex-col min-h-screen"
+            className="storefront-layout-wrapper"
             style={{
                 '--theme-primary': layout.metadata?.primaryColor || '#000',
                 fontFamily: layout.metadata?.fontFamily || 'Inter, sans-serif'
             } as React.CSSProperties}
         >
-            {/* Global Header */}
-            <DynamicRenderer components={layout.global?.header} />
-
             {/* Main Page Content */}
             <main className="flex-grow">
                 <DynamicRenderer components={pageComponents} />
             </main>
-
-            {/* Global Footer */}
-            <DynamicRenderer components={layout.global?.footer} />
         </div>
     );
 }

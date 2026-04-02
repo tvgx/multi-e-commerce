@@ -1,15 +1,28 @@
+# ⚠️ Secret phải được tạo trước khi apply:
+# kubectl create secret generic api-core-secret -n ecommerce \
+#   --from-literal=DATABASE_URL_SHARD_1='postgresql://...' \
+#   --from-literal=DATABASE_URL_SHARD_2='postgresql://...' \
+#   --from-literal=MONGODB_URI='mongodb+srv://...'
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: api-core-config
   namespace: ecommerce
 data:
-  PORT: "3000"
+  PORT: "3001"
   NODE_ENV: "production"
-  DATABASE_URL_SHARD_1: "postgresql://postgres:lordfedder222@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
-  DATABASE_URL_SHARD_2: "postgresql://postgres:lordfedder222@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
-  MONGODB_URI: "mongodb+srv://korewalordFeederdesu:xkeQaMVQywCgFJEy@jsondb1.ddnq5v9.mongodb.net/?appName=JSONdb1"
   REDIS_URL: "redis://redis:6379"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-core-secret
+  namespace: ecommerce
+type: Opaque
+stringData:
+  DATABASE_URL_SHARD_1: "postgresql://postgres:CHANGE_ME@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
+  DATABASE_URL_SHARD_2: "postgresql://postgres:CHANGE_ME@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
+  MONGODB_URI: "mongodb+srv://CHANGE_ME:CHANGE_ME@jsondb1.ddnq5v9.mongodb.net/?appName=JSONdb1"
 ---
 apiVersion: v1
 kind: Service
@@ -18,7 +31,8 @@ metadata:
   namespace: ecommerce
 spec:
   ports:
-    - port: 3000
+    - port: 3001
+      targetPort: 3001
   selector:
     app: api-core
 ---
@@ -39,12 +53,15 @@ spec:
     spec:
       containers:
         - name: api-core
-          image: ecommerce-api-core:latest # This would be replaced by actual registry image
+          image: ecommerce-api-core:latest
+          imagePullPolicy: Never
           ports:
-            - containerPort: 3000
+            - containerPort: 3001
           envFrom:
             - configMapRef:
                 name: api-core-config
+            - secretRef:
+                name: api-core-secret
           resources:
             requests:
               cpu: "100m"

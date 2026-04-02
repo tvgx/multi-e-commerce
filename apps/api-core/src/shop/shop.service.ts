@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, HttpStatus, InternalServerErrorException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ShopTemplate } from '@ecommerce/database';
 import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
@@ -6,12 +6,14 @@ import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { TenantService } from '../common/services/tenant.service';
+import { DomainVerifyService } from './domain-verify.service';
 
 @Injectable()
 export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
+    private readonly domainVerifyService: DomainVerifyService,
   ) {}
 
   async createShop(ownerId: string, dto: CreateShopDto): Promise<BaseResponseDto<object>> {
@@ -27,20 +29,53 @@ export class ShopService {
       }
 
       // 2. Create in Postgres
-      const shop = await this.prisma.shop.create({
+      const shop = await (this.prisma as any).shop.create({
         data: {
           name: dto.name,
           domain: dto.domain,
           ownerId: ownerId,
           status: 'DRAFT',
           productsPerPage: dto.productsPerPage ?? 30,
+          templateType: dto.templateType ?? 'standard',
+          onboardingStep: 1,
+          onboardingStatus: { step1: 'COMPLETED' } as any,
         },
       });
 
-      // 3. Initialize in MongoDB (Zero-file Layout Engine)
+      // ... (rest of createShop remains same)
+      // 3. Initialize default Navigation Menus
+      await this.prisma.navigationMenu.createMany({
+        data: [
+          {
+            shopId: shop.id,
+            handle: 'main-menu',
+            title: 'Main Menu',
+            items: [
+              { title: 'Home', url: '/' },
+              { title: 'Catalog', url: '/catalog' },
+            ] as any,
+          },
+          {
+            shopId: shop.id,
+            handle: 'footer-menu',
+            title: 'Footer Menu',
+            items: [
+              { title: 'Search', url: '/search' },
+              { title: 'About us', url: '/pages/about' },
+            ] as any,
+          },
+        ],
+      });
+
+      // 4. Initialize in MongoDB (Zero-file Layout Engine)
       const template = new ShopTemplate({
         shopId: shop.id,
-        publishedData: {},
+        publishedData: {
+          shopId: shop.id,
+          templateType: shop.templateType,
+          pages: { home: [] },
+          metadata: {},
+        },
         draftData: {},
       });
       await template.save();
@@ -52,6 +87,97 @@ export class ShopService {
     }
   }
 
+  async getOnboardingProgress(shopId: string): Promise<BaseResponseDto<any>> {
+    const shop = await (this.prisma as any).shop.findUnique({
+      where: { id: shopId },
+      select: { onboardingStep: true, onboardingStatus: true, domain: true, domainVerified: true }
+    });
+
+    if (!shop) throw new NotFoundException('Shop not found');
+
+    // Real-time check for dynamic steps
+    const productCount = await this.prisma.product.count({ where: { shopId } });
+    const collectionCount = await this.prisma.collection.count({ where: { shopId } });
+    const menuCount = await (this.prisma as any).navigationMenu.count({ where: { shopId } });
+
+    const status = ((shop as any).onboardingStatus || {}) as any;
+
+    return BaseResponseDto.success({
+      currentStep: (shop as any).onboardingStep,
+      steps: {
+        step1: { status: 'COMPLETED', label: 'Create Store' },
+        step2: { status: productCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Add Products' },
+        step3: { status: collectionCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Create Collections' },
+        step4: { status: menuCount >= 2 ? 'COMPLETED' : 'PENDING', label: 'Setup Header/Footer' },
+        step5: { status: status.step5 || 'PENDING', label: 'Design Homepage' },
+        step6: { status: status.step6 || 'PENDING', label: 'Setup Payment' },
+        step7: { status: status.step7 || 'PENDING', label: 'Shipping & Tax' },
+        step8: { status: (shop as any).domainVerified ? 'COMPLETED' : 'PENDING', label: 'Verify Domain' },
+      }
+    });
+  }
+
+  async completeStep(shopId: string, step: number): Promise<BaseResponseDto<any>> {
+    const shop = await (this.prisma as any).shop.findUnique({ where: { id: shopId } });
+    if (!shop) throw new NotFoundException('Shop not found');
+
+    // 1. Strict sequence check
+    if (step !== shop.onboardingStep + 1 && step !== shop.onboardingStep) {
+      throw new ForbiddenException(`You must complete step ${shop.onboardingStep} first.`);
+    }
+
+    // 2. Step specific validation
+    let isValid = false;
+    switch (step) {
+      case 2:
+        isValid = (await this.prisma.product.count({ where: { shopId } })) > 0;
+        break;
+      case 3:
+        isValid = (await this.prisma.collection.count({ where: { shopId } })) > 0;
+        break;
+      case 4:
+        isValid = (await this.prisma.navigationMenu.count({ where: { shopId } })) >= 2;
+        break;
+      case 5:
+        isValid = true; // Homepage design always has a default after step 1
+        break;
+      case 6:
+      case 7:
+        isValid = true; // Placeholders for now
+        break;
+      case 8:
+        if (!shop.domain) throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Domain not set', HttpStatus.BAD_REQUEST);
+        isValid = await this.domainVerifyService.verifyDNS(shop.domain, shopId);
+        if (isValid) {
+          await (this.prisma as any).shop.update({
+            where: { id: shopId },
+            data: { domainVerified: true }
+          });
+        }
+        break;
+      default:
+        throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid step', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!isValid) {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, `Step ${step} validation failed.`, HttpStatus.BAD_REQUEST);
+    }
+
+    // 3. Update status
+    const updatedStatus = { ...((shop as any).onboardingStatus || {}), [`step${step}`]: 'COMPLETED' };
+    const updatedShop = await (this.prisma as any).shop.update({
+      where: { id: shopId },
+      data: {
+        onboardingStep: Math.max((shop as any).onboardingStep, step),
+        onboardingStatus: updatedStatus,
+        status: step === 8 ? 'PUBLISHED' : 'DRAFT'
+      }
+    });
+
+    return BaseResponseDto.success(updatedShop);
+  }
+
+  // ... (rest of the shop methods)
   async updateShop(ownerId: string, shopId: string, dto: UpdateShopDto): Promise<BaseResponseDto<object>> {
     try {
       const currentShopId = this.tenantService.getTenantId();

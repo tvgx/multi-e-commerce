@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PaymentProvider, PaymentIntent } from './payment.interface';
 
 // Example COD Provider
@@ -50,7 +50,7 @@ export class PaymentService {
   getProvider(name: string): PaymentProvider {
     const provider = this.providers.get(name);
     if (!provider) {
-      throw new Error(`Payment provider ${name} not found`);
+      throw new NotFoundException(`Payment provider ${name} not found`);
     }
     return provider;
   }

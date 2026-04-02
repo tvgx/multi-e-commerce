@@ -96,7 +96,8 @@ model Product {
   shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   taxCategory   TaxCategory? @relation(fields: [taxCategoryId], references: [id])
   variants      Variant[]
-  optionTypes ProductOptionType[]
+  optionTypes   ProductOptionType[]
+  collections   ProductCollection[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -241,7 +242,11 @@ model Shop {
   ownerId String
   name    String
   domain  String? @unique // Custom domain (vd: store.duck.com)
-  status  String  @default("DRAFT") // DRAFT, PUBLISHED
+  status           String    @default("DRAFT") // DRAFT, PUBLISHED
+  templateType     String    @default("standard")
+  onboardingStep   Int       @default(1)
+  onboardingStatus Json?     @default("{}")
+  domainVerified   Boolean   @default(false)
 
   // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
   mapAddress        String? // Tọa độ hoặc địa chỉ map
@@ -250,7 +255,7 @@ model Shop {
   licenseIssuedBy   String? // Nơi cấp
   licenseExpiryDate DateTime?
 
-  productsPerPage   Int     @default(30)
+  productsPerPage Int @default(30)
 
   createdAt DateTime @default(now())
 
@@ -264,7 +269,10 @@ model Shop {
   taxCategories TaxCategory[]
   promotions Promotion[]
   paymentMethods PaymentMethod[]
-  
+  collections    Collection[]
+  navigationMenus NavigationMenu[]
+  shopPages      ShopPage[]
+
   mergedLayoutsCache MergedLayoutsCache?
 
   @@map("shops")
@@ -564,4 +572,85 @@ model MergedLayoutsCache {
 
   @@index([shopId])
   @@map("merged_layouts_cache")
+}
+
+// ==========================================
+// Shopify-esque: Collections, Navigation, Pages
+// ==========================================
+
+// Gom nhóm sản phẩm (Men, Women, Sale, New Arrivals...)
+model Collection {
+  id          String   @id @default(uuid())
+  shopId      String
+  title       String
+  slug        String   // vd: men, new-arrivals, sale
+  description String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  // Người dùng có thể override layout mặc định của trang Collection bằng Builder
+  // null = dùng default Product Grid template
+  layoutJson  Json?    // sections: PageSection[] — giống Homepage JSON
+
+  shop        Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products    ProductCollection[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@map("collections")
+}
+
+// Bảng trung gian N-N: Product <-> Collection
+model ProductCollection {
+  productId    String
+  collectionId String
+  order        Int    @default(0) // Thứ tự hiển thị trong Collection
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+  @@index([collectionId])
+  @@map("product_collections")
+}
+
+// Header/Footer menu của từng shop
+model NavigationMenu {
+  id      String @id @default(uuid())
+  shopId  String
+  handle  String // "main-menu" (header) | "footer-menu"
+  title   String
+  // items: Array of { title: string, url: string, items?: NavigationItem[] }
+  items   Json   @default("[]")
+
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, handle])
+  @@index([shopId])
+  @@map("navigation_menus")
+}
+
+// Custom Pages: /pages/about, /pages/faq — do user tạo
+// Dùng JSON sections (giống Homepage) thay vì HTML thuần
+model ShopPage {
+  id        String   @id @default(uuid())
+  shopId    String
+  slug      String   // vd: about, faq, contact
+  title     String
+  // sections: PageSection[] — Builder JSON, giống homepage layout
+  sections  Json     @default("[]")
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@map("shop_pages")
 }

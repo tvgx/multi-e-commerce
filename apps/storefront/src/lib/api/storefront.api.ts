@@ -20,6 +20,7 @@ export interface ShopInfo {
     id: string;
     name: string;
     slug: string;
+    templateType?: string;
     logoUrl?: string;
     primaryColor?: string;
     navLinks?: { label: string; href: string }[];
@@ -203,5 +204,51 @@ export async function getCustomerOrders(shopId: string, email: string) {
     } catch (err) {
         console.error(`[storefront.api] getCustomerOrders failed for email=${email}`, err);
         return [];
+    }
+}
+
+// ─────────────────────────────────────────
+// Navigation, Collections, and Pages
+// ─────────────────────────────────────────
+
+export async function getNavigationMenu(shopId: string, handle: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/navigation/${handle}?shopId=${shopId}`, {
+            next: { revalidate: 300, tags: [`nav-${shopId}-${handle}`] }
+        });
+        if (!res.ok) return null;
+        const body = await res.json();
+        return body.data || null;
+    } catch (err) {
+        console.error(`[storefront.api] getNavigationMenu failed`, err);
+        return null;
+    }
+}
+
+export async function getCollectionBySlug(shopId: string, slug: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/collections/${slug}?shopId=${shopId}`, {
+            next: { revalidate: 30, tags: [`collection-${shopId}-${slug}`] }
+        });
+        if (!res.ok) return null;
+        const body = await res.json();
+        return body.data || null;
+    } catch (err) {
+        console.error(`[storefront.api] getCollectionBySlug failed`, err);
+        return null;
+    }
+}
+
+export async function getShopPageBySlug(shopId: string, slug: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/pages/${slug}?shopId=${shopId}`, {
+            next: { revalidate: 60, tags: [`page-${shopId}-${slug}`] }
+        });
+        if (!res.ok) return null;
+        const body = await res.json();
+        return body.data || null;
+    } catch (err) {
+        console.error(`[storefront.api] getShopPageBySlug failed`, err);
+        return null;
     }
 }

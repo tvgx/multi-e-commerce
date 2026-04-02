@@ -47,6 +47,19 @@ export class ShopController {
     return this.shopService.updateShop(session.user.id, id, dto);
   }
 
+  @Get(':id/onboarding')
+  async getOnboarding(@Param('id') id: string): Promise<BaseResponseDto<any>> {
+    return this.shopService.getOnboardingProgress(id);
+  }
+
+  @Put(':id/onboarding/complete/:step')
+  async completeOnboardingStep(
+    @Param('id') id: string,
+    @Param('step') step: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.shopService.completeStep(id, parseInt(step));
+  }
+
   @Get('system/all-shops')
   async getSystemAllShops(): Promise<BaseResponseDto<object[]>> {
     return this.shopService.getAllShops();

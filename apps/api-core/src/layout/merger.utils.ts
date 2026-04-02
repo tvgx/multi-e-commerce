@@ -1,4 +1,4 @@
-import { CustomerLayout, UIComponentRef } from '@ecommerce/schema';
+import { ShopLayout, UIComponentRef } from '@ecommerce/schema';
 
 /**
  * Merges an array of UI Components.
@@ -37,19 +37,13 @@ export function mergeComponentArrays(
  * Core Algorithm: Merges a Tenant's Delta Layout with the Master Template Layout
  */
 export function mergeLayouts(
-  master: CustomerLayout,
-  tenant: CustomerLayout,
-): CustomerLayout {
+  master: ShopLayout,
+  tenant: ShopLayout,
+): ShopLayout {
   // If tenant is not inheriting, just return tenant.
-  if (!tenant.baseLayoutId || !master) {
+  if (!tenant.templateType || !master) {
     return tenant;
   }
-
-  // Merge Global (Header / Footer)
-  const global = {
-    header: mergeComponentArrays(master.global?.header, tenant.global?.header),
-    footer: mergeComponentArrays(master.global?.footer, tenant.global?.footer),
-  };
 
   // Merge Pages
   const pages: Record<string, UIComponentRef[]> = {};
@@ -71,7 +65,6 @@ export function mergeLayouts(
     ...master, // keep master shape
     ...tenant, // overwrite with tenant base fields
     isMaster: false, // merged result is always a tenant view
-    global,
     pages,
     metadata: { ...master.metadata, ...tenant.metadata },
   };
