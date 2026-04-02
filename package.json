@@ -8,7 +8,11 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "sync:layout": "npx tsx scripts/sync-layout.ts",
-    "generate:master": "npx tsx scripts/generate-master.ts"
+    "generate:master": "npx tsx scripts/generate-master.ts",
+    "dev:loop": "bash scripts/dev-loop.sh up",
+    "dev:status": "bash scripts/dev-loop.sh status",
+    "dev:down": "bash scripts/dev-loop.sh down",
+    "tunnel:up": "bash scripts/setup-cloudflare-tunnel.sh"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

@@ -17,7 +17,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-PROJECT_ROOT="/mnt/d/Xuan/20252/DATN/ecommerce-platform"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 
 log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC}   $1"; }
@@ -123,9 +124,9 @@ log_info "Kiểm tra images trong K3s containerd:"
 sudo k3s ctr images list | grep "ecommerce"
 echo ""
 log_info "Bước tiếp theo — deploy lên cluster:"
-echo "  kubectl apply -f /mnt/d/Xuan/20252/DATN/ecommerce-platform/k8s/namespace.yaml"
-echo "  bash /mnt/d/Xuan/20252/DATN/ecommerce-platform/scripts/create-k8s-secrets.sh"
-echo "  kubectl apply -f /mnt/d/Xuan/20252/DATN/ecommerce-platform/k8s/infrastructure/"
-echo "  kubectl apply -f /mnt/d/Xuan/20252/DATN/ecommerce-platform/k8s/apps/"
-echo "  kubectl apply -f /mnt/d/Xuan/20252/DATN/ecommerce-platform/k8s/ingress/"
+echo "  kubectl apply -f ${PROJECT_ROOT}/k8s/namespace.yaml"
+echo "  bash ${PROJECT_ROOT}/scripts/create-k8s-secrets.sh"
+echo "  kubectl apply -f ${PROJECT_ROOT}/k8s/infrastructure/"
+echo "  kubectl apply -f ${PROJECT_ROOT}/k8s/apps/"
+echo "  kubectl apply -f ${PROJECT_ROOT}/k8s/ingress/"
 echo "======================================================"

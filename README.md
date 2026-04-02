@@ -104,3 +104,77 @@ Dự án được tối ưu cho môi trường máy cá nhân:
 > [!TIP]
 > Khi bạn chỉnh sửa bất kỳ Component nào trong `ui-library`, hãy nhớ kiểm tra tính tương thích với JSON Schema tại `packages/schema`.
 
+---
+
+## 🔁 Dev Loop với Docker + K3s + Cloudflare Tunnel
+
+Luồng đề xuất cho local runtime:
+
+1. Docker chạy database local (`postgres-shard-1`, `postgres-shard-2`, `mongodb`).
+2. K3s chạy app runtime (`api-core`, `admin`, `storefront`, `redis`, `ingress`).
+3. Cloudflare Tunnel expose ingress ra internet.
+
+### 1) Cài K3s (một lần)
+
+```bash
+bash scripts/setup-k3s.sh
+```
+
+### 2) Tạo secret cho API
+
+```bash
+export DB_HOST='db.example.com'
+export DB_PASSWORD='your_password'
+export MONGO_URI='mongodb+srv://...'
+
+bash scripts/create-k8s-secrets.sh
+```
+
+Hoặc nếu đã có URL đầy đủ:
+
+```bash
+export DATABASE_URL_SHARD_1='postgresql://...'
+export DATABASE_URL_SHARD_2='postgresql://...'
+export MONGO_URI='mongodb+srv://...'
+
+bash scripts/create-k8s-secrets.sh
+```
+
+### 3) Chạy dev loop
+
+```bash
+# Lần đầu hoặc khi muốn lên full stack
+bash scripts/dev-loop.sh up
+
+# Xem trạng thái
+bash scripts/dev-loop.sh status
+
+# Build lại app cụ thể và restart deployment tương ứng
+bash scripts/dev-loop.sh rebuild api-core
+
+# Theo dõi log
+bash scripts/dev-loop.sh logs api-core
+
+# Tắt toàn bộ
+bash scripts/dev-loop.sh down
+```
+
+### 4) Expose bằng Cloudflare Tunnel
+
+Tạo token trong Cloudflare Zero Trust rồi export:
+
+```bash
+export CF_TUNNEL_TOKEN='your_tunnel_token'
+bash scripts/setup-cloudflare-tunnel.sh
+```
+
+Sau đó vào dashboard tunnel để map Public Hostnames về origin:
+
+* `http://traefik.kube-system.svc.cluster.local`
+
+Và override Host header tương ứng với ingress rules hiện tại:
+
+* `api.ecommerce.local`
+* `admin.ecommerce.local`
+* `ecommerce.local`
+

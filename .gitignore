@@ -36,6 +36,11 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+.cloudflared/
+cloudflared/
+tunnel-credentials.json
 
 # Agent/AI Directories
 master-template-example/
+
+.early.coverage
