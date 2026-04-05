@@ -7,6 +7,12 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "security:audit": "npm audit",
+    "security:audit:prod": "npm audit --omit=dev",
+    "wsl:sync": "bash scripts/wsl-sync-run.sh --sync-only",
+    "wsl:build": "bash scripts/wsl-sync-run.sh npm run build",
+    "wsl:dev": "bash scripts/wsl-sync-run.sh --skip-install npm run dev",
+    "wsl:test": "bash scripts/wsl-sync-run.sh npm test",
     "sync:layout": "npx tsx scripts/sync-layout.ts",
     "generate:master": "npx tsx scripts/generate-master.ts",
     "dev:loop": "bash scripts/dev-loop.sh up",
@@ -20,9 +26,9 @@
     "typescript": "5.9.2"
   },
   "engines": {
-    "node": "^22.12.0"
+    "node": "22.22.1"
   },
-  "packageManager": "npm@11.6.3",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "apps/*",
     "packages/*"

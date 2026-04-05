@@ -13,7 +13,7 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit & { shopId?: string } = {}
   ): Promise<BaseResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -23,10 +23,15 @@ class ApiClient {
       headers.set("Content-Type", "application/json");
     }
 
+    if (options.shopId) {
+      headers.set("x-shop-id", options.shopId);
+    }
+
     // Add credentials if needed (Cookie auth is handled by browser)
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: "include",
     });
 
     const body = await response.json();
@@ -38,11 +43,11 @@ class ApiClient {
     return body as BaseResponse<T>;
   }
 
-  async get<T>(endpoint: string, options: RequestInit = {}) {
+  async get<T>(endpoint: string, options: RequestInit & { shopId?: string } = {}) {
     return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
-  async post<T>(endpoint: string, body: any, options: RequestInit = {}) {
+  async post<T>(endpoint: string, body: unknown, options: RequestInit & { shopId?: string } = {}) {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
@@ -50,7 +55,7 @@ class ApiClient {
     });
   }
 
-  async put<T>(endpoint: string, body: any, options: RequestInit = {}) {
+  async put<T>(endpoint: string, body: unknown, options: RequestInit & { shopId?: string } = {}) {
     return this.request<T>(endpoint, {
       ...options,
       method: "PUT",
@@ -58,7 +63,7 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string, options: RequestInit = {}) {
+  async delete<T>(endpoint: string, options: RequestInit & { shopId?: string } = {}) {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
   }
 }

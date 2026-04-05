@@ -1,5 +1,4 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { CartItemDto } from './dto/cart.dto';
 
@@ -10,12 +9,10 @@ export interface CartData {
 
 @Injectable()
 export class CartService implements OnModuleInit, OnModuleDestroy {
-  private redisClient: Redis;
-
-  constructor(private configService: ConfigService) {}
+  private redisClient!: Redis;
 
   onModuleInit() {
-    const redisUrl = this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.redisClient = new Redis(redisUrl);
   }
 

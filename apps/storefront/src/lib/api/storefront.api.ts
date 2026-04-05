@@ -10,7 +10,10 @@
  *  - Shop info: revalidate every 300s (rarely changes)
  */
 
-const API_BASE_URL = process.env.API_CORE_URL ?? 'http://localhost:3000';
+const API_BASE_URL =
+    process.env.API_CORE_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    'http://localhost:3001';
 
 // ─────────────────────────────────────────
 // Types (lightweight — full types live in @ecommerce/schema)
@@ -43,6 +46,37 @@ export interface ShopProductsResult {
     hasMore: boolean;
 }
 
+interface ResolvedShop {
+    id: string;
+    domain?: string | null;
+    name?: string;
+}
+
+function getTenantHeaders(shopId: string): HeadersInit {
+    return {
+        'x-shop-id': shopId,
+    };
+}
+
+export async function resolveShopContext(shopIdentifier: string): Promise<ResolvedShop | null> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/shops/resolve/${encodeURIComponent(shopIdentifier)}`, {
+            next: {
+                tags: [`shop-resolve-${shopIdentifier}`],
+                revalidate: 120,
+            },
+        });
+
+        if (!res.ok) return null;
+
+        const body = await res.json();
+        return body?.data ?? null;
+    } catch (err) {
+        console.error(`[storefront.api] resolveShopContext failed for identifier=${shopIdentifier}`, err);
+        return null;
+    }
+}
+
 // ─────────────────────────────────────────
 // Shop Info
 // ─────────────────────────────────────────
@@ -52,9 +86,14 @@ export interface ShopProductsResult {
  * The shopSlug from the URL is treated as the shopId here.
  * Returns null if shop is not found (caller should render 404).
  */
-export async function getShopInfo(shopId: string): Promise<ShopInfo | null> {
+export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | null> {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/shops/${encodeURIComponent(shopId)}`, {
+            headers: getTenantHeaders(shopId),
             next: {
                 tags: [`shop-${shopId}`],
                 revalidate: 300, // 5 minutes
@@ -64,9 +103,9 @@ export async function getShopInfo(shopId: string): Promise<ShopInfo | null> {
         if (!res.ok) return null;
 
         const data = await res.json();
-        return data?.metadata ?? null;
+        return data?.data?.metadata ?? null;
     } catch (err) {
-        console.error(`[storefront.api] getShopInfo failed for shopId=${shopId}`, err);
+        console.error(`[storefront.api] getShopInfo failed for shopIdentifier=${shopIdentifier}`, err);
         return null;
     }
 }
@@ -82,9 +121,14 @@ export async function getShopInfo(shopId: string): Promise<ShopInfo | null> {
  *
  * Returns null if no layout is configured yet (caller should render fallback).
  */
-export async function getShopLayout(shopId: string) {
+export async function getShopLayout(shopIdentifier: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}`, {
+            headers: getTenantHeaders(shopId),
             next: {
                 tags: [`layout-${shopId}`],
                 revalidate: 60, // 1 minute fallback TTL
@@ -98,7 +142,7 @@ export async function getShopLayout(shopId: string) {
 
         return body.data ?? null;
     } catch (err) {
-        console.error(`[storefront.api] getShopLayout failed for shopId=${shopId}`, err);
+        console.error(`[storefront.api] getShopLayout failed for shopIdentifier=${shopIdentifier}`, err);
         return null;
     }
 }
@@ -114,7 +158,7 @@ export async function getShopLayout(shopId: string) {
  * @param options - filtering and pagination options
  */
 export async function getShopProducts(
-    shopId: string,
+    shopIdentifier: string,
     options?: {
         limit?: number;
         lastId?: string;
@@ -125,6 +169,10 @@ export async function getShopProducts(
     }
 ): Promise<ShopProductsResult> {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return { products: [], hasMore: false };
+
+        const shopId = resolvedShop.id;
         const limit = options?.limit ?? 20;
         const params = new URLSearchParams({ limit: String(limit) });
         if (options?.lastId) params.set('lastId', options.lastId);
@@ -136,6 +184,7 @@ export async function getShopProducts(
         const res = await fetch(
             `${API_BASE_URL}/api/products/shop/${encodeURIComponent(shopId)}?${params}`,
             {
+                headers: getTenantHeaders(shopId),
                 next: {
                     tags: [`products-${shopId}`],
                     revalidate: 30,
@@ -153,7 +202,7 @@ export async function getShopProducts(
             hasMore: products.length === limit,
         };
     } catch (err) {
-        console.error(`[storefront.api] getShopProducts failed for shopId=${shopId}`, err);
+        console.error(`[storefront.api] getShopProducts failed for shopIdentifier=${shopIdentifier}`, err);
         return { products: [], hasMore: false };
     }
 }
@@ -164,9 +213,14 @@ export async function getShopProducts(
  * @param shopId  - the shop's ID (slug)
  * @param productId - the product's ID
  */
-export async function getShopProductDetails(shopId: string, productId: string) {
+export async function getShopProductDetails(shopIdentifier: string, productId: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return { product: null };
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
+            headers: getTenantHeaders(shopId),
             next: {
                 tags: [`product-${productId}`],
                 revalidate: 30,
@@ -191,9 +245,14 @@ export async function getShopProductDetails(shopId: string, productId: string) {
  * @param shopId - the shop's ID (slug)
  * @param email - customer's email
  */
-export async function getCustomerOrders(shopId: string, email: string) {
+export async function getCustomerOrders(shopIdentifier: string, email: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return [];
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/orders/shop/${encodeURIComponent(shopId)}/customer/${encodeURIComponent(email)}`, {
+            headers: getTenantHeaders(shopId),
             cache: 'no-store' // Orders should always be fresh
         });
 
@@ -211,9 +270,14 @@ export async function getCustomerOrders(shopId: string, email: string) {
 // Navigation, Collections, and Pages
 // ─────────────────────────────────────────
 
-export async function getNavigationMenu(shopId: string, handle: string) {
+export async function getNavigationMenu(shopIdentifier: string, handle: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/navigation/${handle}?shopId=${shopId}`, {
+            headers: getTenantHeaders(shopId),
             next: { revalidate: 300, tags: [`nav-${shopId}-${handle}`] }
         });
         if (!res.ok) return null;
@@ -225,9 +289,14 @@ export async function getNavigationMenu(shopId: string, handle: string) {
     }
 }
 
-export async function getCollectionBySlug(shopId: string, slug: string) {
+export async function getCollectionBySlug(shopIdentifier: string, slug: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/collections/${slug}?shopId=${shopId}`, {
+            headers: getTenantHeaders(shopId),
             next: { revalidate: 30, tags: [`collection-${shopId}-${slug}`] }
         });
         if (!res.ok) return null;
@@ -239,9 +308,14 @@ export async function getCollectionBySlug(shopId: string, slug: string) {
     }
 }
 
-export async function getShopPageBySlug(shopId: string, slug: string) {
+export async function getShopPageBySlug(shopIdentifier: string, slug: string) {
     try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
         const res = await fetch(`${API_BASE_URL}/api/pages/${slug}?shopId=${shopId}`, {
+            headers: getTenantHeaders(shopId),
             next: { revalidate: 60, tags: [`page-${shopId}-${slug}`] }
         });
         if (!res.ok) return null;

@@ -1,7 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SystemCacheService {
@@ -9,7 +8,6 @@ export class SystemCacheService {
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private configService: ConfigService,
   ) {}
 
   async get<T>(key: string): Promise<T | undefined> {
@@ -29,8 +27,8 @@ export class SystemCacheService {
    * @param tag The tag to revalidate (e.g. 'layout-shop123')
    */
   async revalidateStorefront(tag: string): Promise<boolean> {
-    const storefrontUrl = this.configService.get<string>('STOREFRONT_URL');
-    const secret = this.configService.get<string>('REVALIDATE_SECRET');
+    const storefrontUrl = process.env.STOREFRONT_URL;
+    const secret = process.env.REVALIDATE_SECRET;
 
     if (!storefrontUrl || !secret) {
       this.logger.warn('STOREFRONT_URL or REVALIDATE_SECRET is missing. Cannot revalidate storefront.');
@@ -53,7 +51,8 @@ export class SystemCacheService {
       this.logger.log(`Storefront revalidation successful for tag [${tag}]`);
       return true;
     } catch (error) {
-      this.logger.error(`Error requesting storefront revalidation for tag [${tag}]`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error requesting storefront revalidation for tag [${tag}]`, message);
       return false;
     }
   }

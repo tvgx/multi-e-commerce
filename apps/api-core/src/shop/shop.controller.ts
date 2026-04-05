@@ -30,6 +30,11 @@ export class ShopController {
     return this.shopService.getMyShops(session.user.id);
   }
 
+  @Get('resolve/:identifier')
+  async resolveShop(@Param('identifier') identifier: string): Promise<BaseResponseDto<object>> {
+    return this.shopService.resolveShop(identifier);
+  }
+
   @Get(':id')
   async getShopSettings(@Param('id') id: string): Promise<BaseResponseDto<object>> {
     return this.shopService.getShopSettings(id);

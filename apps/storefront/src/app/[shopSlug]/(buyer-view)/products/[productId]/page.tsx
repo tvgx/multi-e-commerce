@@ -19,10 +19,21 @@ export default async function ProductDetailsPage({ params }: Props) {
 
     if (!product) return notFound();
 
-    // Default to the first variant or use a placeholder
-    const defaultVariant = product.variants?.[0] || { _id: 'default', sku: 'DEFAULT', price: product.basePrice, stock: 100 };
-    const imageUrl = product.images?.[0] || '';
-    const inStock = defaultVariant.stock > 0;
+    const defaultVariant =
+      product.variants?.[0] ||
+      ({ id: 'default', sku: 'DEFAULT', price: product.basePrice, stockItems: [] } as any);
+
+    const imageUrl =
+      product.images?.[0] ||
+      product.layout?.images?.[0] ||
+      product.layout?.imageUrls?.[0] ||
+      '';
+
+    const totalStock = (defaultVariant.stockItems || []).reduce(
+      (sum: number, item: { countOnHand?: number }) => sum + (item.countOnHand || 0),
+      0,
+    );
+    const inStock = totalStock > 0;
 
     return (
       <div className="container mx-auto px-4 py-12">
@@ -67,8 +78,8 @@ export default async function ProductDetailsPage({ params }: Props) {
             <div className="pt-8 border-t border-slate-200">
               {inStock ? (
                 <AddToCartButton 
-                  productId={product._id} 
-                  variantId={defaultVariant._id} 
+                  productId={product._id || product.id}
+                  variantId={defaultVariant._id || defaultVariant.id}
                   price={defaultVariant.price || product.basePrice} 
                   title={product.name} 
                   imageUrl={imageUrl} 

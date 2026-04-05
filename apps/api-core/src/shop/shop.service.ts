@@ -18,10 +18,12 @@ export class ShopService {
 
   async createShop(ownerId: string, dto: CreateShopDto): Promise<BaseResponseDto<object>> {
     try {
+      const normalizedDomain = dto.domain?.trim().toLowerCase() || undefined;
+
       // 1. Check domain availability
-      if (dto.domain) {
+      if (normalizedDomain) {
         const existing = await this.prisma.shop.findUnique({
-          where: { domain: dto.domain },
+          where: { domain: normalizedDomain },
         });
         if (existing) {
           throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, "Url User's is exist.", HttpStatus.CONFLICT);
@@ -32,7 +34,7 @@ export class ShopService {
       const shop = await (this.prisma as any).shop.create({
         data: {
           name: dto.name,
-          domain: dto.domain,
+          domain: normalizedDomain,
           ownerId: ownerId,
           status: 'DRAFT',
           productsPerPage: dto.productsPerPage ?? 30,
@@ -194,9 +196,14 @@ export class ShopService {
         throw new CustomException(ResponseCodes.NOT_ACCESS, 'không có quyền truy cập tài nguyên', HttpStatus.FORBIDDEN);
       }
 
+      const normalizedDomain = dto.domain?.trim().toLowerCase();
+
       const updated = await this.prisma.shop.update({
         where: { id: targetId },
-        data: { ...dto },
+        data: {
+          ...dto,
+          ...(dto.domain !== undefined ? { domain: normalizedDomain || null } : {}),
+        },
       });
 
       return BaseResponseDto.success(updated);
@@ -253,5 +260,33 @@ export class ShopService {
       },
     });
     return BaseResponseDto.success(shops);
+  }
+
+  async resolveShop(identifier: string): Promise<BaseResponseDto<object>> {
+    const normalized = identifier.trim().toLowerCase();
+
+    const shop = await this.prisma.shop.findFirst({
+      where: {
+        OR: [
+          { id: identifier },
+          { domain: normalized },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        status: true,
+        ownerId: true,
+        productsPerPage: true,
+        templateType: true,
+      },
+    });
+
+    if (!shop) {
+      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.NOT_FOUND);
+    }
+
+    return BaseResponseDto.success(shop);
   }
 }

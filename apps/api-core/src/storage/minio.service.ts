@@ -16,22 +16,31 @@
  */
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as Minio from 'minio';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadBucketCommand,
+  CreateBucketCommand,
+} from '@aws-sdk/client-s3';
 
 const LAYOUT_BUCKET = 'shop-layouts';
 
 @Injectable()
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
-  private client: Minio.Client;
+  private client: S3Client;
 
   constructor() {
-    this.client = new Minio.Client({
-      endPoint: process.env.MINIO_ENDPOINT ?? 'localhost',
-      port: parseInt(process.env.MINIO_PORT ?? '9000', 10),
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY ?? 'minioadmin',
-      secretKey: process.env.MINIO_SECRET_KEY ?? 'minioadmin',
+    this.client = new S3Client({
+      endpoint: `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT ?? 'localhost'}:${parseInt(process.env.MINIO_PORT ?? '9000', 10)}`,
+      region: process.env.MINIO_REGION ?? 'us-east-1',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.MINIO_ACCESS_KEY ?? 'minioadmin',
+        secretAccessKey: process.env.MINIO_SECRET_KEY ?? 'minioadmin',
+      },
     });
   }
 
@@ -52,12 +61,13 @@ export class MinioService implements OnModuleInit {
     const content = JSON.stringify(layout);
     const buffer = Buffer.from(content, 'utf-8');
 
-    await this.client.putObject(
-      LAYOUT_BUCKET,
-      objectKey,
-      buffer,
-      buffer.byteLength,
-      { 'Content-Type': 'application/json' },
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: LAYOUT_BUCKET,
+        Key: objectKey,
+        Body: buffer,
+        ContentType: 'application/json',
+      }),
     );
 
     this.logger.log(`[MinIO] Saved layout → ${LAYOUT_BUCKET}/${objectKey}`);
@@ -71,25 +81,25 @@ export class MinioService implements OnModuleInit {
     const objectKey = `${shopId}.json`;
 
     try {
-      const stream = await this.client.getObject(LAYOUT_BUCKET, objectKey);
+      const output = await this.client.send(
+        new GetObjectCommand({
+          Bucket: LAYOUT_BUCKET,
+          Key: objectKey,
+        }),
+      );
 
-      return new Promise<T>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-        stream.on('end', () => {
-          try {
-            const json = Buffer.concat(chunks).toString('utf-8');
-            resolve(JSON.parse(json) as T);
-          } catch (e) {
-            reject(e);
-          }
-        });
-        stream.on('error', reject);
-      });
+      const body = output.Body;
+      if (!body) {
+        return null;
+      }
+
+      const json = await (body as { transformToString: () => Promise<string> }).transformToString();
+      return JSON.parse(json) as T;
     } catch (err: unknown) {
-      // MinIO throws a NoSuchKey error (code S3Error) when object doesn't exist
+      // S3-compatible APIs return NoSuchKey / NotFound when object doesn't exist.
       if (
-        (err as Record<string, unknown>)?.code === 'NoSuchKey' ||
+        (err as Record<string, unknown>)?.name === 'NoSuchKey' ||
+        (err as Record<string, unknown>)?.name === 'NotFound' ||
         ((err as Error)?.message &&
           (err as Error).message.includes('does not exist'))
       ) {
@@ -107,7 +117,12 @@ export class MinioService implements OnModuleInit {
    * Deletes the layout object for a shop (e.g. when a shop is deleted).
    */
   async deleteLayout(shopId: string): Promise<void> {
-    await this.client.removeObject(LAYOUT_BUCKET, `${shopId}.json`);
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: LAYOUT_BUCKET,
+        Key: `${shopId}.json`,
+      }),
+    );
     this.logger.log(`[MinIO] Deleted layout for shopId=${shopId}`);
   }
 
@@ -116,12 +131,12 @@ export class MinioService implements OnModuleInit {
   // ─────────────────────────────────────────
 
   private async ensureBucketExists(bucket: string): Promise<void> {
-    const exists = await this.client.bucketExists(bucket);
-    if (!exists) {
-      await this.client.makeBucket(bucket, 'us-east-1');
-      this.logger.log(`[MinIO] Created bucket: ${bucket}`);
-    } else {
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: bucket }));
       this.logger.log(`[MinIO] Bucket ready: ${bucket}`);
+    } catch {
+      await this.client.send(new CreateBucketCommand({ Bucket: bucket }));
+      this.logger.log(`[MinIO] Created bucket: ${bucket}`);
     }
   }
 }

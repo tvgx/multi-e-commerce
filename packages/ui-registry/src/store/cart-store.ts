@@ -25,7 +25,7 @@ interface CartState {
   clearCart: () => Promise<void>;
 }
 
-const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // We use local storage to persist the session ID for guests
 const getSessionId = () => {

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -29,17 +28,8 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_DB_ATLAS'),
-        maxPoolSize: 10, // Optimized for 16GB RAM limit
-      }),
-      inject: [ConfigService],
+    MongooseModule.forRoot(process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce', {
+      maxPoolSize: 10,
     }),
     BetterAuthModule.forRoot({
       auth,
