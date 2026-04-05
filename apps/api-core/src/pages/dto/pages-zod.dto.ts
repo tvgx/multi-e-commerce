@@ -1,4 +1,4 @@
-import { z } from 'nestjs-zod/z';
+import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { UIComponentRefSchema } from '@ecommerce/schema';
 

@@ -1,0 +1,36 @@
+
+> build
+> turbo run build
+
+
+   • Packages in scope: @ecommerce/database, @ecommerce/master-templates, @ecommerce/schema, @ecommerce/ui-registry, admin, api-core, cli-tool-node, storefront
+   • Running build in 8 packages
+   • Remote caching disabled
+
+@ecommerce/schema:build: cache hit, replaying logs 679cbeabf55dfbc5
+@ecommerce/schema:build: 
+@ecommerce/schema:build: > @ecommerce/schema@0.1.0 build
+@ecommerce/schema:build: > tsc
+@ecommerce/schema:build: 
+@ecommerce/database:build: cache hit, replaying logs 45790a9ae07e1dec
+@ecommerce/database:build: 
+@ecommerce/database:build: > @ecommerce/database@0.1.0 build
+@ecommerce/database:build: > tsc
+@ecommerce/database:build: 
+api-core:build: cache miss, executing a11c0acc4741c229
+@ecommerce/master-templates:build: cache hit, replaying logs 6f601d3354f773b3
+@ecommerce/master-templates:build: 
+@ecommerce/master-templates:build: 
+@ecommerce/master-templates:build: > @ecommerce/master-templates@0.1.0 build
+@ecommerce/master-templates:build: > tsc
+@ecommerce/master-templates:build: 
+@ecommerce/master-templates:build: ⠙[1G[0K
+api-core:build: 
+api-core:build: > api-core@0.0.1 build
+api-core:build: > nest build
+api-core:build: 
+@ecommerce/ui-registry:build: cache hit, replaying logs 37521b314d69c622
+@ecommerce/ui-registry:build: 
+@ecommerce/ui-registry:build: > @ecommerce/ui-registry@0.1.0 build
+@ecommerce/ui-registry:build: > tsc
+@ecommerce/ui-registry:build: 
