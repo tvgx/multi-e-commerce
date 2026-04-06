@@ -43,4 +43,7 @@ tunnel-credentials.json
 # Agent/AI Directories
 master-template-example/
 
+# Manual Setup & Local Configuration
+MANUAL_SETUP_COMMANDS.md
+
 .early.coverage
