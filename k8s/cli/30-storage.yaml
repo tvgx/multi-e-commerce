@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ecommerce-cli-backups
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    data-type: backups
+spec:
+  accessModes:
+    - ReadWriteMany  # Required for parallel backup operations
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ecommerce-cli-audit-export
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    data-type: audit-export
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 50Gi

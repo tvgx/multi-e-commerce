@@ -1,0 +1,121 @@
+name: CLI - Deploy to Kubernetes
+
+on:
+  workflow_run:
+    workflows: ["CLI - Build and Test"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/ecommerce-cli
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set environment variables
+        run: |
+          ENV=${{ github.event.inputs.environment || 'staging' }}
+          echo "KUBE_CLUSTER=ecommerce-${ENV}" >> $GITHUB_ENV
+          echo "KUBE_NAMESPACE=ecommerce-cli" >> $GITHUB_ENV
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.27.0'
+      
+      - name: Authenticate to Kubernetes
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Get AKS cluster credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ecommerce \
+            --name ${{ env.KUBE_CLUSTER }} \
+            --overwrite-existing
+      
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/cli/00-namespace.yaml
+          kubectl apply -f k8s/cli/30-storage.yaml
+          kubectl apply -f k8s/cli/10-jobs.yaml
+          kubectl apply -f k8s/cli/20-cronjobs.yaml
+      
+      - name: Update image in deployment
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+          kubectl set image -n ${{ env.KUBE_NAMESPACE }} \
+            job/ecommerce-cli-batch-create cli="$IMAGE" \
+            --record || true
+      
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status -n ${{ env.KUBE_NAMESPACE }} \
+            job/ecommerce-cli-batch-create \
+            --timeout=5m || true
+      
+      - name: Verify deployment
+        run: |
+          echo "Deployment verification:"
+          kubectl get -n ${{ env.KUBE_NAMESPACE }} \
+            job,cronjob,pvc -o wide
+          
+          echo ""
+          echo "Pod status:"
+          kubectl get pods -n ${{ env.KUBE_NAMESPACE }} -o wide
+      
+      - name: Post deployment checks
+        run: |
+          echo "ServiceAccount:"
+          kubectl get serviceaccount \
+            -n ${{ env.KUBE_NAMESPACE }} ecommerce-cli -o yaml
+          
+          echo ""
+          echo "RBAC Role:"
+          kubectl get role \
+            -n ${{ env.KUBE_NAMESPACE }} ecommerce-cli -o yaml
+      
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "CLI Deployment Status",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Deployment: ${{ job.status }}\nEnvironment: ${{ env.KUBE_CLUSTER }}\nRef: ${{ github.ref }}"
+                  }
+                }
+              ]
+            }

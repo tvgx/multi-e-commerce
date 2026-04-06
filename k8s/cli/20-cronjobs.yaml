@@ -1,0 +1,414 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecommerce-cli-backup-daily
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: backup
+    schedule: daily
+spec:
+  # Every day at 2 AM UTC
+  schedule: "0 2 * * *"
+  
+  # Keep last 3 successful and 1 failed job
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  # Do not start new job if previous one is still running
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: backup-daily
+    spec:
+      ttlSecondsAfterFinished: 604800  # 7 days
+      
+      template:
+        metadata:
+          labels:
+            app: ecommerce-cli
+            operation: backup-daily
+        spec:
+          serviceAccountName: ecommerce-cli
+          restartPolicy: OnFailure
+          
+          containers:
+            - name: backup
+              image: ecommerce-cli:latest
+              imagePullPolicy: IfNotPresent
+              
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  echo "Starting daily backup job..."
+                  echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+                  
+                  # Get all shop IDs
+                  SHOPS=$(python main.py shop list --json | jq -r '.[].id')
+                  SHOP_COUNT=$(echo "$SHOPS" | wc -l)
+                  SUCCESS=0
+                  FAILED=0
+                  
+                  echo "Backing up $SHOP_COUNT shops..."
+                  
+                  for SHOP_ID in $SHOPS; do
+                    if python main.py backup create "$SHOP_ID" > /tmp/backup_$SHOP_ID.log 2>&1; then
+                      ((SUCCESS++))
+                      echo "✓ Backed up $SHOP_ID"
+                    else
+                      ((FAILED++))
+                      echo "✗ Failed to backup $SHOP_ID"
+                      cat /tmp/backup_$SHOP_ID.log
+                    fi
+                  done
+                  
+                  echo "Backup job completed:"
+                  echo "  Successful: $SUCCESS"
+                  echo "  Failed: $FAILED"
+                  
+                  if [ $FAILED -gt 0 ]; then
+                    exit 1
+                  fi
+              
+              env:
+                - name: API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_URL
+                - name: API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_KEY
+                - name: CLI_ENV
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ecommerce-cli-config
+                      key: CLI_ENV
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1000m"
+              
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /home/cli-user/.ecommerce-cli/backups
+          
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: ecommerce-cli-backups
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecommerce-cli-health-checks-weekly
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: health-check
+    schedule: weekly
+spec:
+  # Every Sunday at 3 AM UTC
+  schedule: "0 3 * * 0"
+  
+  # Keep last 4 successful and 1 failed job
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 1
+  
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: health-check-weekly
+    spec:
+      ttlSecondsAfterFinished: 2592000  # 30 days
+      
+      template:
+        metadata:
+          labels:
+            app: ecommerce-cli
+            operation: health-check-weekly
+        spec:
+          serviceAccountName: ecommerce-cli
+          restartPolicy: OnFailure
+          
+          containers:
+            - name: health-check
+              image: ecommerce-cli:latest
+              imagePullPolicy: IfNotPresent
+              
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  echo "Starting weekly health checks..."
+                  echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+                  
+                  SHOPS=$(python main.py shop list --json | jq -r '.[].id')
+                  SHOP_COUNT=$(echo "$SHOPS" | wc -l)
+                  
+                  echo "Running health checks on $SHOP_COUNT shops..."
+                  
+                  HEALTH_REPORT="/tmp/health-report-$(date +%Y%m%d).json"
+                  echo "[" > "$HEALTH_REPORT"
+                  
+                  FIRST=true
+                  for SHOP_ID in $SHOPS; do
+                    if ! $FIRST; then echo "," >> "$HEALTH_REPORT"; fi
+                    python main.py health check "$SHOP_ID" --json >> "$HEALTH_REPORT"
+                    FIRST=false
+                  done
+                  
+                  echo "]" >> "$HEALTH_REPORT"
+                  
+                  echo "Health report saved to $HEALTH_REPORT"
+                  
+                  # Count shops with low health scores
+                  LOW_HEALTH=$(jq '[.[] | select(.health_score < 80)] | length' "$HEALTH_REPORT")
+                  echo "Shops with low health: $LOW_HEALTH"
+                  
+                  if [ "$LOW_HEALTH" -gt 5 ]; then
+                    echo "WARNING: Multiple shops have low health scores"
+                    jq '.[] | select(.health_score < 80) | {shop_id, health_score}' "$HEALTH_REPORT"
+                  fi
+              
+              env:
+                - name: API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_URL
+                - name: API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_KEY
+                - name: CLI_ENV
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ecommerce-cli-config
+                      key: CLI_ENV
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "2000m"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecommerce-cli-audit-export-weekly
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: audit
+    schedule: weekly
+spec:
+  # Every Monday at 4 AM UTC
+  schedule: "0 4 * * 1"
+  
+  # Keep last 12 weeks of exports
+  successfulJobsHistoryLimit: 12
+  failedJobsHistoryLimit: 1
+  
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: audit-export
+    spec:
+      ttlSecondsAfterFinished: 7776000  # 90 days
+      
+      template:
+        metadata:
+          labels:
+            app: ecommerce-cli
+            operation: audit-export
+        spec:
+          serviceAccountName: ecommerce-cli
+          restartPolicy: OnFailure
+          
+          containers:
+            - name: audit-export
+              image: ecommerce-cli:latest
+              imagePullPolicy: IfNotPresent
+              
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  echo "Exporting audit logs for compliance..."
+                  echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+                  
+                  EXPORT_DATE=$(date +%Y%m%d)
+                  EXPORT_FILE="/audit-export/audit-$EXPORT_DATE.json"
+                  
+                  # Export global audit logs
+                  python main.py audit view --json > "$EXPORT_FILE"
+                  
+                  echo "Exported audit logs to $EXPORT_FILE"
+                  
+                  # Get summary statistics
+                  python main.py audit summary --json > "/audit-export/audit-summary-$EXPORT_DATE.json"
+                  
+                  # Count events
+                  TOTAL_EVENTS=$(jq '[. | length] | add' "$EXPORT_FILE")
+                  echo "Total events exported: $TOTAL_EVENTS"
+              
+              env:
+                - name: API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_URL
+                - name: API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: ecommerce-cli-secrets
+                      key: API_KEY
+                - name: CLI_ENV
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ecommerce-cli-config
+                      key: CLI_ENV
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              
+              volumeMounts:
+                - name: audit-export
+                  mountPath: /audit-export
+          
+          volumes:
+            - name: audit-export
+              persistentVolumeClaim:
+                claimName: ecommerce-cli-audit-export
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecommerce-cli-cleanup-old-backups
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: maintenance
+    schedule: monthly
+spec:
+  # First day of month at 1 AM UTC
+  schedule: "0 1 1 * *"
+  
+  successfulJobsHistoryLimit: 12
+  failedJobsHistoryLimit: 1
+  
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: backup-cleanup
+    spec:
+      ttlSecondsAfterFinished: 15811200  # 6 months
+      
+      template:
+        metadata:
+          labels:
+            app: ecommerce-cli
+            operation: backup-cleanup
+        spec:
+          serviceAccountName: ecommerce-cli
+          restartPolicy: OnFailure
+          
+          containers:
+            - name: cleanup
+              image: ecommerce-cli:latest
+              imagePullPolicy: IfNotPresent
+              
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  echo "Cleaning up old backups..."
+                  RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+                  
+                  BACKUP_DIR=/home/cli-user/.ecommerce-cli/backups
+                  CUTOFF_DATE=$(date -d "-$RETENTION_DAYS days" +%Y%m%d)
+                  
+                  echo "Removing backups older than $RETENTION_DAYS days (before $CUTOFF_DATE)..."
+                  
+                  DELETED=0
+                  for shop_dir in "$BACKUP_DIR"/*; do
+                    if [ -d "$shop_dir" ]; then
+                      for backup_dir in "$shop_dir"/*; do
+                        BACKUP_DATE=$(basename "$backup_dir" | cut -d_ -f1)
+                        if [ "$BACKUP_DATE" -lt "$CUTOFF_DATE" ]; then
+                          echo "Deleting $backup_dir"
+                          rm -rf "$backup_dir"
+                          ((DELETED++))
+                        fi
+                      done
+                    fi
+                  done
+                  
+                  echo "Cleanup complete. Deleted $DELETED old backups."
+              
+              env:
+                - name: BACKUP_RETENTION_DAYS
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ecommerce-cli-config
+                      key: BACKUP_RETENTION_DAYS
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "250m"
+              
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /home/cli-user/.ecommerce-cli/backups
+          
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: ecommerce-cli-backups

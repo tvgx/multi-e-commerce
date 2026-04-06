@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.eggs
+dist
+build
+*.egg
+.pytest_cache
+.tox
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+test_output.txt
+tsc_output.txt
+*.postman_collection.json
+
+# Docs
+*.md
+docs/
+
+# Development
+.env.local
+.env.*.local
+temp/
+tmp/
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Kubernetes
+k8s/
+*.yaml
+*.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

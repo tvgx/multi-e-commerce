@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    part-of: ecommerce-platform
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecommerce-cli
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ecommerce-cli
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+rules:
+  # Allow reading jobs for monitoring
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading configmaps/secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+  # Allow reading pods for logs
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ecommerce-cli
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ecommerce-cli
+subjects:
+  - kind: ServiceAccount
+    name: ecommerce-cli
+    namespace: ecommerce-cli
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-cli-config
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+data:
+  CLI_ENV: "production"
+  LOG_LEVEL: "info"
+  BACKUP_RETENTION_DAYS: "30"
+  API_TIMEOUT_SECONDS: "30"
+  MAX_PARALLEL_WORKERS: "10"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-cli-scripts
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+data:
+  health-check.sh: |
+    #!/bin/bash
+    set -e
+    echo "Running health checks..."
+    python main.py config --show
+    echo "CLI health check passed"
+  
+  batch-create.sh: |
+    #!/bin/bash
+    set -e
+    INPUT_FILE=${1:-/data/shops.csv}
+    PARALLEL=${2:-10}
+    
+    echo "Creating shops from $INPUT_FILE with $PARALLEL workers..."
+    python main.py batch create "$INPUT_FILE" --parallel "$PARALLEL" --json
+    echo "Batch creation complete"
+  
+  backup-all.sh: |
+    #!/bin/bash
+    set -e
+    SHOP_ID=${1:-all}
+    echo "Creating backups for $SHOP_ID..."
+    
+    if [ "$SHOP_ID" = "all" ]; then
+      # Get all shop IDs and create backups
+      python main.py shop list --json | jq -r '.[].id' | while read sid; do
+        echo "Backing up $sid..."
+        python main.py backup create "$sid"
+      done
+    else
+      python main.py backup create "$SHOP_ID"
+    fi
+    echo "Backups complete"
+  
+  sync-config.sh: |
+    #!/bin/bash
+    set -e
+    SHOP_ID=$1
+    FROM_ENV=${2:-staging}
+    TO_ENV=${3:-prod}
+    
+    echo "Syncing $SHOP_ID from $FROM_ENV to $TO_ENV..."
+    python main.py sync config "$SHOP_ID" --from "$FROM_ENV" --to "$TO_ENV"
+    echo "Sync complete"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ecommerce-cli-secrets
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+type: Opaque
+stringData:
+  # These should be populated from CI/CD or Sealed Secrets
+  API_KEY: "your-api-key-here"
+  API_URL: "https://api.ecommerce.example.com/api"

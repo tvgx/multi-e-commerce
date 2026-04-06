@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for shop data
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB for templates/products
+  mongo:
+    image: mongo:6.0
+    container_name: ecommerce-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for file storage
+  minio:
+    image: minio/minio:latest
+    container_name: ecommerce-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Server (if running locally)
+  api:
+    build:
+      context: ../api-core
+      dockerfile: Dockerfile
+    container_name: ecommerce-api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      MONGODB_URL: mongodb://admin:admin@mongo:27017/ecommerce
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      JWT_SECRET: dev-secret-key-change-in-production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # CLI Tool (for testing/development)
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-cli
+    environment:
+      API_URL: http://api:3000/api
+      CLI_ENV: development
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      - api
+    volumes:
+      - .:/app:ro
+      - ./test_data:/data:rw
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  mongo_data:
+  minio_data:
+
+networks:
+  default:
+    name: ecommerce-network
