@@ -22,6 +22,12 @@ export const AddProductsToCollectionSchema = z.object({
   productIds: z.array(z.string().uuid()),
 });
 
-export class CreateCollectionDto extends createZodDto(CreateCollectionSchema as any) {}
-export class UpdateCollectionDto extends createZodDto(UpdateCollectionSchema as any) {}
-export class AddProductsToCollectionDto extends createZodDto(AddProductsToCollectionSchema as any) {}
+export class CreateCollectionDto extends createZodDto(
+  CreateCollectionSchema as any,
+) {}
+export class UpdateCollectionDto extends createZodDto(
+  UpdateCollectionSchema as any,
+) {}
+export class AddProductsToCollectionDto extends createZodDto(
+  AddProductsToCollectionSchema as any,
+) {}

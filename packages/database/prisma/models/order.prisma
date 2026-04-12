@@ -1,0 +1,113 @@
+// ==========================================
+// Order & Fulfillment Models
+// ==========================================
+
+model Order {
+  id            String   @id @default(uuid())
+  number        String   @unique // Public Order Number (vd: R123456789)
+  shopId        String
+  customerId    String
+
+  state         String   @default("cart") // cart, address, delivery, payment, confirm, complete, canceled
+  paymentState  String   @default("balance_due") // balance_due, paid, credit_owed, void
+  shipmentState String   @default("pending") // pending, ready, shipped, partial
+
+  totalAmount     Float    @default(0)
+  itemTotal       Float    @default(0)
+  adjustmentTotal Float    @default(0)
+  promoTotal      Float    @default(0)
+  taxTotal        Float    @default(0)
+  shipmentTotal   Float    @default(0)
+
+  currency      String   @default("VND")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop          Shop          @relation(fields: [shopId], references: [id])
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  lineItems     LineItem[]
+  shipments     Shipment[]
+  payments      Payment[]
+  adjustments   Adjustment[]
+
+  @@index([shopId])
+  @@index([number])
+  @@map("orders")
+}
+
+model LineItem {
+  id              String @id @default(uuid())
+  orderId         String
+  variantId       String
+  quantity        Int
+  price           Float
+  promoTotal      Float  @default(0)
+  taxTotal        Float  @default(0)
+  adjustmentTotal Float  @default(0)
+
+  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant         Variant      @relation(fields: [variantId], references: [id])
+  inventoryUnits  InventoryUnit[]
+  adjustments     Adjustment[]
+
+  @@index([orderId])
+  @@map("line_items")
+}
+
+model Shipment {
+  id              String   @id @default(uuid())
+  orderId         String
+  stockLocationId String
+  number          String   @unique
+  tracking        String?
+  state           String   @default("pending") // pending, ready, shipped, canceled
+  cost            Float    @default(0)
+  shippedAt       DateTime?
+
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stockLocation   StockLocation @relation("ShipsFrom", fields: [stockLocationId], references: [id])
+  inventoryUnits  InventoryUnit[]
+  adjustments     Adjustment[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@map("shipments")
+}
+
+model InventoryUnit {
+  id          String   @id @default(uuid())
+  lineItemId  String
+  variantId   String
+  shipmentId  String?
+  state       String   @default("on_hand") // on_hand, backordered, shipped
+
+  lineItem    LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
+  variant     Variant  @relation(fields: [variantId], references: [id])
+  shipment    Shipment? @relation(fields: [shipmentId], references: [id])
+
+  @@index([lineItemId])
+  @@index([variantId])
+  @@map("inventory_units")
+}
+
+model Adjustment {
+  id          String   @id @default(uuid())
+  orderId     String
+  adjustableId String  // Morphic: ID của LineItem, Shipment hoặc Order (nhưng Prisma dùng relation cụ thể)
+
+  label       String   // vd: "VAT 10%", "Freeship Promotion"
+  amount      Float
+  included    Boolean  @default(false)
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lineItem    LineItem? @relation(fields: [adjustableId], references: [id], map: "adj_line_item")
+  shipment    Shipment? @relation(fields: [adjustableId], references: [id], map: "adj_shipment")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@map("adjustments")
+}

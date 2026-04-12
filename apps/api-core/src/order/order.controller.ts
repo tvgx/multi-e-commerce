@@ -26,12 +26,17 @@ export class OrderController {
   }
 
   @Get('shop/:shopId')
-  async getOrdersByShop(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+  async getOrdersByShop(
+    @Param('shopId') shopId: string,
+  ): Promise<BaseResponseDto<any>> {
     return this.orderService.getOrdersByShop(shopId);
   }
 
   @Post(':id/state')
-  async updateOrderState(@Param('id') id: string, @Body('state') state: string): Promise<BaseResponseDto<any>> {
+  async updateOrderState(
+    @Param('id') id: string,
+    @Body('state') state: string,
+  ): Promise<BaseResponseDto<any>> {
     return this.orderService.updateOrderState(id, state);
   }
 }

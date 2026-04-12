@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Put, Body, Param, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  HttpStatus,
+} from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
@@ -17,26 +25,40 @@ export class ShopController {
     @Body() dto: CreateShopDto,
   ): Promise<BaseResponseDto<object>> {
     if (!session) {
-      throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     return this.shopService.createShop(session.user.id, dto);
   }
 
   @Get('my-shops')
-  async getMyShops(@Session() session: UserSession): Promise<BaseResponseDto<object[]>> {
+  async getMyShops(
+    @Session() session: UserSession,
+  ): Promise<BaseResponseDto<object[]>> {
     if (!session) {
-      throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     return this.shopService.getMyShops(session.user.id);
   }
 
   @Get('resolve/:identifier')
-  async resolveShop(@Param('identifier') identifier: string): Promise<BaseResponseDto<object>> {
+  async resolveShop(
+    @Param('identifier') identifier: string,
+  ): Promise<BaseResponseDto<object>> {
     return this.shopService.resolveShop(identifier);
   }
 
   @Get(':id')
-  async getShopSettings(@Param('id') id: string): Promise<BaseResponseDto<object>> {
+  async getShopSettings(
+    @Param('id') id: string,
+  ): Promise<BaseResponseDto<object>> {
     return this.shopService.getShopSettings(id);
   }
 
@@ -47,7 +69,11 @@ export class ShopController {
     @Body() dto: UpdateShopDto,
   ): Promise<BaseResponseDto<object>> {
     if (!session) {
-      throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     return this.shopService.updateShop(session.user.id, id, dto);
   }

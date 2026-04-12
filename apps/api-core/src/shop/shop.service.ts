@@ -1,4 +1,10 @@
-import { Injectable, HttpStatus, InternalServerErrorException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpStatus,
+  InternalServerErrorException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ShopTemplate } from '@ecommerce/database';
 import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
@@ -16,7 +22,10 @@ export class ShopService {
     private readonly domainVerifyService: DomainVerifyService,
   ) {}
 
-  async createShop(ownerId: string, dto: CreateShopDto): Promise<BaseResponseDto<object>> {
+  async createShop(
+    ownerId: string,
+    dto: CreateShopDto,
+  ): Promise<BaseResponseDto<object>> {
     try {
       const normalizedDomain = dto.domain?.trim().toLowerCase() || undefined;
 
@@ -26,7 +35,11 @@ export class ShopService {
           where: { domain: normalizedDomain },
         });
         if (existing) {
-          throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, "Url User's is exist.", HttpStatus.CONFLICT);
+          throw new CustomException(
+            ResponseCodes.URL_USER_IS_EXIST,
+            "Url User's is exist.",
+            HttpStatus.CONFLICT,
+          );
         }
       }
 
@@ -92,40 +105,68 @@ export class ShopService {
   async getOnboardingProgress(shopId: string): Promise<BaseResponseDto<any>> {
     const shop = await (this.prisma as any).shop.findUnique({
       where: { id: shopId },
-      select: { onboardingStep: true, onboardingStatus: true, domain: true, domainVerified: true }
+      select: {
+        onboardingStep: true,
+        onboardingStatus: true,
+        domain: true,
+        domainVerified: true,
+      },
     });
 
     if (!shop) throw new NotFoundException('Shop not found');
 
     // Real-time check for dynamic steps
     const productCount = await this.prisma.product.count({ where: { shopId } });
-    const collectionCount = await this.prisma.collection.count({ where: { shopId } });
-    const menuCount = await (this.prisma as any).navigationMenu.count({ where: { shopId } });
+    const collectionCount = await this.prisma.collection.count({
+      where: { shopId },
+    });
+    const menuCount = await (this.prisma as any).navigationMenu.count({
+      where: { shopId },
+    });
 
-    const status = ((shop as any).onboardingStatus || {}) as any;
+    const status = shop.onboardingStatus || {};
 
     return BaseResponseDto.success({
-      currentStep: (shop as any).onboardingStep,
+      currentStep: shop.onboardingStep,
       steps: {
         step1: { status: 'COMPLETED', label: 'Create Store' },
-        step2: { status: productCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Add Products' },
-        step3: { status: collectionCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Create Collections' },
-        step4: { status: menuCount >= 2 ? 'COMPLETED' : 'PENDING', label: 'Setup Header/Footer' },
+        step2: {
+          status: productCount > 0 ? 'COMPLETED' : 'PENDING',
+          label: 'Add Products',
+        },
+        step3: {
+          status: collectionCount > 0 ? 'COMPLETED' : 'PENDING',
+          label: 'Create Collections',
+        },
+        step4: {
+          status: menuCount >= 2 ? 'COMPLETED' : 'PENDING',
+          label: 'Setup Header/Footer',
+        },
         step5: { status: status.step5 || 'PENDING', label: 'Design Homepage' },
         step6: { status: status.step6 || 'PENDING', label: 'Setup Payment' },
         step7: { status: status.step7 || 'PENDING', label: 'Shipping & Tax' },
-        step8: { status: (shop as any).domainVerified ? 'COMPLETED' : 'PENDING', label: 'Verify Domain' },
-      }
+        step8: {
+          status: shop.domainVerified ? 'COMPLETED' : 'PENDING',
+          label: 'Verify Domain',
+        },
+      },
     });
   }
 
-  async completeStep(shopId: string, step: number): Promise<BaseResponseDto<any>> {
-    const shop = await (this.prisma as any).shop.findUnique({ where: { id: shopId } });
+  async completeStep(
+    shopId: string,
+    step: number,
+  ): Promise<BaseResponseDto<any>> {
+    const shop = await (this.prisma as any).shop.findUnique({
+      where: { id: shopId },
+    });
     if (!shop) throw new NotFoundException('Shop not found');
 
     // 1. Strict sequence check
     if (step !== shop.onboardingStep + 1 && step !== shop.onboardingStep) {
-      throw new ForbiddenException(`You must complete step ${shop.onboardingStep} first.`);
+      throw new ForbiddenException(
+        `You must complete step ${shop.onboardingStep} first.`,
+      );
     }
 
     // 2. Step specific validation
@@ -135,10 +176,12 @@ export class ShopService {
         isValid = (await this.prisma.product.count({ where: { shopId } })) > 0;
         break;
       case 3:
-        isValid = (await this.prisma.collection.count({ where: { shopId } })) > 0;
+        isValid =
+          (await this.prisma.collection.count({ where: { shopId } })) > 0;
         break;
       case 4:
-        isValid = (await this.prisma.navigationMenu.count({ where: { shopId } })) >= 2;
+        isValid =
+          (await this.prisma.navigationMenu.count({ where: { shopId } })) >= 2;
         break;
       case 5:
         isValid = true; // Homepage design always has a default after step 1
@@ -148,52 +191,87 @@ export class ShopService {
         isValid = true; // Placeholders for now
         break;
       case 8:
-        if (!shop.domain) throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Domain not set', HttpStatus.BAD_REQUEST);
+        if (!shop.domain)
+          throw new CustomException(
+            ResponseCodes.PARAM_VALUE_INVALID,
+            'Domain not set',
+            HttpStatus.BAD_REQUEST,
+          );
         isValid = await this.domainVerifyService.verifyDNS(shop.domain, shopId);
         if (isValid) {
           await (this.prisma as any).shop.update({
             where: { id: shopId },
-            data: { domainVerified: true }
+            data: { domainVerified: true },
           });
         }
         break;
       default:
-        throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid step', HttpStatus.BAD_REQUEST);
+        throw new CustomException(
+          ResponseCodes.PARAM_VALUE_INVALID,
+          'Invalid step',
+          HttpStatus.BAD_REQUEST,
+        );
     }
 
     if (!isValid) {
-      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, `Step ${step} validation failed.`, HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.PARAM_VALUE_INVALID,
+        `Step ${step} validation failed.`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // 3. Update status
-    const updatedStatus = { ...((shop as any).onboardingStatus || {}), [`step${step}`]: 'COMPLETED' };
+    const updatedStatus = {
+      ...(shop.onboardingStatus || {}),
+      [`step${step}`]: 'COMPLETED',
+    };
     const updatedShop = await (this.prisma as any).shop.update({
       where: { id: shopId },
       data: {
-        onboardingStep: Math.max((shop as any).onboardingStep, step),
+        onboardingStep: Math.max(shop.onboardingStep, step),
         onboardingStatus: updatedStatus,
-        status: step === 8 ? 'PUBLISHED' : 'DRAFT'
-      }
+        status: step === 8 ? 'PUBLISHED' : 'DRAFT',
+      },
     });
 
     return BaseResponseDto.success(updatedShop);
   }
 
   // ... (rest of the shop methods)
-  async updateShop(ownerId: string, shopId: string, dto: UpdateShopDto): Promise<BaseResponseDto<object>> {
+  async updateShop(
+    ownerId: string,
+    shopId: string,
+    dto: UpdateShopDto,
+  ): Promise<BaseResponseDto<object>> {
     try {
       const currentShopId = this.tenantService.getTenantId();
       const targetId = shopId || currentShopId;
 
       if (!targetId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Tenant identity unknown',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
-      const shop = await this.prisma.shop.findUnique({ where: { id: targetId } });
-      if (!shop) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.NOT_FOUND);
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: targetId },
+      });
+      if (!shop)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'No Data or end of list data',
+          HttpStatus.NOT_FOUND,
+        );
 
       if (shop.ownerId !== ownerId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'không có quyền truy cập tài nguyên', HttpStatus.FORBIDDEN);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'không có quyền truy cập tài nguyên',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       const normalizedDomain = dto.domain?.trim().toLowerCase();
@@ -202,7 +280,9 @@ export class ShopService {
         where: { id: targetId },
         data: {
           ...dto,
-          ...(dto.domain !== undefined ? { domain: normalizedDomain || null } : {}),
+          ...(dto.domain !== undefined
+            ? { domain: normalizedDomain || null }
+            : {}),
         },
       });
 
@@ -218,7 +298,11 @@ export class ShopService {
     const targetId = shopId || currentShopId;
 
     if (!targetId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const shop = await this.prisma.shop.findUnique({
@@ -231,10 +315,17 @@ export class ShopService {
     });
 
     if (!shop) {
-      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'No Data or end of list data',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    const template = (await ShopTemplate.findOne({ shopId: targetId }, { publishedData: 1, _id: 0 }).lean()) as {
+    const template = (await ShopTemplate.findOne(
+      { shopId: targetId },
+      { publishedData: 1, _id: 0 },
+    ).lean()) as {
       publishedData?: Record<string, unknown>;
     };
 
@@ -267,10 +358,7 @@ export class ShopService {
 
     const shop = await this.prisma.shop.findFirst({
       where: {
-        OR: [
-          { id: identifier },
-          { domain: normalized },
-        ],
+        OR: [{ id: identifier }, { domain: normalized }],
       },
       select: {
         id: true,
@@ -284,7 +372,11 @@ export class ShopService {
     });
 
     if (!shop) {
-      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'No Data or end of list data',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return BaseResponseDto.success(shop);

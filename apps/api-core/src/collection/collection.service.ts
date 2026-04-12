@@ -1,10 +1,18 @@
-import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpStatus,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from '../common/services/tenant.service';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
-import { CreateCollectionDto, UpdateCollectionDto, AddProductsToCollectionDto } from './dto/collection-zod.dto';
+import {
+  CreateCollectionDto,
+  UpdateCollectionDto,
+  AddProductsToCollectionDto,
+} from './dto/collection-zod.dto';
 
 @Injectable()
 export class CollectionService {
@@ -13,17 +21,28 @@ export class CollectionService {
     private readonly tenantService: TenantService,
   ) {}
 
-  async createCollection(ownerId: string, dto: CreateCollectionDto): Promise<BaseResponseDto<any>> {
+  async createCollection(
+    ownerId: string,
+    dto: CreateCollectionDto,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const shopId = this.tenantService.getTenantId();
       if (!shopId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Tenant identity unknown',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Verify ownership
       const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
       if (!shop || shop.ownerId !== ownerId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       // Check slug uniqueness within shop
@@ -31,7 +50,11 @@ export class CollectionService {
         where: { shopId_slug: { shopId, slug: dto.slug } },
       });
       if (existing) {
-        throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, 'Slug already exists for this shop', HttpStatus.CONFLICT);
+        throw new CustomException(
+          ResponseCodes.URL_USER_IS_EXIST,
+          'Slug already exists for this shop',
+          HttpStatus.CONFLICT,
+        );
       }
 
       const collection = await (this.prisma as any).collection.create({
@@ -51,7 +74,11 @@ export class CollectionService {
   async getCollectionsByShop(shopId?: string): Promise<BaseResponseDto<any[]>> {
     const targetShopId = shopId || this.tenantService.getTenantId();
     if (!targetShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const collections = await (this.prisma as any).collection.findMany({
@@ -66,10 +93,17 @@ export class CollectionService {
     return BaseResponseDto.success(collections);
   }
 
-  async getCollectionDetail(slug: string, shopId?: string): Promise<BaseResponseDto<any>> {
+  async getCollectionDetail(
+    slug: string,
+    shopId?: string,
+  ): Promise<BaseResponseDto<any>> {
     const targetShopId = shopId || this.tenantService.getTenantId();
     if (!targetShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const collection = await (this.prisma as any).collection.findUnique({
@@ -89,13 +123,21 @@ export class CollectionService {
     });
 
     if (!collection) {
-      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Collection not found', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'Collection not found',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return BaseResponseDto.success(collection);
   }
 
-  async updateCollection(ownerId: string, id: string, dto: UpdateCollectionDto): Promise<BaseResponseDto<any>> {
+  async updateCollection(
+    ownerId: string,
+    id: string,
+    dto: UpdateCollectionDto,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const shopId = this.tenantService.getTenantId();
       const collection = await this.prisma.collection.findUnique({
@@ -103,8 +145,18 @@ export class CollectionService {
         include: { shop: true },
       });
 
-      if (!collection) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Collection not found', HttpStatus.NOT_FOUND);
-      if (collection.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      if (!collection)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Collection not found',
+          HttpStatus.NOT_FOUND,
+        );
+      if (collection.shop.ownerId !== ownerId)
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
 
       const updated = await (this.prisma as any).collection.update({
         where: { id },
@@ -118,15 +170,29 @@ export class CollectionService {
     }
   }
 
-  async addProductsToCollection(ownerId: string, collectionId: string, dto: AddProductsToCollectionDto): Promise<BaseResponseDto<any>> {
+  async addProductsToCollection(
+    ownerId: string,
+    collectionId: string,
+    dto: AddProductsToCollectionDto,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const collection = await this.prisma.collection.findUnique({
         where: { id: collectionId },
         include: { shop: true },
       });
 
-      if (!collection) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Collection not found', HttpStatus.NOT_FOUND);
-      if (collection.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      if (!collection)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Collection not found',
+          HttpStatus.NOT_FOUND,
+        );
+      if (collection.shop.ownerId !== ownerId)
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
 
       // Add products using transaction
       await this.prisma.$transaction(
@@ -144,19 +210,35 @@ export class CollectionService {
       return BaseResponseDto.success({ success: true });
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new InternalServerErrorException('Failed to add products to collection');
+      throw new InternalServerErrorException(
+        'Failed to add products to collection',
+      );
     }
   }
 
-  async removeProductFromCollection(ownerId: string, collectionId: string, productId: string): Promise<BaseResponseDto<any>> {
+  async removeProductFromCollection(
+    ownerId: string,
+    collectionId: string,
+    productId: string,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const collection = await this.prisma.collection.findUnique({
         where: { id: collectionId },
         include: { shop: true },
       });
 
-      if (!collection) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Collection not found', HttpStatus.NOT_FOUND);
-      if (collection.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      if (!collection)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Collection not found',
+          HttpStatus.NOT_FOUND,
+        );
+      if (collection.shop.ownerId !== ownerId)
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
 
       await (this.prisma as any).productCollection.delete({
         where: {
@@ -167,7 +249,9 @@ export class CollectionService {
       return BaseResponseDto.success({ success: true });
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new InternalServerErrorException('Failed to remove product from collection');
+      throw new InternalServerErrorException(
+        'Failed to remove product from collection',
+      );
     }
   }
 }

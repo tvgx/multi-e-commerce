@@ -3,13 +3,16 @@
         "target": "ES2022",
         "module": "CommonJS",
         "declaration": true,
+        "rootDir": "./",
         "outDir": "./dist",
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "types": ["node"]
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "prisma.config.ts"
     ]
 }

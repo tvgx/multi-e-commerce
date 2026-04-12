@@ -21,7 +21,8 @@ export class AnalyticsService {
     const canceledOrders = await this.prisma.order.count({
       where: { state: 'canceled' },
     });
-    const returnRate = totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0;
+    const returnRate =
+      totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0;
 
     // 3. Conversion Rate (Baseline mock, as traffic is not tracked in DB yet)
     // In a real scenario, this would involve a 'Traffic' table or an external analytics API
@@ -115,7 +116,20 @@ export class AnalyticsService {
   async getMasterCharts() {
     // This would return time-series data for the BarChart
     // Mocking 12 months for now
-    const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+    const months = [
+      'T1',
+      'T2',
+      'T3',
+      'T4',
+      'T5',
+      'T6',
+      'T7',
+      'T8',
+      'T9',
+      'T10',
+      'T11',
+      'T12',
+    ];
     const data = months.map(() => Math.floor(Math.random() * 60) + 40);
 
     return {
@@ -143,7 +157,8 @@ export class AnalyticsService {
     const canceledOrders = await this.prisma.order.count({
       where: { shopId, state: 'canceled' },
     });
-    const returnRate = totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0;
+    const returnRate =
+      totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0;
 
     return {
       totalOrders,
@@ -163,7 +178,9 @@ export class AnalyticsService {
       return d.toLocaleDateString('vi-VN', { weekday: 'short' });
     });
 
-    const revenueTrends = last7Days.map(() => Math.floor(Math.random() * 5000000) + 1000000);
+    const revenueTrends = last7Days.map(
+      () => Math.floor(Math.random() * 5000000) + 1000000,
+    );
 
     // 2. Pie Chart Data (Orders by State)
     const orderStates = await this.prisma.order.groupBy({

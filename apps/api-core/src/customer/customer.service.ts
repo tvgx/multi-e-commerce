@@ -40,7 +40,11 @@ export class CustomerService {
       return BaseResponseDto.success(customer);
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Exception error.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Exception error.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

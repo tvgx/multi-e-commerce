@@ -93,7 +93,9 @@ export class MinioService implements OnModuleInit {
         return null;
       }
 
-      const json = await (body as { transformToString: () => Promise<string> }).transformToString();
+      const json = await (
+        body as { transformToString: () => Promise<string> }
+      ).transformToString();
       return JSON.parse(json) as T;
     } catch (err: unknown) {
       // S3-compatible APIs return NoSuchKey / NotFound when object doesn't exist.

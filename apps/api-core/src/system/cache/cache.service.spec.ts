@@ -1,7 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SystemCacheService } from './cache.service';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
 describe('SystemCacheService', () => {
   let service: SystemCacheService;
@@ -74,7 +81,7 @@ describe('SystemCacheService', () => {
     it('should return false if STOREFRONT_URL or REVALIDATE_SECRET is missing', async () => {
       delete process.env.STOREFRONT_URL;
       process.env.REVALIDATE_SECRET = 'secret';
-      
+
       const result = await service.revalidateStorefront('test-tag');
       expect(result).toBe(false);
       expect(fetchMock).not.toHaveBeenCalled();
@@ -83,17 +90,17 @@ describe('SystemCacheService', () => {
     it('should return false if fetch request fails', async () => {
       process.env.STOREFRONT_URL = 'http://localhost:5201';
       process.env.REVALIDATE_SECRET = 'dev_secret';
-      
+
       fetchMock.mockResolvedValueOnce({
         ok: false,
         status: 500,
       } as Response);
 
       const result = await service.revalidateStorefront('test-tag');
-      
+
       expect(fetchMock).toHaveBeenCalledWith(
         'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
-        { method: 'POST' }
+        { method: 'POST' },
       );
       expect(result).toBe(false);
     });
@@ -108,14 +115,14 @@ describe('SystemCacheService', () => {
       } as Response);
 
       const result = await service.revalidateStorefront('test-tag');
-      
+
       expect(fetchMock).toHaveBeenCalledWith(
         'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
-        { method: 'POST' }
+        { method: 'POST' },
       );
       expect(result).toBe(true);
     });
-    
+
     it('should return false if fetch throws an error', async () => {
       process.env.STOREFRONT_URL = 'http://localhost:5201';
       process.env.REVALIDATE_SECRET = 'dev_secret';
@@ -123,7 +130,7 @@ describe('SystemCacheService', () => {
       fetchMock.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await service.revalidateStorefront('test-tag');
-      
+
       expect(result).toBe(false);
     });
   });

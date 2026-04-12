@@ -1,4 +1,8 @@
-import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpStatus,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PrismaService } from '../database/prisma.service';
@@ -21,18 +25,34 @@ export class ProductService {
     private productLayoutModel: Model<ProductDocument>,
   ) {}
 
-  async createProduct(ownerId: string, dto: CreateProductDto): Promise<BaseResponseDto<object>> {
+  async createProduct(
+    ownerId: string,
+    dto: CreateProductDto,
+  ): Promise<BaseResponseDto<object>> {
     try {
       const shopId = this.tenantService.getTenantId() || dto.shopId;
       if (!shopId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Tenant identity unknown',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // 1. Verify shop ownership
       const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
-      if (!shop) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Shop not found', HttpStatus.NOT_FOUND);
+      if (!shop)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Shop not found',
+          HttpStatus.NOT_FOUND,
+        );
       if (shop.ownerId !== ownerId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       // 2. Policy check
@@ -109,13 +129,22 @@ export class ProductService {
   async getProductsByShop(
     shopId: string,
     limit: number = 20,
-    filters?: { search?: string; categoryId?: string; minPrice?: number; maxPrice?: number },
+    filters?: {
+      search?: string;
+      categoryId?: string;
+      minPrice?: number;
+      maxPrice?: number;
+    },
   ): Promise<BaseResponseDto<object[]>> {
     const currentShopId = this.tenantService.getTenantId();
     const targetShopId = shopId || currentShopId;
 
     if (!targetShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const whereClause: any = { shopId: targetShopId };
@@ -123,7 +152,7 @@ export class ProductService {
     if (filters?.search) {
       whereClause.name = { contains: filters.search, mode: 'insensitive' };
     }
-    
+
     if (filters?.categoryId) {
       whereClause.categoryId = filters.categoryId;
     }
@@ -136,9 +165,11 @@ export class ProductService {
       where: whereClause,
       include: {
         variants: {
-          where: { 
+          where: {
             isMaster: true,
-            ...(Object.keys(priceFilter).length > 0 ? { price: priceFilter } : {})
+            ...(Object.keys(priceFilter).length > 0
+              ? { price: priceFilter }
+              : {}),
           },
           include: {
             stockItems: {
@@ -149,21 +180,28 @@ export class ProductService {
       },
       take: limit,
     });
-    
+
     if (products.length === 0) {
-      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data or end of list data', HttpStatus.OK);
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'No Data or end of list data',
+        HttpStatus.OK,
+      );
     }
 
     // Merge images from MongoDB
     const productIds = products.map((p: any) => p.id);
-    const layouts = await this.productLayoutModel.find({ productId: { $in: productIds } }).lean();
-    
+    const layouts = await this.productLayoutModel
+      .find({ productId: { $in: productIds } })
+      .lean();
+
     const layoutMap = new Map();
     layouts.forEach((item: any) => layoutMap.set(item.productId, item));
 
     const enrichedProducts = products.map((p: any) => {
       const layout = layoutMap.get(p.id);
-      const masterVariant = p.variants.find((v: any) => v.isMaster) || p.variants[0];
+      const masterVariant =
+        p.variants.find((v: any) => v.isMaster) || p.variants[0];
       return {
         ...p,
         _id: p.id,
@@ -190,19 +228,33 @@ export class ProductService {
     });
 
     if (!productPostgres) {
-      throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.PRODUCT_NOT_EXISTED,
+        'Product is not existed',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     // Tenant isolation check
     const currentShopId = this.tenantService.getTenantId();
     if (currentShopId && productPostgres.shopId !== currentShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Not access.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    const layoutDoc = await this.productLayoutModel.findOne({ productId }).lean();
+    const layoutDoc = await this.productLayoutModel
+      .findOne({ productId })
+      .lean();
 
     const masterVariant = productPostgres.variants.find((v: any) => v.isMaster);
-    const totalStock = masterVariant?.stockItems.reduce((acc: any, item: any) => acc + item.countOnHand, 0) || 0;
+    const totalStock =
+      masterVariant?.stockItems.reduce(
+        (acc: any, item: any) => acc + item.countOnHand,
+        0,
+      ) || 0;
 
     return BaseResponseDto.success({
       ...productPostgres,
@@ -212,14 +264,28 @@ export class ProductService {
     });
   }
 
-  async updateProduct(ownerId: string, productId: string, dto: UpdateProductDto): Promise<BaseResponseDto<any>> {
+  async updateProduct(
+    ownerId: string,
+    productId: string,
+    dto: UpdateProductDto,
+  ): Promise<BaseResponseDto<any>> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { shop: true },
     });
 
-    if (!product) throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
-    if (product.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+    if (!product)
+      throw new CustomException(
+        ResponseCodes.PRODUCT_NOT_EXISTED,
+        'Product is not existed',
+        HttpStatus.NOT_FOUND,
+      );
+    if (product.shop.ownerId !== ownerId)
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Not access.',
+        HttpStatus.FORBIDDEN,
+      );
 
     const updatedPostgres = await this.prisma.$transaction(async (tx: any) => {
       // 1. Update Product

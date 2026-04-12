@@ -1,4 +1,8 @@
-import { Injectable, HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpStatus,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from '../common/services/tenant.service';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
@@ -13,17 +17,28 @@ export class PagesService {
     private readonly tenantService: TenantService,
   ) {}
 
-  async createPage(ownerId: string, dto: CreatePageDto): Promise<BaseResponseDto<any>> {
+  async createPage(
+    ownerId: string,
+    dto: CreatePageDto,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const shopId = this.tenantService.getTenantId();
       if (!shopId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Tenant identity unknown',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Verify ownership
       const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
       if (!shop || shop.ownerId !== ownerId) {
-        throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       // Check slug uniqueness
@@ -31,14 +46,18 @@ export class PagesService {
         where: { shopId_slug: { shopId, slug: dto.slug } },
       });
       if (existing) {
-        throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, 'Slug already exists for this shop', HttpStatus.CONFLICT);
+        throw new CustomException(
+          ResponseCodes.URL_USER_IS_EXIST,
+          'Slug already exists for this shop',
+          HttpStatus.CONFLICT,
+        );
       }
 
       const page = await (this.prisma as any).shopPage.create({
         data: {
           ...dto,
           shopId,
-          sections: dto.sections as any,
+          sections: dto.sections,
         },
       });
 
@@ -49,10 +68,17 @@ export class PagesService {
     }
   }
 
-  async getPageBySlug(slug: string, shopId?: string): Promise<BaseResponseDto<any>> {
+  async getPageBySlug(
+    slug: string,
+    shopId?: string,
+  ): Promise<BaseResponseDto<any>> {
     const targetShopId = shopId || this.tenantService.getTenantId();
     if (!targetShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const page = await this.prisma.shopPage.findUnique({
@@ -60,27 +86,45 @@ export class PagesService {
     });
 
     if (!page || (!page.isVisible && !shopId)) {
-      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Page not found', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'Page not found',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return BaseResponseDto.success(page);
   }
 
-  async updatePage(ownerId: string, id: string, dto: UpdatePageDto): Promise<BaseResponseDto<any>> {
+  async updatePage(
+    ownerId: string,
+    id: string,
+    dto: UpdatePageDto,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const page = await this.prisma.shopPage.findUnique({
         where: { id },
         include: { shop: true },
       });
 
-      if (!page) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Page not found', HttpStatus.NOT_FOUND);
-      if (page.shop.ownerId !== ownerId) throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      if (!page)
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Page not found',
+          HttpStatus.NOT_FOUND,
+        );
+      if (page.shop.ownerId !== ownerId)
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
 
       const updated = await this.prisma.shopPage.update({
         where: { id },
         data: {
           ...dto,
-          sections: dto.sections as any,
+          sections: dto.sections,
         },
       });
 
@@ -94,7 +138,11 @@ export class PagesService {
   async getAllPagesByShop(shopId?: string): Promise<BaseResponseDto<any[]>> {
     const targetShopId = shopId || this.tenantService.getTenantId();
     if (!targetShopId) {
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Tenant identity unknown', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const pages = await this.prisma.shopPage.findMany({

@@ -12,19 +12,25 @@ export class DomainVerifyService {
     try {
       // For local development with .localhost or local domains, bypass real check
       if (domain.endsWith('.localhost') || domain.includes('127.0.0.1')) {
-        this.logger.log(`Bypassing DNS verification for local domain: ${domain}`);
+        this.logger.log(
+          `Bypassing DNS verification for local domain: ${domain}`,
+        );
         return true;
       }
 
       const records = await dns.resolveTxt(domain);
       const expectedRecord = `shopVolo-verification=${shopId}`;
-      
-      const found = records.some(group => group.some(record => record === expectedRecord));
-      
+
+      const found = records.some((group) =>
+        group.some((record) => record === expectedRecord),
+      );
+
       if (!found) {
-        this.logger.warn(`DNS verification failed for ${domain}. Expected: ${expectedRecord}`);
+        this.logger.warn(
+          `DNS verification failed for ${domain}. Expected: ${expectedRecord}`,
+        );
       }
-      
+
       return found;
     } catch (error) {
       this.logger.error(`DNS lookup failed for ${domain}: ${error.message}`);

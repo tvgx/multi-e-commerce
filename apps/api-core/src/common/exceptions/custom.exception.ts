@@ -1,5 +1,8 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ResponseCode, ResponseCodes } from '../constants/response-codes.constant';
+import {
+  ResponseCode,
+  ResponseCodes,
+} from '../constants/response-codes.constant';
 
 export class CustomException extends HttpException {
   constructor(

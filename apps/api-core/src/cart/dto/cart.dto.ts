@@ -18,7 +18,7 @@ export class CartItemDto {
   @IsOptional()
   @IsString()
   title?: string;
-  
+
   @IsOptional()
   @IsString()
   imageUrl?: string;

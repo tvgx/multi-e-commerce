@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, Body, HttpStatus, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  HttpStatus,
+  UseInterceptors,
+} from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LayoutService } from './layout.service';
 import { SystemCacheService } from '../system/cache/cache.service';
@@ -17,7 +25,9 @@ export class LayoutController {
 
   @Get('storefront/:domain/layout')
   @UseInterceptors(CacheInterceptor)
-  async getStorefrontLayout(@Param('domain') domain: string): Promise<BaseResponseDto<any>> {
+  async getStorefrontLayout(
+    @Param('domain') domain: string,
+  ): Promise<BaseResponseDto<any>> {
     return this.layoutService.getLayoutByDomain(domain);
   }
 
@@ -26,22 +36,38 @@ export class LayoutController {
     @Session() session: UserSession,
     @Body() payload: any,
   ): Promise<BaseResponseDto<any>> {
-    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
-    
-    const { shopId, ...layoutData } = payload;
-    if (!shopId) throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'Parameter is not enought.', HttpStatus.BAD_REQUEST);
+    if (!session)
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
 
-    const result = await this.layoutService.publishLayout(session.user.id, shopId, layoutData);
-    
+    const { shopId, ...layoutData } = payload;
+    if (!shopId)
+      throw new CustomException(
+        ResponseCodes.PARAM_NOT_ENOUGH,
+        'Parameter is not enought.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const result = await this.layoutService.publishLayout(
+      session.user.id,
+      shopId,
+      layoutData,
+    );
+
     // Invalidate Next.js Storefront ISR cache for this specific shop
     await this.cacheService.revalidateStorefront(`layout-${shopId}`);
-    
+
     return result;
   }
 
   @Get('layouts/:shopId')
   @UseInterceptors(CacheInterceptor)
-  async getCompiledLayout(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+  async getCompiledLayout(
+    @Param('shopId') shopId: string,
+  ): Promise<BaseResponseDto<any>> {
     return this.layoutService.getCompiledLayout(shopId);
   }
 }
