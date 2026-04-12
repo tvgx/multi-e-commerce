@@ -1,0 +1,72 @@
+{
+  "products": {
+    "title": "Products",
+    "allProducts": "All Products",
+    "noResults": "No products found",
+    "noResultsDescription": "Try adjusting your filters or search terms",
+    "addToCart": "Add to Cart",
+    "viewDetails": "View Details",
+    "addToWishlist": "Add to Wishlist",
+    "removeFromWishlist": "Remove from Wishlist",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "price": "Price",
+    "description": "Description",
+    "specifications": "Specifications",
+    "reviews": "Reviews",
+    "rating": "Rating",
+    "quantity": "Quantity"
+  },
+  "categories": {
+    "title": "Categories",
+    "all": "All Categories",
+    "electronics": "Electronics",
+    "fashion": "Fashion",
+    "health": "Health & Beauty",
+    "home": "Home & Garden",
+    "sports": "Sports & Outdoors"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "emptyDescription": "Start shopping to add items to your cart",
+    "item": "Item",
+    "items": "Items",
+    "quantity": "Quantity",
+    "price": "Price",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax": "Tax",
+    "total": "Total",
+    "updateCart": "Update Cart",
+    "continueShopping": "Continue Shopping",
+    "checkout": "Proceed to Checkout",
+    "removeItem": "Remove",
+    "cartUpdated": "Cart updated successfully"
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": "Your wishlist is empty",
+    "emptyDescription": "Add items to your wishlist to save them for later",
+    "addedSuccessfully": "Added to wishlist",
+    "removedSuccessfully": "Removed from wishlist",
+    "moveToCart": "Move to Cart"
+  },
+  "filters": {
+    "title": "Filters",
+    "price": "Price Range",
+    "category": "Category",
+    "rating": "Rating",
+    "availability": "Availability",
+    "clearAll": "Clear All Filters",
+    "apply": "Apply Filters"
+  },
+  "sort": {
+    "title": "Sort By",
+    "priceLowToHigh": "Price: Low to High",
+    "priceHighToLow": "Price: High to Low",
+    "newest": "Newest",
+    "popular": "Most Popular",
+    "rating": "Highest Rating"
+  }
+}

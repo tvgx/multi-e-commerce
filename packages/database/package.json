@@ -13,7 +13,7 @@
         "prisma:studio": "npm run schema:build && prisma studio"
     },
     "dependencies": {
-        "@prisma/client": "^5.10.2",
+        "@prisma/client": "^5.22.0",
         "mongoose": "^8.2.0"
     },
     "devDependencies": {

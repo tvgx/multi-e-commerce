@@ -1,0 +1,56 @@
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "download": "Download",
+    "upload": "Upload",
+    "copy": "Copy",
+    "ok": "OK"
+  },
+  "labels": {
+    "email": "Email Address",
+    "password": "Password",
+    "username": "Username",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone Number",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "zipCode": "Zip Code",
+    "search": "Search",
+    "category": "Category",
+    "price": "Price",
+    "quantity": "Quantity",
+    "total": "Total"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "noData": "No data available",
+    "noResults": "No results found",
+    "confirmDelete": "Are you sure you want to delete this?",
+    "confirmAction": "Are you sure?"
+  },
+  "languages": {
+    "en": "English",
+    "vi": "Tiếng Việt"
+  }
+}
