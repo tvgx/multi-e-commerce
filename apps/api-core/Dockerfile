@@ -29,7 +29,7 @@ RUN turbo run build --filter=api-core...
 RUN npm prune --production
 
 # Runner stage
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Don't run production as root

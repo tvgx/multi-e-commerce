@@ -1,0 +1,47 @@
+name: Prisma Validate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/database/prisma/**'
+      - 'packages/database/scripts/**'
+      - 'packages/database/package.json'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/database/prisma/**'
+      - 'packages/database/scripts/**'
+      - 'packages/database/package.json'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  validate-prisma:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Prisma schema
+        run: npm run prisma:build
+
+      - name: Validate Prisma schema
+        run: cd packages/database && npx prisma validate
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate

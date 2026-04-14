@@ -36,6 +36,19 @@ data:
           action: keep
           regex: api-core|storefront
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,7 +91,8 @@ spec:
         configMap:
           name: prometheus-config
       - name: data-volume
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: prometheus-data
 ---
 apiVersion: v1
 kind: Service
@@ -124,6 +138,13 @@ spec:
           limits:
             cpu: 200m
             memory: 200Mi
+        volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: grafana-data
+        persistentVolumeClaim:
+          claimName: grafana-data
 ---
 apiVersion: v1
 kind: Service
@@ -136,3 +157,16 @@ spec:
       targetPort: 3000
   selector:
     app: grafana
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi

@@ -1,0 +1,286 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-node-readiness
+  namespace: ecommerce
+data:
+  anti-affinity-guide.md: |
+    # Multi-Node Anti-Affinity Configuration
+    
+    ## Thêm pod anti-affinity để phân tán replicas
+
+    Khi chuyển từ single-node sang multi-node, dùng pod anti-affinity để:
+    - Tránh 2 replicas trên cùng 1 node (fail-safe)
+    - Phân tán load balancing
+    - Giảm cascading failure
+
+    ### Template cho api-core deployment
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-core
+      namespace: ecommerce
+    spec:
+      replicas: 3
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - api-core
+            topologyKey: kubernetes.io/hostname
+      selector:
+        matchLabels:
+          app: api-core
+      template:
+        metadata:
+          labels:
+            app: api-core
+        spec:
+          # ... rest of spec ...
+    ```
+
+    ### Áp dụng:
+
+    ```bash
+    # Edit deployment
+    kubectl edit deployment api-core -n ecommerce
+
+    # Thêm section affinity (xem template trên)
+    # Lưu → deploy tự động rollout
+    ```
+
+  pod-disruption-budgets.md: |
+    # Pod Disruption Budget (PDB)
+
+    ## Bảo vệ apps khỏi voluntary disruptions
+
+    PDB đảm bảo pod tồn tại ≥ minAvailable khi có maintenance/drain:
+
+    ```yaml
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: api-core-pdb
+      namespace: ecommerce
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: api-core
+    ---
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: admin-pdb
+      namespace: ecommerce
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: admin
+    ---
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: storefront-pdb
+      namespace: ecommerce
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: storefront
+    ```
+
+    ### Kiểm tra:
+
+    ```bash
+    kubectl get pdb -n ecommerce
+    kubectl describe pdb api-core-pdb -n ecommerce
+    ```
+
+  node-join-procedure.md: |
+    # Thêm Node mới vào K3s Cluster
+
+    ## Bước 1: Lấy token từ master
+
+    ```bash
+    # Trên WSL master (hay container K3s)
+    sudo cat /var/lib/rancher/k3s/server/node-token
+
+    # Output: K10XXXXXXXXX::YYYYYYYYYYYY
+    ```
+
+    ## Bước 2: Cài agent trên node mới
+
+    ```bash
+    # Trên node mới (máy khác hoặc Docker container)
+    curl -sfL https://get.k3s.io | \
+      K3S_URL=https://<master-ip>:6443 \
+      K3S_TOKEN=<token-from-step1> \
+      sh -
+
+    # Hoặc nếu node là container:
+    docker run -d \
+      --name k3s-agent \
+      -e K3S_URL=https://<master-ip>:6443 \
+      -e K3S_TOKEN=<token> \
+      rancher/k3s:latest agent
+    ```
+
+    ## Bước 3: Verify node
+
+    ```bash
+    # Trên master
+    kubectl get nodes
+
+    # Node mới phải show "Ready" trong vài giây
+    kubectl get nodes -o wide
+
+    # Xem node status
+    kubectl describe node <node-name>
+    ```
+
+    ## Bước 4: Label node (optional)
+
+    ```bash
+    # Label node theo role (compute, database, etc.)
+    kubectl label node <node-name> node-role=compute
+
+    # Xem labels
+    kubectl get nodes --show-labels
+    ```
+
+  etcd-backup-strategy.md: |
+    # Backup ETcd + PVC cho Multi-Node
+
+    ## Tại sao cần backup ETcd?
+
+    ETcd lưu trữ:
+    - Kubernetes cluster state (pods, services, configmaps, secrets)
+    - CRD definitions
+    - RBAC policies
+    - Ingress rules
+
+    Nếu mất ETcd (master node corrupt), cần restore từ backup.
+
+    ## ETcd Backup Script
+
+    ```bash
+    #!/bin/bash
+    # scripts/backup-etcd.sh
+
+    BACKUP_DIR="/backup/etcd"
+    mkdir -p "$BACKUP_DIR"
+
+    # K3s lưu ETcd db tại:
+    ETCD_DB="/var/lib/rancher/k3s/server/db/etcd"
+
+    # Snapshot
+    sudo k3s etcd-snapshot save \
+      --name "etcd-backup-$(date +%Y%m%d-%H%M%S)"
+
+    # Kiểm tra
+    sudo k3s etcd-snapshot ls
+
+    # Copy sang external disk
+    sudo cp -r /var/lib/rancher/k3s/server/db/snapshots/* "$BACKUP_DIR/"
+
+    echo "ETcd backed up to $BACKUP_DIR"
+    ```
+
+    ## PVC Backup (Local-Path)
+
+    ```bash
+    #!/bin/bash
+    # scripts/backup-pvc.sh
+
+    # Dùng velero (nếu có) hoặc tar dữ liệu raw:
+
+    BACKUP_DIR="/backup/pvcs"
+    mkdir -p "$BACKUP_DIR"
+
+    # PVC backup location (local-path)
+    PVCDIR="/var/lib/rancher/k3s/storage"
+
+    tar czf \
+      "$BACKUP_DIR/pvc-backup-$(date +%Y%m%d-%H%M%S).tar.gz" \
+      "$PVCDIR"
+
+    echo "PVC backed up to $BACKUP_DIR"
+    ```
+
+    ## Restore Procedure
+
+    ### Restore ETcd:
+    ```bash
+    # Stop K3s
+    sudo systemctl stop k3s
+
+    # Restore từ snapshot
+    sudo k3s server \
+      --cluster-reset \
+      --cluster-reset-restore-path=/var/lib/rancher/k3s/server/db/snapshots/<snapshot-name>
+
+    # Restart
+    sudo systemctl start k3s
+    ```
+
+    ### Restore PVC:
+    ```bash
+    # Untar vào local-path provisioner dir
+    sudo tar xzf /backup/pvcs/pvc-backup-<name>.tar.gz \
+      -C /var/lib/rancher/k3s/storage
+    ```
+
+  external-disk-sync.md: |
+    # Đồng bộ Backup sang External Disk
+
+    ## Setup USB drive hoặc NAS
+
+    ```bash
+    # Mount external disk
+    sudo mkdir -p /mnt/backup
+    sudo mount /dev/sda1 /mnt/backup
+
+    # Hoặc NFS/SMB
+    sudo mount -t nfs 192.168.1.100:/export/backup /mnt/backup
+    ```
+
+    ## Cron Job đồng bộ
+
+    ```bash
+    # crontab -e
+
+    # Daily @ 03:00 UTC (sau khi K3s backup chạy @ 02:00)
+    0 3 * * * \
+      sudo rsync -av /var/lib/rancher/k3s/server/db/snapshots/ \
+      /mnt/backup/etcd-snapshots/ && \
+      echo "ETcd sync complete" >> /var/log/backup-sync.log
+
+    # Weekly PVC backup
+    0 4 * * 0 \
+      bash /home/troll/workspaces/ecommerce-platform/scripts/backup-pvc.sh && \
+      rsync -av /backup/pvcs/ /mnt/backup/pvcs/ && \
+      echo "PVC sync complete" >> /var/log/backup-sync.log
+    ```
+
+    ## Monitoring
+
+    ```bash
+    # Kiểm tra backup size
+    du -sh /var/lib/rancher/k3s/server/db/snapshots/
+    du -sh /mnt/backup/
+
+    # Xem logs
+    tail -f /var/log/backup-sync.log
+
+    # Verify backup integrality
+    ls -lah /mnt/backup/etcd-snapshots/
+    ls -lh /mnt/backup/pvcs/
+    ```

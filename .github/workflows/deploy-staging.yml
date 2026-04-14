@@ -1,0 +1,137 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - CI/CD Pipeline
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  K8S_NAMESPACE: ecommerce
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success')
+    runs-on:
+      - self-hosted
+      - linux
+      - baremetal
+    environment: staging
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig (secret or runner local)
+        env:
+          KUBECONFIG_B64: ${{ secrets.STAGING_KUBECONFIG_B64 }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          if [ -n "$KUBECONFIG_B64" ]; then
+            echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+            echo "Using kubeconfig from STAGING_KUBECONFIG_B64 secret"
+          else
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/config"
+              sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
+              echo "Using local K3s kubeconfig from runner"
+            elif [ ! -f "$HOME/.kube/config" ]; then
+              echo "Kubeconfig not found in /etc/rancher/k3s/k3s.yaml or $HOME/.kube/config"
+              exit 1
+            fi
+          fi
+
+      - name: Validate kubectl context
+        run: |
+          kubectl config current-context
+          kubectl get nodes -o wide
+
+      - name: Build and import local images
+        run: bash ./scripts/build-images.sh all
+
+      - name: Validate manifests (apps)
+        run: |
+          echo "[INFO] Validating app manifests..."
+          kubectl apply --dry-run=client -f k8s/apps/ --namespace=$K8S_NAMESPACE -o yaml > /dev/null && echo "✓ Apps valid"
+
+      - name: Validate manifests (infrastructure + ingress)
+        run: |
+          echo "[INFO] Validating infrastructure..."
+          for dir in infrastructure ingress; do
+            if [ -d "k8s/$dir" ]; then
+              kubectl apply --dry-run=client -f "k8s/$dir/" --namespace=$K8S_NAMESPACE -o yaml > /dev/null && echo "✓ $dir valid"
+            fi
+          done
+
+      - name: Check prerequisites
+        run: |
+          echo "[INFO] Checking namespace..."
+          kubectl get namespace $K8S_NAMESPACE || (echo "Creating namespace..." && kubectl create namespace $K8S_NAMESPACE)
+          
+          echo "[INFO] Checking for api-core-secret..."
+          if ! kubectl get secret api-core-secret -n $K8S_NAMESPACE 2>/dev/null; then
+            echo "⚠️ Secret 'api-core-secret' not found."
+            echo "⚠️ If apps require DB/Mongo credentials, deployment will fail."
+          fi
+
+      - name: Apply infrastructure manifests
+        run: |
+          echo "[INFO] Applying infrastructure..."
+          for dir in infrastructure; do
+            if [ -d "k8s/$dir" ]; then
+              kubectl apply -f "k8s/$dir/" || echo "⚠️ Some infra resources may fail (e.g., monitoring namespace)"
+            fi
+          done
+
+      - name: Apply app manifests
+        run: |
+          echo "[INFO] Applying apps..."
+          kubectl apply -f k8s/apps/
+
+      - name: Apply ingress manifests
+        run: |
+          echo "[INFO] Applying ingress..."
+          kubectl apply -f k8s/ingress/
+
+      - name: Wait for rollouts
+        env:
+          TIMEOUT: "180s"
+        run: |
+          echo "[INFO] Waiting for deployments to reach ready state..."
+          APPS=(api-core admin storefront)
+          FAILED=0
+          
+          for app in "${APPS[@]}"; do
+            echo "[INFO] Waiting for $app (max 180s)..."
+            if kubectl rollout status deployment/"$app" -n "$K8S_NAMESPACE" --timeout="$TIMEOUT"; then
+              echo "✓ $app ready"
+            else
+              echo "✗ $app failed to reach ready state"
+              echo "[DEBUG] Checking pod status..."
+              kubectl get pods -n "$K8S_NAMESPACE" -l app="$app" || true
+              echo "[DEBUG] Last 20 pod events..."
+              kubectl get events -n "$K8S_NAMESPACE" --sort-by='.lastTimestamp' | tail -20 || true
+              FAILED=$((FAILED + 1))
+            fi
+          done
+          
+          if [ $FAILED -gt 0 ]; then
+            echo "❌ $FAILED deployment(s) failed"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All deployments ready"
+          echo "[INFO] Final cluster state:"
+          kubectl get pods -n "$K8S_NAMESPACE" --no-headers

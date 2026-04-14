@@ -1,3 +1,27 @@
+# Cloudflare Tunnel cho public access
+# ==========================================================
+# Chỉ deploy nếu bạn có TUNNEL_TOKEN từ Cloudflare
+# 
+# Setup:
+# 1. Tạo tunnel trên https://one.dash.cloudflare.com/
+# 2. Tạo secret:
+#    kubectl create secret generic cloudflared-token \
+#      -n ecommerce \
+#      --from-literal=TUNNEL_TOKEN='eyJhIjoxMjM...'
+# 3. kubectl apply -f k8s/infrastructure/cloudflared.yaml
+#
+# Nếu không dùng tunnel, chỉ sử dụng local Traefik ingress
+# ==========================================================
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflared-token
+  namespace: ecommerce
+type: Opaque
+stringData:
+  TUNNEL_TOKEN: ""  # Thay bằng token thực từ Cloudflare
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +44,13 @@ spec:
             - sh
             - -c
           args:
-            - cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+            - |-
+              if [ -z "$TUNNEL_TOKEN" ] || [ "$TUNNEL_TOKEN" = "" ]; then
+                echo "TUNNEL_TOKEN is empty. Skipping cloudflared tunnel."
+                sleep infinity
+              else
+                cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+              fi
           env:
             - name: TUNNEL_TOKEN
               valueFrom:

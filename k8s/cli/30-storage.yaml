@@ -8,11 +8,11 @@ metadata:
     data-type: backups
 spec:
   accessModes:
-    - ReadWriteMany  # Required for parallel backup operations
-  storageClassName: standard
+    - ReadWriteOnce
+  storageClassName: local-path
   resources:
     requests:
-      storage: 500Gi
+      storage: 100Gi
 
 ---
 apiVersion: v1
@@ -26,7 +26,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: standard
+  storageClassName: local-path
   resources:
     requests:
-      storage: 50Gi
+      storage: 20Gi

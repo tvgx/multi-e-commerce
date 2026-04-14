@@ -22,18 +22,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22.22.1
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      # In a real environment, uncomment these when tests are added
-      # - name: Lint
-      #   run: npm run lint
-      
-      # - name: Test
-      #   run: npm run test
+      - name: Type Check
+        run: npm run check-types
 
       - name: Build Turbo Cache
         run: npx turbo run build

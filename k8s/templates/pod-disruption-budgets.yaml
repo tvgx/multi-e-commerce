@@ -1,0 +1,42 @@
+---
+# Pod Disruption Budget for High-Availability
+# Ensures minimum replicas remain available during voluntary disruptions
+# (node maintenance, k3s upgrade, kubectl drain, etc.)
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-core-pdb
+  namespace: ecommerce
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-core
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: admin-pdb
+  namespace: ecommerce
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: admin
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: storefront-pdb
+  namespace: ecommerce
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: storefront
+  unhealthyPodEvictionPolicy: AlwaysAllow

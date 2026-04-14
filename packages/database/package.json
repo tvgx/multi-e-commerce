@@ -5,7 +5,8 @@
     "main": "src/index.ts",
     "scripts": {
         "lint": "eslint \"src/**/*.ts*\"",
-        "build": "tsc",
+        "build": "tsc -p tsconfig.json",
+        "check-types": "tsc -p tsconfig.json --noEmit",
         "schema:build": "node scripts/build-prisma-schema.js",
         "schema:watch": "node scripts/build-prisma-schema.js --watch",
         "prisma:generate": "npm run schema:build && prisma generate",
