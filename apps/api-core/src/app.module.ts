@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -22,15 +23,21 @@ import { ShippingModule } from './shipping/shipping.module';
 import { TaxModule } from './tax/tax.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
+import * as path from 'path';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce',
-      {
+    ConfigModule.forRoot({
+      envFilePath: path.resolve(__dirname, '../../../.env'),
+      isGlobal: true,
+    }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_DB_ATLAS') || 'mongodb://localhost:27017/ecommerce',
         maxPoolSize: 10,
-      },
-    ),
+      }),
+    }),
     DatabaseModule,
     CommonModule,
     AuthModule,

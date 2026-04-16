@@ -3,12 +3,15 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { CustomException } from './custom.exception';
 
 @Catch()
 export class CustomExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(CustomExceptionFilter.name);
+
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -31,6 +34,12 @@ export class CustomExceptionFilter implements ExceptionFilter {
       if (status === 403) code = '1009'; // Not access
       if (status === 404) code = '1005'; // Unknown (Not found)
     }
+
+    // Keep response format stable while surfacing root cause in server logs.
+    this.logger.error(
+      `Unhandled exception: ${message}`,
+      exception?.stack || String(exception),
+    );
 
     response.status(status).json({
       code,

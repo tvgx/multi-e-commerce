@@ -10,10 +10,32 @@ export interface CartData {
 @Injectable()
 export class CartService implements OnModuleInit, OnModuleDestroy {
   private redisClient!: Redis;
+  private redisAvailable = false;
 
   onModuleInit() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    this.redisClient = new Redis(redisUrl);
+    this.redisClient = new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+    });
+
+    this.redisClient.on('connect', () => {
+      this.redisAvailable = true;
+    });
+
+    this.redisClient.on('close', () => {
+      this.redisAvailable = false;
+    });
+
+    // Prevent ioredis from emitting noisy unhandled errors when Redis is down.
+    this.redisClient.on('error', () => {
+      this.redisAvailable = false;
+    });
+
+    void this.redisClient.connect().catch(() => {
+      this.redisAvailable = false;
+    });
   }
 
   onModuleDestroy() {
@@ -29,6 +51,8 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getCart(shopId: string, sessionId: string): Promise<CartData> {
+    if (!this.redisAvailable) return { items: [], totalAmount: 0 };
+
     const key = this.getCartKey(shopId, sessionId);
     const data = await this.redisClient.get(key);
 
@@ -58,6 +82,10 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
 
     cart.totalAmount = this.calculateTotal(cart.items);
 
+    if (!this.redisAvailable) {
+      return cart;
+    }
+
     // Store in Redis (expires in 7 days)
     await this.redisClient.set(
       key,
@@ -86,6 +114,9 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
     if (existingItemIndex >= 0) {
       cart.items[existingItemIndex].quantity = quantity;
       cart.totalAmount = this.calculateTotal(cart.items);
+      if (!this.redisAvailable) {
+        return cart;
+      }
       await this.redisClient.set(
         key,
         JSON.stringify(cart),
@@ -111,6 +142,9 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
     );
 
     cart.totalAmount = this.calculateTotal(cart.items);
+    if (!this.redisAvailable) {
+      return cart;
+    }
     await this.redisClient.set(
       key,
       JSON.stringify(cart),
@@ -122,6 +156,8 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
   }
 
   async clearCart(shopId: string, sessionId: string): Promise<void> {
+    if (!this.redisAvailable) return;
+
     const key = this.getCartKey(shopId, sessionId);
     await this.redisClient.del(key);
   }

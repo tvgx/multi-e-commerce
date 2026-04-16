@@ -1,0 +1,719 @@
+{
+  "info": {
+    "_postman_id": "3f4d3d0e-90a2-46cf-b26b-6a29a79ec41a",
+    "name": "API Core - All Endpoints",
+    "description": "Comprehensive endpoint test collection for api-core. Uses collection variables for quick testing in local dev.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "shopId", "value": "shop123", "type": "string" },
+    { "key": "shopDomain", "value": "shop.local", "type": "string" },
+    { "key": "shopIdentifier", "value": "shop.local", "type": "string" },
+    { "key": "shopMongoId", "value": "replace-with-real-shop-id", "type": "string" },
+    { "key": "tenantId", "value": "replace-with-real-tenant-id", "type": "string" },
+    { "key": "productId", "value": "replace-with-real-product-id", "type": "string" },
+    { "key": "variantId", "value": "default", "type": "string" },
+    { "key": "orderId", "value": "replace-with-real-order-id", "type": "string" },
+    { "key": "paymentId", "value": "replace-with-real-payment-id", "type": "string" },
+    { "key": "collectionId", "value": "replace-with-real-collection-id", "type": "string" },
+    { "key": "collectionSlug", "value": "new-arrivals", "type": "string" },
+    { "key": "menuId", "value": "replace-with-real-menu-id", "type": "string" },
+    { "key": "menuHandle", "value": "main-menu", "type": "string" },
+    { "key": "pageId", "value": "replace-with-real-page-id", "type": "string" },
+    { "key": "pageSlug", "value": "about-us", "type": "string" },
+    { "key": "customerEmail", "value": "buyer@example.com", "type": "string" },
+    { "key": "sessionId", "value": "dev-session-001", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response is not 5xx', function () {",
+          "  pm.expect(pm.response.code).to.be.below(500);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01. App & System",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/"
+          }
+        },
+        {
+          "name": "GET /api/system/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/system/health"
+          }
+        },
+        {
+          "name": "POST /api/system/validate-json",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonConfig\": \"{\\\"theme\\\":\\\"default\\\"}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/system/validate-json"
+          }
+        },
+        {
+          "name": "POST /api/system/mass-sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetAttr\": \"isVisible\",\n  \"newValue\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/system/mass-sync"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Layout",
+      "item": [
+        {
+          "name": "GET /api/layouts/:shopId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/layouts/{{shopId}}"
+          }
+        },
+        {
+          "name": "POST /api/layouts/publish",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"header\": \"New Header\",\n  \"footer\": \"New Footer\"\n}"
+            },
+            "url": "{{baseUrl}}/api/layouts/publish"
+          }
+        },
+        {
+          "name": "GET /api/storefront/:domain/layout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/storefront/{{shopDomain}}/layout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Auth",
+      "item": [
+        {
+          "name": "GET /api/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "PUT /api/auth/change-username",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newName\": \"Dev User Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/change-username"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Shops",
+      "item": [
+        {
+          "name": "POST /api/v1/tenants/register (UC-01)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UC-01: Status code is 201', function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "});",
+                  "",
+                  "pm.test('UC-01: Response has tenantId', function () {",
+                  "  var data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('tenantId');",
+                  "  pm.environment.set('tenantId', data.tenantId);",
+                  "});",
+                  "",
+                  "pm.test('UC-01: Response has status=active', function () {",
+                  "  var data = pm.response.json().data;",
+                  "  pm.expect(data.status).to.equal('active');",
+                  "});",
+                  "",
+                  "pm.test('UC-01: Response includes shopName, domain, email', function () {",
+                  "  var data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('shopName');",
+                  "  pm.expect(data).to.have.property('domain');",
+                  "  pm.expect(data).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopName\": \"My Test Shop\",\n  \"email\": \"owner@myshop.com\",\n  \"domain\": \"myshop\",\n  \"ownerName\": \"John Smith\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/tenants/register"
+          }
+        },
+        {
+          "name": "POST /api/shops",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Shop\",\n  \"domain\": \"shop.local\",\n  \"productsPerPage\": 30,\n  \"templateType\": \"standard\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shops"
+          }
+        },
+        {
+          "name": "GET /api/shops/my-shops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/my-shops"
+          }
+        },
+        {
+          "name": "GET /api/shops/resolve/:identifier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/resolve/{{shopIdentifier}}"
+          }
+        },
+        {
+          "name": "GET /api/shops/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/{{shopMongoId}}"
+          }
+        },
+        {
+          "name": "PUT /api/shops/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Shop Updated\",\n  \"productsPerPage\": 24\n}"
+            },
+            "url": "{{baseUrl}}/api/shops/{{shopMongoId}}"
+          }
+        },
+        {
+          "name": "GET /api/shops/:id/onboarding",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/{{shopMongoId}}/onboarding"
+          }
+        },
+        {
+          "name": "PUT /api/shops/:id/onboarding/complete/:step",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/{{shopMongoId}}/onboarding/complete/1"
+          }
+        },
+        {
+          "name": "GET /api/shops/system/all-shops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/shops/system/all-shops"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Products",
+      "item": [
+        {
+          "name": "POST /api/products",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"name\": \"Demo Product\",\n  \"slug\": \"demo-product\",\n  \"sku\": \"SKU-001\",\n  \"basePrice\": 199000,\n  \"weight\": 0.5,\n  \"inStock\": 10,\n  \"images\": [\"https://example.com/p1.jpg\"],\n  \"extraMetadata\": {\"brand\": \"ShopVolo\"}\n}"
+            },
+            "url": "{{baseUrl}}/api/products"
+          }
+        },
+        {
+          "name": "GET /api/products/shop/:shopId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/shop/{{shopId}}"
+          }
+        },
+        {
+          "name": "GET /api/products/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/{{productId}}"
+          }
+        },
+        {
+          "name": "PUT /api/products/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Product Updated\",\n  \"inStock\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Cart",
+      "item": [
+        {
+          "name": "GET /api/cart/:shopId",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-session-id", "value": "{{sessionId}}" }
+            ],
+            "url": "{{baseUrl}}/api/cart/{{shopId}}"
+          }
+        },
+        {
+          "name": "POST /api/cart/:shopId/items",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-session-id", "value": "{{sessionId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantId\": \"{{variantId}}\",\n  \"quantity\": 1,\n  \"price\": 199000\n}"
+            },
+            "url": "{{baseUrl}}/api/cart/{{shopId}}/items"
+          }
+        },
+        {
+          "name": "PUT /api/cart/:shopId/items/:productId/:variantId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-session-id", "value": "{{sessionId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/cart/{{shopId}}/items/{{productId}}/{{variantId}}"
+          }
+        },
+        {
+          "name": "DELETE /api/cart/:shopId/items/:productId/:variantId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "x-session-id", "value": "{{sessionId}}" }
+            ],
+            "url": "{{baseUrl}}/api/cart/{{shopId}}/items/{{productId}}/{{variantId}}"
+          }
+        },
+        {
+          "name": "DELETE /api/cart/:shopId/clear",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "x-session-id", "value": "{{sessionId}}" }
+            ],
+            "url": "{{baseUrl}}/api/cart/{{shopId}}/clear"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Orders & Payments",
+      "item": [
+        {
+          "name": "POST /api/orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"customerName\": \"Buyer One\",\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"customerPhone\": \"0900000000\",\n  \"shippingAddress\": \"HCMC, Vietnam\",\n  \"paymentProvider\": \"COD\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/orders"
+          }
+        },
+        {
+          "name": "GET /api/orders/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "GET /api/orders/shop/:shopId/customer/:email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/shop/{{shopId}}/customer/{{customerEmail}}"
+          }
+        },
+        {
+          "name": "GET /api/orders/shop/:shopId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/shop/{{shopId}}"
+          }
+        },
+        {
+          "name": "POST /api/orders/:id/state",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"confirmed\"\n}"
+            },
+            "url": "{{baseUrl}}/api/orders/{{orderId}}/state"
+          }
+        },
+        {
+          "name": "POST /api/payments/:method/intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 199000,\n  \"currency\": \"VND\",\n  \"orderId\": \"{{orderId}}\",\n  \"metadata\": {\"source\": \"postman\"}\n}"
+            },
+            "url": "{{baseUrl}}/api/payments/mock/intent"
+          }
+        },
+        {
+          "name": "POST /api/payments/:paymentId/confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ACCEPT\"\n}"
+            },
+            "url": "{{baseUrl}}/api/payments/{{paymentId}}/confirm"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Content (Pages, Navigation, Collections)",
+      "item": [
+        {
+          "name": "GET /pages?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/pages?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "GET /pages/:slug?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/pages/{{pageSlug}}?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "POST /pages",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"About Us\",\n  \"slug\": \"{{pageSlug}}\",\n  \"sections\": [],\n  \"isVisible\": true\n}"
+            },
+            "url": "{{baseUrl}}/pages"
+          }
+        },
+        {
+          "name": "PUT /pages/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"About Us Updated\",\n  \"isVisible\": true\n}"
+            },
+            "url": "{{baseUrl}}/pages/{{pageId}}"
+          }
+        },
+        {
+          "name": "GET /navigation?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/navigation?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "GET /navigation/:handle?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/navigation/{{menuHandle}}?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "POST /navigation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"{{menuHandle}}\",\n  \"title\": \"Main Menu\",\n  \"items\": [\n    {\n      \"title\": \"Home\",\n      \"url\": \"/\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/navigation"
+          }
+        },
+        {
+          "name": "PUT /navigation/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Main Menu Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/navigation/{{menuId}}"
+          }
+        },
+        {
+          "name": "GET /collections?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/collections?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "GET /collections/:slug?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/collections/{{collectionSlug}}?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "POST /collections",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Arrivals\",\n  \"slug\": \"{{collectionSlug}}\",\n  \"description\": \"Fresh products\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/collections"
+          }
+        },
+        {
+          "name": "PUT /collections/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Arrivals Updated\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/collections/{{collectionId}}"
+          }
+        },
+        {
+          "name": "POST /collections/:id/products",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productIds\": [\"11111111-1111-1111-1111-111111111111\"]\n}"
+            },
+            "url": "{{baseUrl}}/collections/{{collectionId}}/products"
+          }
+        },
+        {
+          "name": "DELETE /collections/:id/products/:productId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/collections/{{collectionId}}/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Shipping, Tax, Analytics",
+      "item": [
+        {
+          "name": "GET /shipping?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/shipping?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "PUT /shipping",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"enabled\": true,\n  \"providers\": []\n}"
+            },
+            "url": "{{baseUrl}}/shipping"
+          }
+        },
+        {
+          "name": "GET /tax?shopId=",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tax?shopId={{shopId}}"
+          }
+        },
+        {
+          "name": "PUT /tax",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"vatPercent\": 8\n}"
+            },
+            "url": "{{baseUrl}}/tax"
+          }
+        },
+        {
+          "name": "GET /analytics/master-summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analytics/master-summary"
+          }
+        },
+        {
+          "name": "GET /analytics/master-charts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analytics/master-charts"
+          }
+        },
+        {
+          "name": "GET /analytics/shop/:shopId/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analytics/shop/{{shopId}}/summary"
+          }
+        },
+        {
+          "name": "GET /analytics/shop/:shopId/charts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analytics/shop/{{shopId}}/charts"
+          }
+        }
+      ]
+    }
+  ]
+}

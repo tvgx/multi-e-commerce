@@ -29,6 +29,7 @@
     "@ecommerce/database": "*",
     "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/mongoose": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

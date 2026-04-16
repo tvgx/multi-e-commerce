@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  Logger,
   HttpStatus,
   InternalServerErrorException,
   ForbiddenException,
@@ -7,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ShopTemplate } from '@ecommerce/database';
-import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
+import { CreateShopDto, UpdateShopDto, RegisterTenantDto } from './dto/shop-zod.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
@@ -16,11 +18,139 @@ import { DomainVerifyService } from './domain-verify.service';
 
 @Injectable()
 export class ShopService {
+  private readonly logger = new Logger(ShopService.name);
+
   constructor(
+    @Inject(PrismaService)
     private readonly prisma: PrismaService,
+    @Inject(TenantService)
     private readonly tenantService: TenantService,
+    @Inject(DomainVerifyService)
     private readonly domainVerifyService: DomainVerifyService,
   ) {}
+
+  // UC-01: Tenant Registration
+  async registerTenant(
+    dto: RegisterTenantDto,
+  ): Promise<BaseResponseDto<object>> {
+    try {
+      const normalizedDomain = dto.domain.trim().toLowerCase();
+
+      // 1. Check domain availability
+      const existingDomain = await this.prisma.shop.findUnique({
+        where: { domain: normalizedDomain },
+      });
+      if (existingDomain) {
+        throw new CustomException(
+          ResponseCodes.URL_USER_IS_EXIST,
+          'Domain already exists',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      // 2. Check email uniqueness (search in User table)
+      const existingEmail = await this.prisma.user.findFirst({
+        where: { email: dto.email },
+      });
+      if (existingEmail) {
+        throw new CustomException(
+          ResponseCodes.USER_EXISTED,
+          'Email already registered',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      // 3. Create owner user
+      const owner = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          name: dto.ownerName,
+          role: 'OWNER',
+        },
+      });
+
+      // 4. Create shop with owner
+      const shop = await (this.prisma as any).shop.create({
+        data: {
+          name: dto.shopName,
+          domain: normalizedDomain,
+          ownerId: owner.id,
+          status: 'ACTIVE', // UC-01 spec: "active"
+          productsPerPage: 30,
+          templateType: 'standard',
+          onboardingStep: 1,
+          onboardingStatus: { step1: 'COMPLETED' } as any,
+        },
+      });
+
+      // 5. Initialize default Navigation Menus
+      await this.prisma.navigationMenu.createMany({
+        data: [
+          {
+            shopId: shop.id,
+            handle: 'main-menu',
+            title: 'Main Menu',
+            items: [
+              { title: 'Home', url: '/' },
+              { title: 'Catalog', url: '/catalog' },
+            ] as any,
+          },
+          {
+            shopId: shop.id,
+            handle: 'footer-menu',
+            title: 'Footer Menu',
+            items: [
+              { title: 'Search', url: '/search' },
+              { title: 'About us', url: '/pages/about' },
+            ] as any,
+          },
+        ],
+      });
+
+      try {
+        // Keep Mongo initialization best-effort only; registration success is driven by Postgres writes.
+        const template = new ShopTemplate({
+          shopId: shop.id,
+          publishedData: {
+            shopId: shop.id,
+            templateType: shop.templateType,
+            pages: { home: [] },
+            metadata: {},
+          },
+          draftData: {},
+        });
+        await template.save();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `[registerTenant] Failed to initialize Mongo ShopTemplate for shop ${shop.id}: ${msg}`,
+        );
+      }
+
+      // 7. Return UC-01 spec-compliant response
+      return BaseResponseDto.success({
+        tenantId: shop.id,
+        shopName: shop.name,
+        domain: shop.domain,
+        email: dto.email,
+        ownerName: dto.ownerName,
+        status: 'active',
+        createdAt: shop.createdAt,
+      });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+
+      const msg = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`[registerTenant] Unexpected error: ${msg}`, stack);
+
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to register tenant',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async createShop(
     ownerId: string,
@@ -82,18 +212,25 @@ export class ShopService {
         ],
       });
 
-      // 4. Initialize in MongoDB (Zero-file Layout Engine)
-      const template = new ShopTemplate({
-        shopId: shop.id,
-        publishedData: {
+      try {
+        // Keep Mongo initialization best-effort only; shop creation success is driven by Postgres writes.
+        const template = new ShopTemplate({
           shopId: shop.id,
-          templateType: shop.templateType,
-          pages: { home: [] },
-          metadata: {},
-        },
-        draftData: {},
-      });
-      await template.save();
+          publishedData: {
+            shopId: shop.id,
+            templateType: shop.templateType,
+            pages: { home: [] },
+            metadata: {},
+          },
+          draftData: {},
+        });
+        await template.save();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `[createShop] Failed to initialize Mongo ShopTemplate for shop ${shop.id}: ${msg}`,
+        );
+      }
 
       return BaseResponseDto.success(shop);
     } catch (error) {

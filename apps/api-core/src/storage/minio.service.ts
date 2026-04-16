@@ -31,6 +31,7 @@ const LAYOUT_BUCKET = 'shop-layouts';
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
   private client: S3Client;
+  private isAvailable = false;
 
   constructor() {
     this.client = new S3Client({
@@ -45,7 +46,18 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.ensureBucketExists(LAYOUT_BUCKET);
+    try {
+      await this.ensureBucketExists(LAYOUT_BUCKET);
+      this.isAvailable = true;
+    } catch (err) {
+      this.isAvailable = false;
+      this.logger.warn(
+        '[MinIO] Unavailable at startup; layout persistence to object storage is disabled for this run.',
+      );
+      if (err instanceof Error) {
+        this.logger.warn(err.message);
+      }
+    }
   }
 
   // ─────────────────────────────────────────
@@ -57,6 +69,13 @@ export class MinioService implements OnModuleInit {
    * File size is tiny (< 10KB per shop) so this is very cheap.
    */
   async saveLayout(shopId: string, layout: object): Promise<void> {
+    if (!this.isAvailable) {
+      this.logger.warn(
+        `[MinIO] Skipping saveLayout for shopId=${shopId} because storage is unavailable.`,
+      );
+      return;
+    }
+
     const objectKey = `${shopId}.json`;
     const content = JSON.stringify(layout);
     const buffer = Buffer.from(content, 'utf-8');
@@ -78,6 +97,10 @@ export class MinioService implements OnModuleInit {
    * Returns null if the object does not exist yet.
    */
   async getLayout<T = unknown>(shopId: string): Promise<T | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+
     const objectKey = `${shopId}.json`;
 
     try {
@@ -119,6 +142,13 @@ export class MinioService implements OnModuleInit {
    * Deletes the layout object for a shop (e.g. when a shop is deleted).
    */
   async deleteLayout(shopId: string): Promise<void> {
+    if (!this.isAvailable) {
+      this.logger.warn(
+        `[MinIO] Skipping deleteLayout for shopId=${shopId} because storage is unavailable.`,
+      );
+      return;
+    }
+
     await this.client.send(
       new DeleteObjectCommand({
         Bucket: LAYOUT_BUCKET,
