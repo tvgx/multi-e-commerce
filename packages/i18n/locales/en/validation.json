@@ -1,0 +1,22 @@
+{
+  "required": "This field is required",
+  "email": "Please enter a valid email address",
+  "password": "Password must be at least 8 characters",
+  "passwordStrength": "Password must contain uppercase, lowercase, numbers and special characters",
+  "username": "Username must be 3-20 characters",
+  "phone": "Please enter a valid phone number",
+  "zipCode": "Please enter a valid zip code",
+  "url": "Please enter a valid URL",
+  "number": "Please enter a valid number",
+  "min": "Must be at least {{min}}",
+  "max": "Must be no more than {{max}}",
+  "minLength": "Must be at least {{min}} characters",
+  "maxLength": "Must be no more than {{max}} characters",
+  "pattern": "Invalid format",
+  "match": "Fields do not match",
+  "passwordConfirm": "Passwords must match",
+  "termsAgree": "You must agree to the terms and conditions",
+  "invalidDate": "Please enter a valid date",
+  "futureDate": "Date cannot be in the future",
+  "pastDate": "Date cannot be in the past"
+}

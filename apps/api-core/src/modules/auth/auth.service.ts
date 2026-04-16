@@ -8,10 +8,13 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async changeUsername(userId: string, newName: string): Promise<BaseResponseDto<any>> {
+  async changeUsername(
+    userId: string,
+    newName: string,
+  ): Promise<BaseResponseDto<any>> {
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      
+
       if (!user) {
         throw new CustomException(
           ResponseCodes.TOKEN_INVALID,
@@ -23,7 +26,7 @@ export class AuthService {
       // Note: If prisma generate was successful, 'name' should be available.
       // If not, we fall back to 'fullName' which is the old schema field.
       // The IDE currently reports it as 'fullName'.
-      const currentName = (user as any).name || (user as any).fullName;
+      const currentName = user.name || user.fullName;
 
       if (currentName === newName) {
         throw new CustomException(

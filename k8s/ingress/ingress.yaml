@@ -1,3 +1,22 @@
+# Ingress cho local K3s single-node
+# ==========================================================
+# Setup Instructions (Local Development):
+# 
+# 1. Thêm vào /etc/hosts (hoặc C:\Windows\System32\drivers\etc\hosts trên Windows):
+#    127.0.0.1 ecommerce.local
+#    127.0.0.1 api.ecommerce.local
+#    127.0.0.1 admin.ecommerce.local
+#    127.0.0.1 grafana.ecommerce.local
+#
+# 2. K3s tự động chạy Traefik trên port 80/443 nội bộ
+#    Port-forward để truy cập từ localhost:
+#    kubectl port-forward -n kube-system svc/traefik 80:80 &
+#
+# 3. Hoặc dùng DNS resolver local qua systemd-resolved
+#
+# Lưu ý: Cloudflare Tunnel (nếu có) được apply riêng
+# ==========================================================
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,6 +25,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
+  ingressClassName: traefik
   rules:
     - host: api.ecommerce.local
       http:
@@ -37,3 +57,14 @@ spec:
                 name: storefront
                 port:
                   number: 3002
+    - host: grafana.ecommerce.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                namespace: monitoring
+                port:
+                  number: 3000

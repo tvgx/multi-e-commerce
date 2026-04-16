@@ -1,0 +1,85 @@
+{
+  "checkout": {
+    "title": "Thanh toán",
+    "step1": "Vận chuyển",
+    "step2": "Hóa đơn",
+    "step3": "Thanh toán",
+    "step4": "Xem lại",
+    "continue": "Tiếp tục",
+    "placeOrder": "Đặt hàng",
+    "orderPlaced": "Đơn hàng đã được đặt thành công!",
+    "orderNumber": "Số đơn hàng"
+  },
+  "shipping": {
+    "title": "Địa chỉ Vận chuyển",
+    "firstName": "Tên",
+    "lastName": "Họ",
+    "email": "Địa chỉ Email",
+    "phone": "Số điện thoại",
+    "address": "Địa chỉ đường phố",
+    "apartment": "Căn hộ, phòng, v.v.",
+    "city": "Thành phố",
+    "state": "Tỉnh / Thành phố",
+    "country": "Quốc gia",
+    "zipCode": "Mã bưu điện",
+    "useAsDefault": "Sử dụng làm địa chỉ mặc định",
+    "shippingMethod": "Phương thức vận chuyển",
+    "standard": "Vận chuyển tiêu chuẩn (5-7 ngày làm việc)",
+    "express": "Vận chuyển nhanh (2-3 ngày làm việc)",
+    "overnight": "Vận chuyển qua đêm (1 ngày làm việc)"
+  },
+  "billing": {
+    "title": "Địa chỉ Hóa đơn",
+    "sameAsShipping": "Giống như địa chỉ vận chuyển",
+    "differentAddress": "Sử dụng một địa chỉ khác"
+  },
+  "payment": {
+    "title": "Phương thức Thanh toán",
+    "creditCard": "Thẻ Tín dụng",
+    "debitCard": "Thẻ Ghi nợ",
+    "bankTransfer": "Chuyển khoản Ngân hàng",
+    "cod": "Thanh toán khi nhận hàng",
+    "cardNumber": "Số Thẻ",
+    "expiryDate": "Ngày hết hạn",
+    "cvv": "CVV",
+    "cardholderName": "Tên chủ thẻ",
+    "bankName": "Tên Ngân hàng"
+  },
+  "review": {
+    "title": "Xem lại Đơn hàng",
+    "orderSummary": "Tóm tắt Đơn hàng",
+    "shippingAddress": "Địa chỉ Vận chuyển",
+    "billingAddress": "Địa chỉ Hóa đơn",
+    "paymentMethod": "Phương thức Thanh toán",
+    "items": "Mục",
+    "subtotal": "Tổng phụ",
+    "shipping": "Vận chuyển",
+    "tax": "Thuế",
+    "total": "Tổng cộng",
+    "confirmOrder": "Xác nhận Đơn hàng"
+  },
+  "orders": {
+    "title": "Đơn hàng của tôi",
+    "all": "Tất cả đơn hàng",
+    "pending": "Chờ xử lý",
+    "processing": "Đang xử lý",
+    "shipped": "Đã gửi",
+    "delivered": "Đã giao",
+    "cancelled": "Đã hủy",
+    "orderDate": "Ngày đặt hàng",
+    "status": "Trạng thái",
+    "total": "Tổng cộng",
+    "viewDetails": "Xem chi tiết",
+    "trackOrder": "Theo dõi đơn hàng",
+    "noOrders": "Bạn chưa có đơn hàng nào"
+  },
+  "tracking": {
+    "title": "Theo dõi Đơn hàng",
+    "orderNumber": "Số đơn hàng",
+    "trackingNumber": "Số theo dõi",
+    "carrier": "Nhà cung cấp",
+    "estimatedDelivery": "Ngày giao dự kiến",
+    "deliveryAddress": "Địa chỉ giao hàng",
+    "timeline": "Dòng thời gian giao hàng"
+  }
+}

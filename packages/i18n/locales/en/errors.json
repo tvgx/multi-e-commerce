@@ -1,0 +1,59 @@
+{
+  "http": {
+    "400": "Bad Request",
+    "401": "Unauthorized - Please log in",
+    "403": "Forbidden - You don't have access",
+    "404": "Page not found",
+    "500": "Server error - Please try again later",
+    "503": "Service unavailable - Please try again later"
+  },
+  "auth": {
+    "invalidEmail": "Invalid email address",
+    "invalidPassword": "Invalid password",
+    "userNotFound": "User not found",
+    "emailAlreadyExists": "Email already registered",
+    "passwordMismatch": "Passwords do not match",
+    "sessionExpired": "Your session has expired. Please log in again",
+    "unauthorized": "You are not authorized to access this resource",
+    "accountLocked": "Your account has been locked"
+  },
+  "validation": {
+    "required": "This field is required",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be no more than {{max}} characters",
+    "invalidEmail": "Invalid email format",
+    "invalidUrl": "Invalid URL format",
+    "invalidPhone": "Invalid phone number",
+    "invalidDate": "Invalid date format",
+    "passwordTooWeak": "Password is too weak"
+  },
+  "cart": {
+    "itemOutOfStock": "This item is out of stock",
+    "insufficientStock": "Insufficient stock available",
+    "cartEmpty": "Your cart is empty",
+    "productNotFound": "Product not found",
+    "failedToAddItem": "Failed to add item to cart",
+    "failedToRemoveItem": "Failed to remove item from cart",
+    "failedToUpdateCart": "Failed to update cart"
+  },
+  "order": {
+    "failedToCreateOrder": "Failed to create order",
+    "paymentFailed": "Payment failed",
+    "orderCancelled": "Order has been cancelled",
+    "orderNotFound": "Order not found",
+    "invalidShippingAddress": "Invalid shipping address",
+    "shippingNotAvailable": "Shipping not available for this location"
+  },
+  "product": {
+    "notFound": "Product not found",
+    "invalidData": "Invalid product data",
+    "failedToLoad": "Failed to load product"
+  },
+  "general": {
+    "unknownError": "An unknown error occurred",
+    "tryAgain": "Please try again",
+    "contactSupport": "Please contact support",
+    "networkError": "Network error - Please check your connection",
+    "timeout": "Request timeout - Please try again"
+  }
+}

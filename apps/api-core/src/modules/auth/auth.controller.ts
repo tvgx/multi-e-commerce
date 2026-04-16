@@ -11,7 +11,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get('me')
-  async getProfile(@Session() session: UserSession): Promise<BaseResponseDto<any>> {
+  async getProfile(
+    @Session() session: UserSession,
+  ): Promise<BaseResponseDto<any>> {
     if (!session) {
       throw new CustomException(
         ResponseCodes.TOKEN_INVALID,

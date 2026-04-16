@@ -5,10 +5,10 @@ export type ProductDocument = ProductLayout & Document;
 
 @Schema({ timestamps: true, collection: 'products' })
 export class ProductLayout {
-  @Prop({ required: true, index: true })
+  @Prop({ type: String, required: true, index: true })
   productId: string; // Khớp với id bên bảng Product của PostgreSQL
 
-  @Prop({ required: true, index: true })
+  @Prop({ type: String, required: true, index: true })
   shopId: string; // Khớp với id bên bảng Shop của PostgreSQL
 
   // HTML Content / Rich Text Editor Content

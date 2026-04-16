@@ -28,9 +28,12 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce', {
-      maxPoolSize: 10,
-    }),
+    MongooseModule.forRoot(
+      process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce',
+      {
+        maxPoolSize: 10,
+      },
+    ),
     BetterAuthModule.forRoot({
       auth,
     }),

@@ -1,0 +1,59 @@
+{
+  "http": {
+    "400": "Yêu cầu không hợp lệ",
+    "401": "Chưa được phép - Vui lòng đăng nhập",
+    "403": "Cấm - Bạn không có quyền truy cập",
+    "404": "Không tìm thấy trang",
+    "500": "Lỗi máy chủ - Vui lòng thử lại sau",
+    "503": "Dịch vụ không khả dụng - Vui lòng thử lại sau"
+  },
+  "auth": {
+    "invalidEmail": "Địa chỉ email không hợp lệ",
+    "invalidPassword": "Mật khẩu không hợp lệ",
+    "userNotFound": "Không tìm thấy người dùng",
+    "emailAlreadyExists": "Email đã được đăng ký",
+    "passwordMismatch": "Mật khẩu không khớp",
+    "sessionExpired": "Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại",
+    "unauthorized": "Bạn không được phép truy cập tài nguyên này",
+    "accountLocked": "Tài khoản của bạn đã bị khóa"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "minLength": "Phải có ít nhất {{min}} ký tự",
+    "maxLength": "Không được quá {{max}} ký tự",
+    "invalidEmail": "Định dạng email không hợp lệ",
+    "invalidUrl": "Định dạng URL không hợp lệ",
+    "invalidPhone": "Số điện thoại không hợp lệ",
+    "invalidDate": "Định dạng ngày không hợp lệ",
+    "passwordTooWeak": "Mật khẩu quá yếu"
+  },
+  "cart": {
+    "itemOutOfStock": "Mục này hết hàng",
+    "insufficientStock": "Không đủ số lượng hàng",
+    "cartEmpty": "Giỏ hàng của bạn trống",
+    "productNotFound": "Không tìm thấy sản phẩm",
+    "failedToAddItem": "Không thể thêm mục vào giỏ hàng",
+    "failedToRemoveItem": "Không thể loại bỏ mục khỏi giỏ hàng",
+    "failedToUpdateCart": "Không thể cập nhật giỏ hàng"
+  },
+  "order": {
+    "failedToCreateOrder": "Không thể tạo đơn hàng",
+    "paymentFailed": "Thanh toán không thành công",
+    "orderCancelled": "Đơn hàng đã bị hủy",
+    "orderNotFound": "Không tìm thấy đơn hàng",
+    "invalidShippingAddress": "Địa chỉ vận chuyển không hợp lệ",
+    "shippingNotAvailable": "Vận chuyển không khả dụng cho địa điểm này"
+  },
+  "product": {
+    "notFound": "Không tìm thấy sản phẩm",
+    "invalidData": "Dữ liệu sản phẩm không hợp lệ",
+    "failedToLoad": "Không thể tải sản phẩm"
+  },
+  "general": {
+    "unknownError": "Đã xảy ra lỗi không xác định",
+    "tryAgain": "Vui lòng thử lại",
+    "contactSupport": "Vui lòng liên hệ với bộ phận hỗ trợ",
+    "networkError": "Lỗi mạng - Vui lòng kiểm tra kết nối của bạn",
+    "timeout": "Yêu cầu hết thời gian - Vui lòng thử lại"
+  }
+}

@@ -1,6 +1,18 @@
-import { Controller, Get, Post, Put, Body, Param, HttpStatus, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
 import { NavigationService } from './navigation.service';
-import { CreateNavigationDto, UpdateNavigationDto } from './dto/navigation-zod.dto';
+import {
+  CreateNavigationDto,
+  UpdateNavigationDto,
+} from './dto/navigation-zod.dto';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { CustomException } from '../common/exceptions/custom.exception';
@@ -16,13 +28,24 @@ export class NavigationController {
   }
 
   @Get(':handle')
-  async getMenu(@Param('handle') handle: string, @Query('shopId') shopId?: string) {
+  async getMenu(
+    @Param('handle') handle: string,
+    @Query('shopId') shopId?: string,
+  ) {
     return this.navigationService.getMenuByHandle(handle, shopId);
   }
 
   @Post()
-  async createMenu(@Session() session: UserSession, @Body() dto: CreateNavigationDto) {
-    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+  async createMenu(
+    @Session() session: UserSession,
+    @Body() dto: CreateNavigationDto,
+  ) {
+    if (!session)
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     return this.navigationService.createMenu(session.user.id, dto);
   }
 
@@ -32,7 +55,12 @@ export class NavigationController {
     @Param('id') id: string,
     @Body() dto: UpdateNavigationDto,
   ) {
-    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    if (!session)
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     return this.navigationService.updateMenu(session.user.id, id, dto);
   }
 }

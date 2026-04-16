@@ -31,17 +31,23 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
   async getCart(shopId: string, sessionId: string): Promise<CartData> {
     const key = this.getCartKey(shopId, sessionId);
     const data = await this.redisClient.get(key);
-    
+
     if (!data) return { items: [], totalAmount: 0 };
     return JSON.parse(data) as CartData;
   }
 
-  async addItem(shopId: string, sessionId: string, newItem: CartItemDto): Promise<CartData> {
+  async addItem(
+    shopId: string,
+    sessionId: string,
+    newItem: CartItemDto,
+  ): Promise<CartData> {
     const cart = await this.getCart(shopId, sessionId);
     const key = this.getCartKey(shopId, sessionId);
 
     const existingItemIndex = cart.items.findIndex(
-      (item) => item.productId === newItem.productId && item.variantId === newItem.variantId,
+      (item) =>
+        item.productId === newItem.productId &&
+        item.variantId === newItem.variantId,
     );
 
     if (existingItemIndex >= 0) {
@@ -51,14 +57,25 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
     }
 
     cart.totalAmount = this.calculateTotal(cart.items);
-    
+
     // Store in Redis (expires in 7 days)
-    await this.redisClient.set(key, JSON.stringify(cart), 'EX', 7 * 24 * 60 * 60);
+    await this.redisClient.set(
+      key,
+      JSON.stringify(cart),
+      'EX',
+      7 * 24 * 60 * 60,
+    );
 
     return cart;
   }
 
-  async updateItemQuantity(shopId: string, sessionId: string, productId: string, variantId: string, quantity: number): Promise<CartData> {
+  async updateItemQuantity(
+    shopId: string,
+    sessionId: string,
+    productId: string,
+    variantId: string,
+    quantity: number,
+  ): Promise<CartData> {
     const cart = await this.getCart(shopId, sessionId);
     const key = this.getCartKey(shopId, sessionId);
 
@@ -69,23 +86,38 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
     if (existingItemIndex >= 0) {
       cart.items[existingItemIndex].quantity = quantity;
       cart.totalAmount = this.calculateTotal(cart.items);
-      await this.redisClient.set(key, JSON.stringify(cart), 'EX', 7 * 24 * 60 * 60);
+      await this.redisClient.set(
+        key,
+        JSON.stringify(cart),
+        'EX',
+        7 * 24 * 60 * 60,
+      );
     }
 
     return cart;
   }
 
-  async removeItem(shopId: string, sessionId: string, productId: string, variantId: string): Promise<CartData> {
+  async removeItem(
+    shopId: string,
+    sessionId: string,
+    productId: string,
+    variantId: string,
+  ): Promise<CartData> {
     const cart = await this.getCart(shopId, sessionId);
     const key = this.getCartKey(shopId, sessionId);
 
     cart.items = cart.items.filter(
-      (item) => !(item.productId === productId && item.variantId === variantId)
+      (item) => !(item.productId === productId && item.variantId === variantId),
     );
-    
+
     cart.totalAmount = this.calculateTotal(cart.items);
-    await this.redisClient.set(key, JSON.stringify(cart), 'EX', 7 * 24 * 60 * 60);
-    
+    await this.redisClient.set(
+      key,
+      JSON.stringify(cart),
+      'EX',
+      7 * 24 * 60 * 60,
+    );
+
     return cart;
   }
 

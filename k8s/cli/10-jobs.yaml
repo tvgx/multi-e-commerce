@@ -1,0 +1,295 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecommerce-cli-batch-create-{{ .Release.Time | date "20060102-150405" }}
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: batch-create
+spec:
+  # Keep completed job for 7 days
+  ttlSecondsAfterFinished: 604800
+  
+  template:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: batch-create
+    spec:
+      serviceAccountName: ecommerce-cli
+      restartPolicy: Never
+      
+      # Init container to validate input
+      initContainers:
+        - name: validate-input
+          image: ecommerce-cli:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ ! -f /data/shops.csv ]; then
+                echo "ERROR: /data/shops.csv not found"
+                exit 1
+              fi
+              echo "Input file validated"
+          volumeMounts:
+            - name: input-data
+              mountPath: /data
+
+      # Main container - run batch create
+      containers:
+        - name: cli
+          image: ecommerce-cli:latest
+          imagePullPolicy: IfNotPresent
+          
+          command:
+            - python
+            - main.py
+            - batch
+            - create
+            - /data/shops.csv
+            - "--parallel"
+            - "10"
+            - "--json"
+          
+          env:
+            - name: API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_URL
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_KEY
+            - name: CLI_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-cli-config
+                  key: CLI_ENV
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          
+          volumeMounts:
+            - name: input-data
+              mountPath: /data
+            - name: output-data
+              mountPath: /output
+
+      # Output container - save results
+      containers:
+        - name: output-handler
+          image: busybox:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -f /output/results.json ]; then
+                echo "Results saved successfully"
+                cat /output/results.json
+              fi
+          volumeMounts:
+            - name: output-data
+              mountPath: /output
+
+      volumes:
+        - name: input-data
+          configMap:
+            name: batch-create-input
+        - name: output-data
+          emptyDir: {}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecommerce-cli-backup-{{ .Release.Time | date "20060102-150405" }}
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: backup
+spec:
+  # Keep completed job for 7 days
+  ttlSecondsAfterFinished: 604800
+  parallelism: 1
+  completions: 1
+  backoffLimit: 3
+  
+  template:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: backup
+    spec:
+      serviceAccountName: ecommerce-cli
+      restartPolicy: Never
+      
+      containers:
+        - name: backup
+          image: ecommerce-cli:latest
+          imagePullPolicy: IfNotPresent
+          
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              SHOP_ID=${SHOP_ID:-all}
+              echo "Creating backups for $SHOP_ID..."
+              
+              if [ "$SHOP_ID" = "all" ]; then
+                python main.py shop list --json | jq -r '.[].id' | while read sid; do
+                  echo "Backing up $sid..."
+                  python main.py backup create "$sid" || true
+                done
+              else
+                python main.py backup create "$SHOP_ID"
+              fi
+              
+              echo "Backups complete"
+          
+          env:
+            - name: API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_URL
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_KEY
+            - name: SHOP_ID
+              value: "all"  # Override with specific shop ID if needed
+            - name: CLI_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-cli-config
+                  key: CLI_ENV
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          
+          volumeMounts:
+            - name: backup-storage
+              mountPath: /home/cli-user/.ecommerce-cli/backups
+      
+      volumes:
+        - name: backup-storage
+          persistentVolumeClaim:
+            claimName: ecommerce-cli-backups
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecommerce-cli-health-check-{{ .Release.Time | date "20060102-150405" }}
+  namespace: ecommerce-cli
+  labels:
+    app: ecommerce-cli
+    operation: health-check
+spec:
+  # Keep completed job for 1 day
+  ttlSecondsAfterFinished: 86400
+  parallelism: 5
+  completions: 1
+  backoffLimit: 3
+  
+  template:
+    metadata:
+      labels:
+        app: ecommerce-cli
+        operation: health-check
+    spec:
+      serviceAccountName: ecommerce-cli
+      restartPolicy: Never
+      
+      containers:
+        - name: health-check
+          image: ecommerce-cli:latest
+          imagePullPolicy: IfNotPresent
+          
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              SHOP_ID=${SHOP_ID:-all}
+              JSON_OUTPUT=${JSON_OUTPUT:-false}
+              
+              echo "Running health checks for $SHOP_ID..."
+              
+              if [ "$SHOP_ID" = "all" ]; then
+                python main.py shop list --json | jq -r '.[].id' | while read sid; do
+                  echo "Checking health for $sid..."
+                  if [ "$JSON_OUTPUT" = "true" ]; then
+                    python main.py health check "$sid" --json >> /output/health-checks.json
+                  else
+                    python main.py health check "$sid"
+                  fi
+                done
+              else
+                if [ "$JSON_OUTPUT" = "true" ]; then
+                  python main.py health check "$SHOP_ID" --json >> /output/health-checks.json
+                else
+                  python main.py health check "$SHOP_ID"
+                fi
+              fi
+              
+              echo "Health checks complete"
+          
+          env:
+            - name: API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_URL
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-cli-secrets
+                  key: API_KEY
+            - name: SHOP_ID
+              value: "all"
+            - name: JSON_OUTPUT
+              value: "false"
+            - name: CLI_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-cli-config
+                  key: CLI_ENV
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          
+          volumeMounts:
+            - name: output-storage
+              mountPath: /output
+      
+      volumes:
+        - name: output-storage
+          emptyDir: {}

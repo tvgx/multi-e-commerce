@@ -1,0 +1,72 @@
+{
+  "products": {
+    "title": "Sản phẩm",
+    "allProducts": "Tất cả sản phẩm",
+    "noResults": "Không tìm thấy sản phẩm",
+    "noResultsDescription": "Cố gắng điều chỉnh các bộ lọc hoặc điều khoản tìm kiếm của bạn",
+    "addToCart": "Thêm vào Giỏ hàng",
+    "viewDetails": "Xem chi tiết",
+    "addToWishlist": "Thêm vào Danh sách yêu thích",
+    "removeFromWishlist": "Loại bỏ khỏi Danh sách yêu thích",
+    "inStock": "Còn hàng",
+    "outOfStock": "Hết hàng",
+    "price": "Giá",
+    "description": "Mô tả",
+    "specifications": "Thông số kỹ thuật",
+    "reviews": "Đánh giá",
+    "rating": "Xếp hạng",
+    "quantity": "Số lượng"
+  },
+  "categories": {
+    "title": "Danh mục",
+    "all": "Tất cả danh mục",
+    "electronics": "Điện tử",
+    "fashion": "Thời trang",
+    "health": "Sức khỏe & Sắc đẹp",
+    "home": "Nhà & Vườn",
+    "sports": "Thể thao & Ngoài trời"
+  },
+  "cart": {
+    "title": "Giỏ Hàng",
+    "empty": "Giỏ hàng của bạn trống",
+    "emptyDescription": "Bắt đầu mua sắm để thêm mục vào giỏ hàng",
+    "item": "Mục",
+    "items": "Các mục",
+    "quantity": "Số lượng",
+    "price": "Giá",
+    "subtotal": "Tổng phụ",
+    "shipping": "Vận chuyển",
+    "tax": "Thuế",
+    "total": "Tổng cộng",
+    "updateCart": "Cập nhật Giỏ hàng",
+    "continueShopping": "Tiếp tục mua sắm",
+    "checkout": "Tiến hành thanh toán",
+    "removeItem": "Loại bỏ",
+    "cartUpdated": "Giỏ hàng đã được cập nhật thành công"
+  },
+  "wishlist": {
+    "title": "Danh sách yêu thích",
+    "empty": "Danh sách yêu thích của bạn trống",
+    "emptyDescription": "Thêm mục vào danh sách yêu thích để lưu chúng để sử dụng sau",
+    "addedSuccessfully": "Đã thêm vào danh sách yêu thích",
+    "removedSuccessfully": "Đã loại bỏ khỏi danh sách yêu thích",
+    "moveToCart": "Di chuyển vào Giỏ hàng"
+  },
+  "filters": {
+    "title": "Bộ lọc",
+    "price": "Khoảng Giá",
+    "category": "Danh mục",
+    "rating": "Xếp hạng",
+    "availability": "Khả năng sẵn có",
+    "clearAll": "Xóa tất cả bộ lọc",
+    "apply": "Áp dụng bộ lọc"
+  },
+  "sort": {
+    "title": "Sắp xếp theo",
+    "priceLowToHigh": "Giá: Thấp đến Cao",
+    "priceHighToLow": "Giá: Cao đến Thấp",
+    "newest": "Mới nhất",
+    "popular": "Phổ biến nhất",
+    "rating": "Xếp hạng cao nhất"
+  }
+}

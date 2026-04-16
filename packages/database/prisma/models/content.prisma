@@ -1,0 +1,91 @@
+// ==========================================
+// Content Models (Collections, Pages, Navigation)
+// ==========================================
+
+model Collection {
+  id          String   @id @default(uuid())
+  shopId      String
+  title       String
+  slug        String   // vd: men, new-arrivals, sale
+  description String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  // Người dùng có thể override layout mặc định của trang Collection bằng Builder
+  // null = dùng default Product Grid template
+  layoutJson  Json?    // sections: PageSection[] — giống Homepage JSON
+
+  shop        Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products    ProductCollection[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@map("collections")
+}
+
+// Bảng trung gian N-N: Product <-> Collection
+model ProductCollection {
+  productId    String
+  collectionId String
+  order        Int    @default(0) // Thứ tự hiển thị trong Collection
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+  @@index([collectionId])
+  @@map("product_collections")
+}
+
+// Header/Footer menu của từng shop
+model NavigationMenu {
+  id      String @id @default(uuid())
+  shopId  String
+  handle  String // "main-menu" (header) | "footer-menu"
+  title   String
+  // items: Array of { title: string, url: string, items?: NavigationItem[] }
+  items   Json   @default("[]")
+
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, handle])
+  @@index([shopId])
+  @@map("navigation_menus")
+}
+
+// Custom Pages: /pages/about, /pages/faq — do user tạo
+// Dùng JSON sections (giống Homepage) thay vì HTML thuần
+model ShopPage {
+  id        String   @id @default(uuid())
+  shopId    String
+  slug      String   // vd: about, faq, contact
+  title     String
+  // sections: PageSection[] — Builder JSON, giống homepage layout
+  sections  Json     @default("[]")
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@map("shop_pages")
+}
+
+model MergedLayoutsCache {
+  id           String   @id @default(uuid())
+  shopId       String   @unique
+  layoutJson   Json     // Toàn bộ cục JSON đã được Merge hoàn chỉnh
+  lastSyncedAt DateTime @default(now())
+
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("merged_layouts_cache")
+}

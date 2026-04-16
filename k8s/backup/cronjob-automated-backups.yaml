@@ -1,0 +1,237 @@
+---
+# Automated Backup CronJobs for K3s Cluster
+# Runs daily backups of ETcd + PVC data
+# Requires: scripts/backup-etcd.sh, scripts/backup-pvc.sh, sync-backups-to-external-disk.sh
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k3s-backups
+  labels:
+    app: k3s-backup-system
+
+---
+# ConfigMap to store backup scripts inside cluster
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: k3s-backups
+data:
+  backup-etcd.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    BACKUP_DIR="/backup/etcd"
+    mkdir -p "$BACKUP_DIR"
+    
+    echo "[INFO] Creating ETcd snapshot..."
+    sudo k3s etcd-snapshot save --name "etcd-$(date +%Y%m%d-%H%M%S)" || exit 1
+    
+    # Cleanup old snapshots (keep last 7)
+    echo "[INFO] Cleaning up old snapshots..."
+    SNAPSHOT_COUNT=$(sudo ls -1 /var/lib/rancher/k3s/server/db/snapshots/*.db 2>/dev/null | wc -l || echo 0)
+    if [[ $SNAPSHOT_COUNT -gt 7 ]]; then
+      sudo ls -1t /var/lib/rancher/k3s/server/db/snapshots/*.db 2>/dev/null | tail -n +8 | xargs -r sudo rm
+    fi
+    
+    echo "[INFO] ✅ ETcd backup complete"
+    
+  backup-pvc.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    BACKUP_DIR="/backup/pvcs"
+    LOCAL_PATH_DIR="/var/lib/rancher/k3s/storage"
+    mkdir -p "$BACKUP_DIR"
+    
+    if [[ ! -d "$LOCAL_PATH_DIR" ]]; then
+      echo "[ERROR] Local-path directory not found: $LOCAL_PATH_DIR"
+      exit 1
+    fi
+    
+    echo "[INFO] Creating PVC backup..."
+    BACKUP_FILE="$BACKUP_DIR/pvc-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+    
+    if ! sudo tar czf "$BACKUP_FILE" -C "$LOCAL_PATH_DIR" . 2>/dev/null; then
+      echo "[ERROR] Failed to backup PVC"
+      exit 1
+    fi
+    
+    # Cleanup old backups (keep last 7 days)
+    echo "[INFO] Cleaning up old PVC backups..."
+    find "$BACKUP_DIR" -name "pvc-backup-*.tar.gz" -mtime +7 -exec sudo rm {} \;
+    
+    echo "[INFO] ✅ PVC backup complete: $(du -sh $BACKUP_FILE | cut -f1)"
+
+---
+# CronJob: ETcd Backup (Daily @ 02:00 UTC)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-backup-daily
+  namespace: k3s-backups
+spec:
+  schedule: "0 2 * * *"  # 02:00 UTC every day
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-runner
+          hostNetwork: true
+          hostPID: true
+          containers:
+          - name: etcd-backup
+            image: rancher/k3s:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              BACKUP_DIR="/backup/etcd"
+              mkdir -p "$BACKUP_DIR"
+              
+              echo "[INFO] Creating ETcd snapshot at $(date)..."
+              k3s etcd-snapshot save --name "etcd-$(date +%Y%m%d-%H%M%S)" || exit 1
+              
+              # Cleanup old snapshots (keep last 7)
+              echo "[INFO] Cleaning up old snapshots..."
+              SNAPSHOT_COUNT=$(ls -1 /var/lib/rancher/k3s/server/db/snapshots/*.db 2>/dev/null | wc -l || echo 0)
+              if [[ $SNAPSHOT_COUNT -gt 7 ]]; then
+                ls -1t /var/lib/rancher/k3s/server/db/snapshots/*.db 2>/dev/null | tail -n +8 | xargs -r rm
+              fi
+              
+              echo "[INFO] ✅ ETcd backup complete"
+            volumeMounts:
+            - name: k3s-storage
+              mountPath: /var/lib/rancher/k3s
+            - name: backup-storage
+              mountPath: /backup
+            securityContext:
+              privileged: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+          volumes:
+          - name: k3s-storage
+            hostPath:
+              path: /var/lib/rancher/k3s
+              type: DirectoryOrCreate
+          - name: backup-storage
+            hostPath:
+              path: /backup/etcd
+              type: DirectoryOrCreate
+          restartPolicy: OnFailure
+
+---
+# CronJob: PVC Backup (Weekly @ 04:00 UTC, Sunday)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-weekly
+  namespace: k3s-backups
+spec:
+  schedule: "0 4 * * 0"  # 04:00 UTC every Sunday
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-runner
+          hostNetwork: true
+          hostPID: true
+          containers:
+          - name: pvc-backup
+            image: rancher/k3s:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              BACKUP_DIR="/backup/pvcs"
+              LOCAL_PATH_DIR="/var/lib/rancher/k3s/storage"
+              mkdir -p "$BACKUP_DIR"
+              
+              if [[ ! -d "$LOCAL_PATH_DIR" ]]; then
+                echo "[ERROR] Local-path directory not found: $LOCAL_PATH_DIR"
+                exit 1
+              fi
+              
+              echo "[INFO] Creating PVC backup at $(date)..."
+              BACKUP_FILE="$BACKUP_DIR/pvc-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+              
+              if ! tar czf "$BACKUP_FILE" -C "$LOCAL_PATH_DIR" . 2>/dev/null; then
+                echo "[ERROR] Failed to backup PVC"
+                exit 1
+              fi
+              
+              # Cleanup old backups (keep last 7 days)
+              echo "[INFO] Cleaning up old PVC backups..."
+              find "$BACKUP_DIR" -name "pvc-backup-*.tar.gz" -mtime +7 -exec rm {} \;
+              
+              echo "[INFO] ✅ PVC backup complete"
+            volumeMounts:
+            - name: k3s-storage
+              mountPath: /var/lib/rancher/k3s
+            - name: backup-storage
+              mountPath: /backup
+            securityContext:
+              privileged: true
+            resources:
+              requests:
+                cpu: 200m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+          volumes:
+          - name: k3s-storage
+            hostPath:
+              path: /var/lib/rancher/k3s
+              type: DirectoryOrCreate
+          - name: backup-storage
+            hostPath:
+              path: /backup/pvcs
+              type: DirectoryOrCreate
+          restartPolicy: OnFailure
+
+---
+# ServiceAccount + RBAC for backup jobs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-runner
+  namespace: k3s-backups
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backup-runner
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backup-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backup-runner
+subjects:
+- kind: ServiceAccount
+  name: backup-runner
+  namespace: k3s-backups

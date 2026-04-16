@@ -1,4 +1,9 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { CustomException } from './custom.exception';
 
@@ -11,7 +16,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
     let status = 500;
     let code = '9999';
     let message = 'Exception error.';
-    let data = null;
+    const data = null;
 
     if (exception instanceof CustomException) {
       status = exception.getStatus();

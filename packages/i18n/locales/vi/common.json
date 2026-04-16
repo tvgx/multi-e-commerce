@@ -1,0 +1,56 @@
+{
+  "buttons": {
+    "submit": "Gửi",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "add": "Thêm",
+    "create": "Tạo",
+    "update": "Cập nhật",
+    "remove": "Loại bỏ",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "sort": "Sắp xếp",
+    "download": "Tải xuống",
+    "upload": "Tải lên",
+    "copy": "Sao chép",
+    "ok": "OK"
+  },
+  "labels": {
+    "email": "Địa chỉ Email",
+    "password": "Mật khẩu",
+    "username": "Tên người dùng",
+    "firstName": "Tên",
+    "lastName": "Họ",
+    "phone": "Số điện thoại",
+    "address": "Địa chỉ",
+    "city": "Thành phố",
+    "country": "Quốc gia",
+    "zipCode": "Mã bưu điện",
+    "search": "Tìm kiếm",
+    "category": "Danh mục",
+    "price": "Giá",
+    "quantity": "Số lượng",
+    "total": "Tổng cộng"
+  },
+  "messages": {
+    "loading": "Đang tải...",
+    "success": "Thành công",
+    "error": "Lỗi",
+    "warning": "Cảnh báo",
+    "info": "Thông tin",
+    "noData": "Không có dữ liệu",
+    "noResults": "Không tìm thấy kết quả",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa?",
+    "confirmAction": "Bạn có chắc chắn?"
+  },
+  "languages": {
+    "en": "English",
+    "vi": "Tiếng Việt"
+  }
+}

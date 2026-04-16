@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Body, Param, Query, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  HttpStatus,
+} from '@nestjs/common';
 import { ProductService } from './product.service';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
@@ -16,7 +25,12 @@ export class ProductController {
     @Session() session: UserSession,
     @Body() dto: CreateProductDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    if (!session)
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     return this.productService.createProduct(session.user.id, dto);
   }
 
@@ -37,12 +51,14 @@ export class ProductController {
         categoryId,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      }
+      },
     );
   }
 
   @Get(':id')
-  async getProductDetail(@Param('id') id: string): Promise<BaseResponseDto<object>> {
+  async getProductDetail(
+    @Param('id') id: string,
+  ): Promise<BaseResponseDto<object>> {
     return this.productService.getProductDetails(id);
   }
 
@@ -52,7 +68,12 @@ export class ProductController {
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) throw new CustomException(ResponseCodes.TOKEN_INVALID, 'invalid token', HttpStatus.UNAUTHORIZED);
+    if (!session)
+      throw new CustomException(
+        ResponseCodes.TOKEN_INVALID,
+        'invalid token',
+        HttpStatus.UNAUTHORIZED,
+      );
     return this.productService.updateProduct(session.user.id, id, dto);
   }
 }

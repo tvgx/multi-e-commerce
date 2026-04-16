@@ -1,0 +1,101 @@
+// ==========================================
+// Product Models
+// ==========================================
+
+model Product {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String   @unique // URL thân thiện (vd: ao-thun-nam)
+  description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  categoryId    String?
+  taxCategoryId String?
+  brand         String?
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  taxCategory   TaxCategory? @relation(fields: [taxCategoryId], references: [id])
+  variants      Variant[]
+  optionTypes   ProductOptionType[]
+  collections   ProductCollection[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("products")
+}
+
+model Variant {
+  id          String   @id @default(uuid())
+  productId   String
+  sku         String   @unique
+  price       Float    @default(0)
+  currency    String   @default("VND")
+  weight      Float?   // Cân nặng (KG)
+  isMaster    Boolean  @default(false) // Biến thể chính của sản phẩm
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues VariantOptionValue[]
+  stockItems  StockItem[]
+  lineItems   LineItem[]
+  inventoryUnits InventoryUnit[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model OptionType {
+  id           String   @id @default(uuid())
+  shopId       String
+  name         String   // vd: Color, Size
+  presentation String   // vd: Màu sắc, Kích thước
+
+  optionValues OptionValue[]
+  productTypes ProductOptionType[]
+
+  @@index([shopId])
+  @@map("option_types")
+}
+
+model OptionValue {
+  id           String   @id @default(uuid())
+  optionTypeId String
+  name         String   // vd: red, xl
+  presentation String   // vd: Đỏ, XL
+
+  optionType   OptionType @relation(fields: [optionTypeId], references: [id], onDelete: Cascade)
+  variantValues VariantOptionValue[]
+
+  @@index([optionTypeId])
+  @@map("option_values")
+}
+
+// Bảng trung gian nối Product với các OptionType khả dụng
+model ProductOptionType {
+  id           String @id @default(uuid())
+  productId    String
+  optionTypeId String
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionType   OptionType @relation(fields: [optionTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, optionTypeId])
+  @@map("product_option_types")
+}
+
+// Bảng trung gian nối Variant với các OptionValue cụ thể
+model VariantOptionValue {
+  id            String @id @default(uuid())
+  variantId     String
+  optionValueId String
+
+  variant      Variant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue  OptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@map("variant_option_values")
+}

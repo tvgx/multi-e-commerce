@@ -40,4 +40,4 @@ export const ResponseCodes = {
   SPAM: '9991',
 } as const;
 
-export type ResponseCode = typeof ResponseCodes[keyof typeof ResponseCodes];
+export type ResponseCode = (typeof ResponseCodes)[keyof typeof ResponseCodes];

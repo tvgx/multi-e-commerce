@@ -1,0 +1,22 @@
+{
+  "required": "Trường này là bắt buộc",
+  "email": "Vui lòng nhập địa chỉ email hợp lệ",
+  "password": "Mật khẩu phải có ít nhất 8 ký tự",
+  "passwordStrength": "Mật khẩu phải chứa chữ hoa, chữ thường, số và ký tự đặc biệt",
+  "username": "Tên người dùng phải từ 3-20 ký tự",
+  "phone": "Vui lòng nhập số điện thoại hợp lệ",
+  "zipCode": "Vui lòng nhập mã bưu điện hợp lệ",
+  "url": "Vui lòng nhập URL hợp lệ",
+  "number": "Vui lòng nhập số hợp lệ",
+  "min": "Phải có ít nhất {{min}}",
+  "max": "Không được quá {{max}}",
+  "minLength": "Phải có ít nhất {{min}} ký tự",
+  "maxLength": "Không được quá {{max}} ký tự",
+  "pattern": "Định dạng không hợp lệ",
+  "match": "Các trường không khớp",
+  "passwordConfirm": "Mật khẩu phải khớp",
+  "termsAgree": "Bạn phải đồng ý với các điều khoản và điều kiện",
+  "invalidDate": "Vui lòng nhập ngày tháng hợp lệ",
+  "futureDate": "Ngày không thể ở tương lai",
+  "pastDate": "Ngày không thể ở quá khứ"
+}

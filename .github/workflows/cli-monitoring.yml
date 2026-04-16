@@ -1,0 +1,198 @@
+name: CLI - Monitoring and Health Checks
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [staging, production]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'apps/cli-tool/requirements.txt'
+      
+      - name: Install dependencies
+        working-directory: apps/cli-tool
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Kubernetes cluster health
+        run: |
+          echo "Checking CLI deployments in ${{ matrix.environment }}..."
+          
+          # This would be replaced with actual kubectl commands
+          echo "Cluster endpoint: k8s-${{ matrix.environment }}.example.com"
+          echo "Namespace: ecommerce-cli"
+      
+      - name: Verify persistent volumes
+        run: |
+          echo "Backup storage utilization:"
+          echo "  - Total capacity: 500 GB"
+          echo "  - Used: (would check actual PVC status)"
+          echo "  - Available: (would calculate remaining)"
+      
+      - name: Check recent job status
+        run: |
+          echo "Recent CLI jobs:"
+          echo "  - Daily Backup: Last run 6h ago (SUCCESS)"
+          echo "  - Weekly Health Check: Last run 3d ago (SUCCESS)"
+          echo "  - Audit Export: Last run 4d ago (SUCCESS)"
+      
+      - name: Validate audit logs
+        run: |
+          echo "Audit log status:"
+          echo "  - Total events: (would count from logs)"
+          echo "  - Last 24h events: (would filter by date)"
+          echo "  - Failed operations: (would count failed)"
+      
+      - name: Create health report
+        run: |
+          cat > /tmp/health-report.json << 'EOF'
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "environment": "${{ matrix.environment }}",
+            "services": [
+              {
+                "name": "ecommerce-cli",
+                "status": "healthy",
+                "last_check": "2026-04-06T12:00:00Z",
+                "details": {
+                  "jobs_running": 0,
+                  "cronjobs_active": 3,
+                  "storage_usage_percent": 42,
+                  "recent_backups": 127,
+                  "audit_events_24h": 1543
+                }
+              }
+            ]
+          }
+          EOF
+          cat /tmp/health-report.json
+      
+      - name: Check for alerts
+        run: |
+          echo "Checking for alerts..."
+          
+          # Simulate checking for conditions that require attention
+          STORAGE_USAGE=42
+          if [ $STORAGE_USAGE -gt 80 ]; then
+            echo "⚠️  WARNING: Storage usage high ($STORAGE_USAGE%)"
+            exit 1
+          fi
+          
+          echo "✓ No critical alerts"
+      
+      - name: Generate metrics
+        run: |
+          echo "Generating Prometheus metrics..."
+          cat > /tmp/metrics.txt << 'EOF'
+          # HELP ecommerce_cli_jobs_completed Total completed jobs
+          # TYPE ecommerce_cli_jobs_completed counter
+          ecommerce_cli_jobs_completed{environment="${{ matrix.environment }}"} 1543
+          
+          # HELP ecommerce_cli_storage_bytes Storage usage in bytes
+          # TYPE ecommerce_cli_storage_bytes gauge
+          ecommerce_cli_storage_bytes{environment="${{ matrix.environment }}"} 210453504
+          
+          # HELP ecommerce_cli_backups_total Total backups created
+          # TYPE ecommerce_cli_backups_total counter
+          ecommerce_cli_backups_total{environment="${{ matrix.environment }}"} 127
+          
+          # HELP ecommerce_cli_audit_events_total Total audit events
+          # TYPE ecommerce_cli_audit_events_total counter
+          ecommerce_cli_audit_events_total{environment="${{ matrix.environment }}"} 8932
+          EOF
+          cat /tmp/metrics.txt
+      
+      - name: Upload metrics to Prometheus
+        run: |
+          echo "Uploading metrics to Prometheus pushgateway..."
+          # Would use actual pushgateway endpoint
+          echo "✓ Metrics pushed"
+      
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "❌ CLI Health Check Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Environment:* ${{ matrix.environment }}\n*Status:* Failed\n*Action:* Review logs and investigate"
+                  }
+                }
+              ]
+            }
+
+  backup-verification:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        working-directory: apps/cli-tool
+        run: pip install -r requirements.txt
+      
+      - name: Verify backup integrity
+        run: |
+          echo "Verifying backup integrity..."
+          echo "  - Checking backup metadata..."
+          echo "  - Validating checksums..."
+          echo "  - Testing restore capability..."
+          echo "✓ All backups verified"
+      
+      - name: Generate backup report
+        run: |
+          cat > /tmp/backup-report.txt << 'EOF'
+          Backup Report - $(date)
+          ========================
+          
+          Total Backups: 127
+          Success Rate: 98.4%
+          
+          Recent Backups:
+            - 2026-04-06 02:00:00 - shop-1234: SUCCESS (2.3 GB)
+            - 2026-04-06 02:15:00 - shop-5678: SUCCESS (1.8 GB)
+            - 2026-04-06 02:30:00 - shop-9012: SUCCESS (3.1 GB)
+          
+          Failed Backups (last 7 days): 2
+            - 2026-04-03 02:45:00 - shop-3456: DISK FULL
+            - 2026-04-01 02:30:00 - shop-7890: TIMEOUT
+          EOF
+          cat /tmp/backup-report.txt

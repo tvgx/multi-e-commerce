@@ -1,0 +1,35 @@
+// ==========================================
+// Payment Models
+// ==========================================
+
+model PaymentMethod {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  description String?
+  type        String   // vd: "Stripe", "COD", "BankTransfer"
+  active      Boolean  @default(true)
+
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+
+  @@map("payment_methods")
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  orderId         String
+  paymentMethodId String
+  amount          Float
+  state           String   @default("checkout") // checkout, awaiting_confirmation, processing, completed, failed, void, refunded
+  responseCode    String?
+
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@map("payments")
+}

@@ -1,0 +1,85 @@
+{
+  "checkout": {
+    "title": "Checkout",
+    "step1": "Shipping",
+    "step2": "Billing",
+    "step3": "Payment",
+    "step4": "Review",
+    "continue": "Continue",
+    "placeOrder": "Place Order",
+    "orderPlaced": "Order placed successfully!",
+    "orderNumber": "Order Number"
+  },
+  "shipping": {
+    "title": "Shipping Address",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "address": "Street Address",
+    "apartment": "Apartment, suite, etc.",
+    "city": "City",
+    "state": "State / Province",
+    "country": "Country",
+    "zipCode": "Zip Code",
+    "useAsDefault": "Use as default address",
+    "shippingMethod": "Shipping Method",
+    "standard": "Standard Shipping (5-7 business days)",
+    "express": "Express Shipping (2-3 business days)",
+    "overnight": "Overnight Shipping (1 business day)"
+  },
+  "billing": {
+    "title": "Billing Address",
+    "sameAsShipping": "Same as shipping address",
+    "differentAddress": "Use a different address"
+  },
+  "payment": {
+    "title": "Payment Method",
+    "creditCard": "Credit Card",
+    "debitCard": "Debit Card",
+    "bankTransfer": "Bank Transfer",
+    "cod": "Cash on Delivery",
+    "cardNumber": "Card Number",
+    "expiryDate": "Expiry Date",
+    "cvv": "CVV",
+    "cardholderName": "Cardholder Name",
+    "bankName": "Bank Name"
+  },
+  "review": {
+    "title": "Review Order",
+    "orderSummary": "Order Summary",
+    "shippingAddress": "Shipping Address",
+    "billingAddress": "Billing Address",
+    "paymentMethod": "Payment Method",
+    "items": "Items",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax": "Tax",
+    "total": "Total",
+    "confirmOrder": "Confirm Order"
+  },
+  "orders": {
+    "title": "My Orders",
+    "all": "All Orders",
+    "pending": "Pending",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "orderDate": "Order Date",
+    "status": "Status",
+    "total": "Total",
+    "viewDetails": "View Details",
+    "trackOrder": "Track Order",
+    "noOrders": "You have no orders yet"
+  },
+  "tracking": {
+    "title": "Track Your Order",
+    "orderNumber": "Order Number",
+    "trackingNumber": "Tracking Number",
+    "carrier": "Carrier",
+    "estimatedDelivery": "Estimated Delivery",
+    "deliveryAddress": "Delivery Address",
+    "timeline": "Delivery Timeline"
+  }
+}

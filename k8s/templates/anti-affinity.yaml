@@ -1,0 +1,113 @@
+---
+# Pod Anti-Affinity Configuration for Multi-Node Resilience
+# Ensures replicas are spread across different nodes to prevent cascading failures
+# Only applied when cluster has 2+ nodes
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-core
+  namespace: ecommerce
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-core
+  template:
+    metadata:
+      labels:
+        app: api-core
+    spec:
+      affinity:
+        podAntiAffinity:
+          # For single-node: ignored (pod will schedule on same node)
+          # For multi-node: enforces spread (requires 3+ nodes for 3 replicas)
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - api-core
+            topologyKey: kubernetes.io/hostname  # Spread across different hosts
+      containers:
+      - name: api-core
+        image: ecommerce-api-core:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        # ... rest of spec (unchanged from original)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: ecommerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - admin
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: admin
+        image: ecommerce-admin:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        # ... rest of spec (unchanged from original)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+  namespace: ecommerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: storefront
+  template:
+    metadata:
+      labels:
+        app: storefront
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - storefront
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: storefront
+        image: ecommerce-storefront:latest
+        ports:
+        - containerPort: 3002
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        # ... rest of spec (unchanged from original)

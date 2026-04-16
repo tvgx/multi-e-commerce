@@ -43,4 +43,7 @@ tunnel-credentials.json
 # Agent/AI Directories
 master-template-example/
 
+# Documentation (extracted to .docs/)
+.docs/
+
 .early.coverage

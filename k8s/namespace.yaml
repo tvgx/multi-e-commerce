@@ -10,8 +10,8 @@ metadata:
   namespace: ecommerce
 spec:
   hard:
-    pods: "20"
-    requests.cpu: "4"
-    requests.memory: 8Gi
-    limits.cpu: "8"
-    limits.memory: 12Gi
+    pods: "20"  # 3 deployments x 3 replicas + monitoring + cli-backup = ~15 pods + buffer
+    requests.cpu: "4"  # WSL ~4 cores; realistic for 9-12 pods
+    requests.memory: 8Gi  # ~8-10GB available; reasonable for staging
+    limits.cpu: "8"  # Ceiling to prevent runaway pods
+    limits.memory: 12Gi  # Safe max for WSL ~16GB total RAM

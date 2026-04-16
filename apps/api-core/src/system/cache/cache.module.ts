@@ -13,4 +13,4 @@ import { SystemCacheService } from './cache.service';
   providers: [SystemCacheService],
   exports: [SystemCacheService, CacheModule],
 })
-export class SystemCacheModule { }
+export class SystemCacheModule {}

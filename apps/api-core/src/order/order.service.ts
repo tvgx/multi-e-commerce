@@ -57,22 +57,40 @@ export class OrderService {
           });
 
           if (!product || product.shopId !== dto.shopId) {
-            throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Product is not existed', HttpStatus.NOT_FOUND);
+            throw new CustomException(
+              ResponseCodes.PRODUCT_NOT_EXISTED,
+              'Product is not existed',
+              HttpStatus.NOT_FOUND,
+            );
           }
 
           const masterVariant = product.variants[0];
           if (!masterVariant) {
-            throw new CustomException(ResponseCodes.PRODUCT_NOT_EXISTED, 'Master variant not found', HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new CustomException(
+              ResponseCodes.PRODUCT_NOT_EXISTED,
+              'Master variant not found',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
           }
 
-          const totalStock = masterVariant.stockItems.reduce((acc: any, si: any) => acc + si.countOnHand, 0);
+          const totalStock = masterVariant.stockItems.reduce(
+            (acc: any, si: any) => acc + si.countOnHand,
+            0,
+          );
           if (totalStock < item.quantity) {
-            throw new CustomException(ResponseCodes.PRODUCT_SOLD, 'The product has been sold or is out of stock.', HttpStatus.BAD_REQUEST);
+            throw new CustomException(
+              ResponseCodes.PRODUCT_SOLD,
+              'The product has been sold or is out of stock.',
+              HttpStatus.BAD_REQUEST,
+            );
           }
 
           // Reduce stock (simple: take from default location or first location)
-          const defaultStockItem = masterVariant.stockItems.find((si: any) => si.stockLocation.isDefault) || masterVariant.stockItems[0];
-          
+          const defaultStockItem =
+            masterVariant.stockItems.find(
+              (si: any) => si.stockLocation.isDefault,
+            ) || masterVariant.stockItems[0];
+
           await tx.stockItem.update({
             where: { id: defaultStockItem.id },
             data: { countOnHand: { decrement: item.quantity } },
@@ -80,7 +98,7 @@ export class OrderService {
 
           const priceAtBuy = masterVariant.price;
           totalAmount += priceAtBuy * item.quantity;
-          
+
           lineItemsData.push({
             variantId: masterVariant.id,
             quantity: item.quantity,
@@ -106,7 +124,7 @@ export class OrderService {
 
         // 3. Process Payment
         let paymentMethod = await tx.paymentMethod.findFirst({
-          where: { shopId: dto.shopId, type: dto.paymentProvider }
+          where: { shopId: dto.shopId, type: dto.paymentProvider },
         });
         if (!paymentMethod) {
           paymentMethod = await tx.paymentMethod.create({
@@ -114,16 +132,16 @@ export class OrderService {
               shopId: dto.shopId,
               name: dto.paymentProvider,
               type: dto.paymentProvider,
-              active: true
-            }
+              active: true,
+            },
           });
         }
 
         const paymentIntent = await this.paymentService.processPayment(
-          dto.paymentProvider, 
-          totalAmount, 
-          'VND', 
-          order.id
+          dto.paymentProvider,
+          totalAmount,
+          'VND',
+          order.id,
         );
 
         await tx.payment.create({
@@ -131,29 +149,34 @@ export class OrderService {
             orderId: order.id,
             paymentMethodId: paymentMethod.id,
             amount: totalAmount,
-            state: paymentIntent.status === 'SUCCEEDED' ? 'completed' : 'processing',
+            state:
+              paymentIntent.status === 'SUCCEEDED' ? 'completed' : 'processing',
             responseCode: paymentIntent.transactionId,
-          }
+          },
         });
 
         if (paymentIntent.status === 'SUCCEEDED') {
           await tx.order.update({
             where: { id: order.id },
-            data: { paymentState: 'paid' }
+            data: { paymentState: 'paid' },
           });
         }
 
         // Refetch order with payments
         const finalOrder = await tx.order.findUnique({
           where: { id: order.id },
-          include: { lineItems: true, payments: true }
+          include: { lineItems: true, payments: true },
         });
 
         return BaseResponseDto.success(finalOrder);
       });
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Exception error.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Exception error.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -162,11 +185,19 @@ export class OrderService {
       where: { id: orderId },
       include: { lineItems: true, shop: true },
     });
-    if (!order) throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'No Data', HttpStatus.NOT_FOUND);
+    if (!order)
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'No Data',
+        HttpStatus.NOT_FOUND,
+      );
     return BaseResponseDto.success(order);
   }
 
-  async getOrdersByCustomerEmail(shopId: string, email: string): Promise<BaseResponseDto<any>> {
+  async getOrdersByCustomerEmail(
+    shopId: string,
+    email: string,
+  ): Promise<BaseResponseDto<any>> {
     const customer = await this.prisma.customer.findUnique({
       where: {
         shopId_email: { shopId, email },
@@ -179,7 +210,9 @@ export class OrderService {
 
     const orders = await this.prisma.order.findMany({
       where: { shopId, customerId: customer.id },
-      include: { lineItems: { include: { variant: { include: { product: true } } } } },
+      include: {
+        lineItems: { include: { variant: { include: { product: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -189,17 +222,20 @@ export class OrderService {
   async getOrdersByShop(shopId: string): Promise<BaseResponseDto<any>> {
     const orders = await this.prisma.order.findMany({
       where: { shopId },
-      include: { 
+      include: {
         lineItems: { include: { variant: { include: { product: true } } } },
         customer: true,
-        payments: true
+        payments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
     return BaseResponseDto.success(orders);
   }
 
-  async updateOrderState(orderId: string, state: string): Promise<BaseResponseDto<any>> {
+  async updateOrderState(
+    orderId: string,
+    state: string,
+  ): Promise<BaseResponseDto<any>> {
     const order = await this.prisma.order.update({
       where: { id: orderId },
       data: { state },
