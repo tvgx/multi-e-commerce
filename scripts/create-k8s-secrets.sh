@@ -47,6 +47,10 @@ MONGO_USER="${MONGO_USER:-ecommerce}"
 MONGO_PASSWORD="${MONGO_PASSWORD:-}"
 MONGO_DB="${MONGO_DB:-ecommerce_ui}"
 
+# Better Auth Configuration
+BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-}"
+CLI_ENV="${CLI_ENV:-development}"
+
 # Auto-construct URLs if not provided
 DATABASE_URL_SHARD_1="${DATABASE_URL_SHARD_1:-}"
 DATABASE_URL_SHARD_2="${DATABASE_URL_SHARD_2:-}"
@@ -95,6 +99,22 @@ if ! [[ "$MONGODB_URI" =~ ^mongodb:// ]]; then
   exit 1
 fi
 
+# Validate better-auth secret
+if [[ -z "$BETTER_AUTH_SECRET" ]]; then
+  log_error "BETTER_AUTH_SECRET is required for authentication!"
+  log_error "Provide via environment variable:"
+  echo ""
+  echo "Example:"
+  echo "  export BETTER_AUTH_SECRET='avx0LJLBgGitJDQzys3js69JZFgEC22C'"
+  echo "  bash scripts/create-k8s-secrets.sh"
+  exit 1
+fi
+
+if [[ ${#BETTER_AUTH_SECRET} -lt 32 ]]; then
+  log_error "BETTER_AUTH_SECRET must be at least 32 characters long. Got: ${#BETTER_AUTH_SECRET} characters"
+  exit 1
+fi
+
 log_info "Credentials configured:"
 echo "  DB Host: $DB_HOST"
 echo "  Mongo Host: $MONGO_HOSTNAME"
@@ -110,6 +130,8 @@ if ! kubectl create secret generic api-core-secret \
   --from-literal=DATABASE_URL_SHARD_1="${DATABASE_URL_SHARD_1}" \
   --from-literal=DATABASE_URL_SHARD_2="${DATABASE_URL_SHARD_2}" \
   --from-literal=MONGODB_URI="${MONGODB_URI}" \
+  --from-literal=BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET}" \
+  --from-literal=CLI_ENV="${CLI_ENV}" \
   --save-config \
   --dry-run=client \
   -o yaml | kubectl apply -f -; then

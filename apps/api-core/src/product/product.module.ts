@@ -6,9 +6,11 @@ import {
   ProductLayout,
   ProductLayoutSchema,
 } from './schemas/product-layout.schema';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
+    DatabaseModule,
     MongooseModule.forFeature([
       { name: ProductLayout.name, schema: ProductLayoutSchema },
     ]),

@@ -8,8 +8,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
@@ -21,31 +19,16 @@ export class ShopController {
 
   @Post()
   async createShop(
-    @Session() session: UserSession,
     @Body() dto: CreateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.createShop(session.user.id, dto);
+    const userId = 'dev-user-123';
+    return this.shopService.createShop(userId, dto);
   }
 
   @Get('my-shops')
-  async getMyShops(
-    @Session() session: UserSession,
-  ): Promise<BaseResponseDto<object[]>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.getMyShops(session.user.id);
+  async getMyShops(): Promise<BaseResponseDto<object[]>> {
+    const userId = 'dev-user-123';
+    return this.shopService.getMyShops(userId);
   }
 
   @Get('resolve/:identifier')
@@ -64,18 +47,11 @@ export class ShopController {
 
   @Put(':id')
   async updateShop(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.updateShop(session.user.id, id, dto);
+    const userId = 'dev-user-123';
+    return this.shopService.updateShop(userId, id, dto);
   }
 
   @Get(':id/onboarding')

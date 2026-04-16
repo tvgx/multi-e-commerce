@@ -15,8 +15,6 @@ import {
   UpdateCollectionDto,
   AddProductsToCollectionDto,
 } from './dto/collection-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 
@@ -39,47 +37,29 @@ export class CollectionController {
 
   @Post()
   async createCollection(
-    @Session() session: UserSession,
     @Body() dto: CreateCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.collectionService.createCollection(session.user.id, dto);
+    const userId = 'dev-user-123';
+    return this.collectionService.createCollection(userId, dto);
   }
 
   @Put(':id')
   async updateCollection(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.collectionService.updateCollection(session.user.id, id, dto);
+    const userId = 'dev-user-123';
+    return this.collectionService.updateCollection(userId, id, dto);
   }
 
   @Post(':id/products')
   async addProductsToCollection(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: AddProductsToCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
+    const userId = 'dev-user-123';
     return this.collectionService.addProductsToCollection(
-      session.user.id,
+      userId,
       id,
       dto,
     );
@@ -87,18 +67,12 @@ export class CollectionController {
 
   @Delete(':id/products/:productId')
   async removeProductFromCollection(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Param('productId') productId: string,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
+    const userId = 'dev-user-123';
     return this.collectionService.removeProductFromCollection(
-      session.user.id,
+      userId,
       id,
       productId,
     );

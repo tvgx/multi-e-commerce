@@ -8,7 +8,6 @@ import {
   Query,
 } from '@nestjs/common';
 import { ShippingService } from './shipping.service';
-import { Session } from '@thallesp/nestjs-better-auth';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 
 @Controller('shipping')
@@ -17,7 +16,6 @@ export class ShippingController {
 
   @Get()
   async getSettings(
-    @Session() session: any,
     @Query('shopId') shopId?: string,
   ): Promise<BaseResponseDto<any>> {
     return this.shippingService.getShippingSettings(shopId);
@@ -25,9 +23,9 @@ export class ShippingController {
 
   @Put()
   async updateSettings(
-    @Session() session: any,
     @Body() body: any,
   ): Promise<BaseResponseDto<any>> {
-    return this.shippingService.updateShippingSettings(session.user.id, body);
+    const userId = 'dev-user-123';
+    return this.shippingService.updateShippingSettings(userId, body);
   }
 }

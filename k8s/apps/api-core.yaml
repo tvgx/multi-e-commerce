@@ -1,8 +1,12 @@
 # ⚠️ Secret phải được tạo trước khi apply:
-# kubectl create secret generic api-core-secret -n ecommerce \
-#   --from-literal=DATABASE_URL_SHARD_1='postgresql://...' \
-#   --from-literal=DATABASE_URL_SHARD_2='postgresql://...' \
-#   --from-literal=MONGODB_URI='mongodb+srv://...'
+# bash scripts/create-k8s-secrets.sh
+# 
+# Required environment variables:
+#   - DB_PASSWORD: Database password for PostgreSQL
+#   - DB_HOST: Database host (optional, defaults to postgres.ecommerce.svc.cluster.local)
+#   - BETTER_AUTH_SECRET: Secret key for better-auth sessions (minimum 32 characters)
+#   - MONGO_PASSWORD: MongoDB password (optional for local dev)
+#   - CLI_ENV: Environment identifier (development|staging|production)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,6 +16,8 @@ data:
   PORT: "3001"
   NODE_ENV: "production"
   REDIS_URL: "redis://redis:6379"
+  # Environment for audit logging and feature flags (per AGENTS.md)
+  CLI_ENV: "development"
 ---
 apiVersion: v1
 kind: Secret
@@ -20,9 +26,14 @@ metadata:
   namespace: ecommerce
 type: Opaque
 stringData:
+  # Database URIs (created via scripts/create-k8s-secrets.sh)
   DATABASE_URL_SHARD_1: "postgresql://postgres:CHANGE_ME@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
   DATABASE_URL_SHARD_2: "postgresql://postgres:CHANGE_ME@db.dabexhaqtamfxcwpujuy.supabase.co:5432/postgres?schema=public"
   MONGODB_URI: "mongodb+srv://CHANGE_ME:CHANGE_ME@jsondb1.ddnq5v9.mongodb.net/?appName=JSONdb1"
+  # Better Auth Configuration (per AGENTS.md)
+  # Secret key for session encryption/signing. Minimum 32 characters.
+  # Rotation schedule: Monthly (dev), Quarterly (ops), Bi-weekly (platform admin)
+  BETTER_AUTH_SECRET: "CHANGE_ME_avx0LJLBgGitJDQzys3js69JZFgEC22C"
 ---
 apiVersion: v1
 kind: Service

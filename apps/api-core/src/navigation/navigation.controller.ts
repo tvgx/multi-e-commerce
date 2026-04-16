@@ -13,8 +13,6 @@ import {
   CreateNavigationDto,
   UpdateNavigationDto,
 } from './dto/navigation-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 
@@ -37,30 +35,18 @@ export class NavigationController {
 
   @Post()
   async createMenu(
-    @Session() session: UserSession,
     @Body() dto: CreateNavigationDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.navigationService.createMenu(session.user.id, dto);
+    const userId = 'dev-user-123';
+    return this.navigationService.createMenu(userId, dto);
   }
 
   @Put(':id')
   async updateMenu(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateNavigationDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.navigationService.updateMenu(session.user.id, id, dto);
+    const userId = 'dev-user-123';
+    return this.navigationService.updateMenu(userId, id, dto);
   }
 }

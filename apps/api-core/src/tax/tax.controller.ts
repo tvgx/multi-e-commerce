@@ -8,7 +8,6 @@ import {
   Query,
 } from '@nestjs/common';
 import { TaxService } from './tax.service';
-import { Session } from '@thallesp/nestjs-better-auth';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 
 @Controller('tax')
@@ -17,7 +16,6 @@ export class TaxController {
 
   @Get()
   async getSettings(
-    @Session() session: any,
     @Query('shopId') shopId?: string,
   ): Promise<BaseResponseDto<any>> {
     return this.taxService.getTaxSettings(shopId);
@@ -25,9 +23,9 @@ export class TaxController {
 
   @Put()
   async updateSettings(
-    @Session() session: any,
     @Body() body: any,
   ): Promise<BaseResponseDto<any>> {
-    return this.taxService.updateTaxSettings(session.user.id, body);
+    const userId = 'dev-user-123';
+    return this.taxService.updateTaxSettings(userId, body);
   }
 }

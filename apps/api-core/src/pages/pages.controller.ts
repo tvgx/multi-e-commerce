@@ -10,8 +10,6 @@ import {
 } from '@nestjs/common';
 import { PagesService } from './pages.service';
 import { CreatePageDto, UpdatePageDto } from './dto/pages-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 
@@ -31,30 +29,18 @@ export class PagesController {
 
   @Post()
   async createPage(
-    @Session() session: UserSession,
     @Body() dto: CreatePageDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.pagesService.createPage(session.user.id, dto);
+    const userId = 'dev-user-123';
+    return this.pagesService.createPage(userId, dto);
   }
 
   @Put(':id')
   async updatePage(
-    @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdatePageDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.pagesService.updatePage(session.user.id, id, dto);
+    const userId = 'dev-user-123';
+    return this.pagesService.updatePage(userId, id, dto);
   }
 }

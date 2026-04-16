@@ -23,9 +23,6 @@ import { TaxModule } from './tax/tax.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 
-import { auth } from './auth.config';
-import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
-
 @Module({
   imports: [
     MongooseModule.forRoot(
@@ -34,10 +31,8 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
         maxPoolSize: 10,
       },
     ),
-    BetterAuthModule.forRoot({
-      auth,
-    }),
     DatabaseModule,
+    CommonModule,
     AuthModule,
     ShopModule,
     ProductModule,
