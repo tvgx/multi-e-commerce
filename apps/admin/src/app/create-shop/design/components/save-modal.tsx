@@ -38,7 +38,7 @@ export function SaveModal({ onClose }: { onClose: () => void }) {
     setLoading(false);
 
     // Redirect to Storefront
-    window.location.href = `http://${domain}.localhost:5201`;
+    window.location.href = `http://${domain}.localhost:3002`;
   };
 
   return (

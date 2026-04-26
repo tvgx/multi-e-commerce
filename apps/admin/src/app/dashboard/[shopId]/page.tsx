@@ -181,7 +181,7 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
               </div>
            </div>
            <a 
-             href={`http://${shopId}.localhost:5201`}
+             href={`http://${shopId}.localhost:3002`}
              target="_blank"
              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
            >

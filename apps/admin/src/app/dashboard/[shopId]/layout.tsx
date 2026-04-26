@@ -107,7 +107,7 @@ export default function DashboardLayout({
             <h2 className="text-lg font-bold text-white">Shop Overview</h2>
             <div className="h-4 w-px bg-white/10 hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-500 bg-white/5 px-3 py-1 rounded-full border border-white/5">
-              <Globe size={12} /> {shopId}.localhost:5201
+              <Globe size={12} /> {shopId}.localhost:3002
             </div>
           </div>
           

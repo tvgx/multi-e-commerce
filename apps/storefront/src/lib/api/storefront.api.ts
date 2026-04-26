@@ -13,7 +13,7 @@
 const API_BASE_URL =
     process.env.API_CORE_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
-    'http://localhost:3001';
+    'http://localhost:3000';
 
 // ─────────────────────────────────────────
 // Types (lightweight — full types live in @ecommerce/schema)

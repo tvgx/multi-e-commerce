@@ -22,14 +22,14 @@ function buildStorefrontUrl(shop: Shop): string {
   }
 
   if (!shop.domain) {
-    return `http://localhost:5201/${shop.id}`;
+    return `http://localhost:3002/${shop.id}`;
   }
 
   if (shop.domain.includes(".")) {
     return `https://${shop.domain}`;
   }
 
-  return `http://${shop.domain}.localhost:5201`;
+  return `http://${shop.domain}.localhost:3002`;
 }
 
 export default function ShopManagementDashboardPage() {

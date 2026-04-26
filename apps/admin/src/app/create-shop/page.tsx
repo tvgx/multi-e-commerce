@@ -242,7 +242,7 @@ export default function CreateShopPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                   <a
-                    href={`http://${formData.domain || "my-shop"}.localhost:5201`}
+                    href={`http://${formData.domain || "my-shop"}.localhost:3002`}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200"
                   >

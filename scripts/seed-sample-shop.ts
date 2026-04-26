@@ -272,7 +272,7 @@ async function main() {
 
     console.log("\n🎉 Genta Store is ready! 🎉");
     console.log(`To view: Add to hosts file (if not using next-local): 127.0.0.1 genta.ecommerce.local`);
-    console.log(`Open in browser: http://genta.localhost:5201`);
+    console.log(`Open in browser: http://genta.localhost:3002`);
     process.exit(0);
 }
 

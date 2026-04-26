@@ -51,7 +51,6 @@ import * as path from 'path';
     SystemCacheModule,
     CartModule,
     PaymentModule,
-    CommonModule,
     CollectionModule,
     NavigationModule,
     PagesModule,

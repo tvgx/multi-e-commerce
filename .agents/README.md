@@ -17,6 +17,17 @@ Chào mừng đến **`.agents/`** — kho lưu trữ tập trung các hướng 
 - **CLI Tool?** → [apps/cli-tool/](apps/cli-tool/)
 - **Storefront?** → [apps/storefront/](apps/storefront/)
 
+### 🏪 **ShopVolo v2 — Use-cases & Specification?**
+→ [SHOPVOLO_V2_SPEC.md](SHOPVOLO_V2_SPEC.md) — 10 use-cases, actors, API endpoints, Postman testing
+
+**Implementation Status**:
+- **UC-01 (Tenant Onboarding)**: ✅ **LIVE** — `POST /api/v1/tenants/register` with owner creation, email validation
+  - API: [apps/api-core/apis/shops-api.md](apps/api-core/apis/shops-api.md)
+  - Postman: [UC-01 test request](https://www.postman.com/) in `api-core-all-endpoints.postman_collection.json`
+  - DTOs: `RegisterTenantDto` with email/domain validation
+  - Service: `ShopService.registerTenant()` with owner creation flow
+- **UC-02 to UC-10**: 📋 Planned for next iterations
+
 ### 🚀 **Chuẩn bị Deploy?**
 - **Staging?** → [infrastructure/deployment-procedure.md](infrastructure/deployment-procedure.md)
 - **Production?** → [infrastructure/deployment-procedure.md](infrastructure/deployment-procedure.md) + [high-risk-ops/approval-workflow-critical.md](high-risk-ops/approval-workflow-critical.md)
@@ -114,6 +125,8 @@ Chào mừng đến **`.agents/`** — kho lưu trữ tập trung các hướng 
 │   ├── cli-tool/                —— CLI Tool guide
 │   └── storefront/              —— Storefront Engine guide
 │
+├── 🏪 SHOPVOLO_V2_SPEC.md       —— ShopVolo v2 use-cases, actors, Postman testing
+│
 ├── 📦 templates/
 │   ├── README.md                —— Available templates
 │   ├── template-fashion.md      —— Fashion template
@@ -136,6 +149,7 @@ Chào mừng đến **`.agents/`** — kho lưu trữ tập trung các hướng 
 | Use Case | Where to Go |
 |----------|-------------|
 | **New to project** | → `core-rules/` → `code-conventions/` → `pr-workflow/` |
+| **Understanding ShopVolo use-cases** | → `SHOPVOLO_V2_SPEC.md` |
 | **Code feature** | → `apps/<app-name>/` → `code-conventions/` |
 | **Deploy to prod** | → `infrastructure/deployment-procedure.md` + `high-risk-ops/` |
 | **Delete shop / Restore backup** | → `high-risk-ops/approval-workflow-critical.md` |
@@ -191,6 +205,7 @@ Chào mừng đến **`.agents/`** — kho lưu trữ tập trung các hướng 
 ## 📋 Checklist Before Doing Something
 
 **Creating a new feature?**
+- [ ] Read [SHOPVOLO_V2_SPEC.md](SHOPVOLO_V2_SPEC.md) to understand the use-case
 - [ ] Read the app's `architecture.md` (understand structure)
 - [ ] Follow `code-conventions/` (linting, testing)
 - [ ] Use template from `pr-workflow/template.md`
@@ -235,10 +250,10 @@ Want to improve these docs?
 
 ## 🔄 Last Updated
 
-- **Date**: 2026-04-07
-- **Version**: 2.0
+- **Date**: 2026-04-16
+- **Version**: 2.1 (added ShopVolo v2 specification)
 - **Maintainer**: Core Team & SRE
-- **Review Cycle**: Monthly (next: 2026-05-07)
+- **Review Cycle**: Monthly (next: 2026-05-16)
 
 ---
 

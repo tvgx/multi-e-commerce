@@ -1,81 +1,71 @@
 # 🏪 Shops API
 
-Shop CRUD, configuration, and multi-tenant setup.
+Shop creation, tenant registration, and multi-tenant management.
 
 ---
 
 ## Endpoints
 
-### Create Shop
+### UC-01: Register Tenant (New Shop Onboarding)
+
+**Endpoint**: `POST /api/v1/tenants/register`  
+**Status**: Live (v2.0+)  
+**Purpose**: Create a new shop with owner account
 
 ```http
-POST /shops
+POST /api/v1/tenants/register
 Content-Type: application/json
-Authorization: Bearer <token>
 
 {
-  "name": "Fashion Hub",
-  "domain": "fashionhub.com",
-  "owner_email": "owner@fashionhub.com",
-  "template_id": "fashion-template-v1"
+  "shopName": "My Fashion Store",
+  "email": "owner@fashionstore.com",
+  "domain": "fashionstore",
+  "ownerName": "Alice Smith"
 }
 ```
 
-**Response (201)**:
+**Success Response (201)**:
 ```json
 {
-  "id": "shop-123",
-  "name": "Fashion Hub",
-  "domain": "fashionhub.com",
-  "owner_email": "owner@fashionhub.com",
-  "status": "active",
-  "created_at": "2026-04-07T10:00:00Z"
-}
-```
-
-**Errors**:
-- `400`: Domain already exists, invalid email, missing required fields
-- `409`: Shop name conflict
-
----
-
-### List Shops
-
-```http
-GET /shops?page=1&limit=20&sort=created_at:desc
-Authorization: Bearer <token>
-```
-
-**Response (200)**:
-```json
-{
-  "data": [
-    {
-      "id": "shop-123",
-      "name": "Fashion Hub",
-      "domain": "fashionhub.com",
-      "status": "active",
-      "created_at": "2026-04-07T10:00:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 45,
-    "pages": 3
+  "code": "1000",
+  "message": "OK",
+  "data": {
+    "tenantId": "550e8400-e29b-41d4-a716-446655440000",
+    "shopName": "My Fashion Store",
+    "domain": "fashionstore",
+    "email": "owner@fashionstore.com",
+    "ownerName": "Alice Smith",
+    "status": "active",
+    "createdAt": "2026-04-16T10:30:00Z"
   }
 }
 ```
 
-**Query Params**:
-- `page` (int): Page number (default: 1)
-- `limit` (int): Items per page (default: 20, max: 100)
-- `sort` (string): Sort field + direction (e.g., `created_at:desc`)
-- `status` (string): Filter by status (active, inactive, suspended)
+**Error Cases**:
+
+| HTTP | Code | Scenario | Message |
+|------|------|----------|---------|
+| 400 | 1002 | Missing required field | `shopName, email, domain, or ownerName is required` |
+| 400 | 1003 | Invalid email | `Invalid email format` |
+| 400 | 1004 | Invalid domain | `Invalid domain format` |
+| 409 | 1013 | Domain exists | `Domain already exists` |
+| 409 | 9996 | Email registered | `Email already registered` |
+| 500 | 9999 | Server error | `Exception occurred` |
+
+**Notes**:
+- Domain is DNS-safe (lowercase, 3-63 chars, alphanumeric + hyphens)
+- Owner user is auto-created with role=OWNER
+- Shop initialized with default master template
+- Default navigation menus created (main-menu, footer-menu)
+- MongoDB ShopTemplate initialized in zero-file layout engine
 
 ---
 
-### Get Shop
+### Create Shop (Legacy)
+
+**Endpoint**: `POST /api/shops`  
+**Status**: Deprecated (use `/api/v1/tenants/register`)  
+**Purpose**: Create shop (backward compatibility)
 
 ```http
 GET /shops/:id
