@@ -50,7 +50,7 @@ export class PaymentController {
     @Body() dto: ConfirmPaymentDto,
   ): Promise<BaseResponseDto<any>> {
     // Find payment
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { order: true },
@@ -61,9 +61,8 @@ export class PaymentController {
     }
 
     // Verify payment is in correct state for confirmation
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+
     if (!['checkout', 'awaiting_confirmation'].includes(payment.state)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       throw new BadRequestException(
         `Payment cannot be confirmed in state: ${payment.state}. Expected: checkout or awaiting_confirmation`,
       );
@@ -72,7 +71,7 @@ export class PaymentController {
     // Update payment state based on action
     const newState =
       dto.action === PaymentConfirmationAction.ACCEPT ? 'completed' : 'failed';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     await this.prisma.payment.update({
       where: { id: paymentId },
       data: {
@@ -82,9 +81,8 @@ export class PaymentController {
 
     // If accepted, update order payment state
     if (dto.action === PaymentConfirmationAction.ACCEPT) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const paymentOrderId = payment.orderId;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
       await this.prisma.order.update({
         where: { id: paymentOrderId },
         data: {
@@ -94,7 +92,7 @@ export class PaymentController {
     }
 
     // Refetch payment with order details
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const finalPayment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { order: true },

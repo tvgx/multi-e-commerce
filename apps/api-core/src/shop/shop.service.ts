@@ -8,8 +8,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { ShopTemplate } from '@ecommerce/database';
-import { CreateShopDto, UpdateShopDto, RegisterTenantDto } from './dto/shop-zod.dto';
+import { ShopTemplate, MongoProduct } from '@ecommerce/database';
+import { LayoutService } from '../layout/layout.service';
+import {
+  CreateShopDto,
+  UpdateShopDto,
+  RegisterTenantDto,
+} from './dto/shop-zod.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
@@ -27,6 +32,8 @@ export class ShopService {
     private readonly tenantService: TenantService,
     @Inject(DomainVerifyService)
     private readonly domainVerifyService: DomainVerifyService,
+    @Inject(LayoutService)
+    private readonly layoutService: LayoutService,
   ) {}
 
   // UC-01: Tenant Registration
@@ -77,7 +84,7 @@ export class ShopService {
           ownerId: owner.id,
           status: 'ACTIVE', // UC-01 spec: "active"
           productsPerPage: 30,
-          templateType: 'standard',
+          templateType: dto.template || 'standard',
           onboardingStep: 1,
           onboardingStatus: { step1: 'COMPLETED' } as any,
         },
@@ -108,23 +115,64 @@ export class ShopService {
       });
 
       try {
-        // Keep Mongo initialization best-effort only; registration success is driven by Postgres writes.
-        const template = new ShopTemplate({
-          shopId: shop.id,
-          publishedData: {
-            shopId: shop.id,
-            templateType: shop.templateType,
-            pages: { home: [] },
-            metadata: {},
-          },
-          draftData: {},
+        // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
+        await this.layoutService.publishLayout(owner.id, shop.id, {
+          templateType: shop.templateType,
         });
-        await template.save();
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `[registerTenant] Failed to initialize Mongo ShopTemplate for shop ${shop.id}: ${msg}`,
+          `[registerTenant] Failed to publish layout for shop ${shop.id}: ${msg}`,
         );
+      }
+
+      // 6. Seed Demo Products if requested
+      if (dto.seedDemoProducts) {
+        try {
+          const demoProducts = [
+            {
+              shopId: shop.id,
+              name: `${shop.name} Signature T-Shirt`,
+              description: 'High-quality cotton t-shirt',
+              basePrice: { value: 29.99, currency: 'USD' },
+              category: 'Apparel',
+              status: 'ACTIVE',
+              images: [],
+              attributes: [],
+              tierVariations: [],
+              variants: [],
+            },
+            {
+              shopId: shop.id,
+              name: `${shop.name} Limited Hoodie`,
+              description: 'Keep warm in style',
+              basePrice: { value: 59.99, currency: 'USD' },
+              category: 'Apparel',
+              status: 'ACTIVE',
+              images: [],
+              attributes: [],
+              tierVariations: [],
+              variants: [],
+            },
+          ];
+          await MongoProduct.insertMany(demoProducts);
+        } catch (error) {
+          this.logger.warn(`[registerTenant] Failed to seed demo products for shop ${shop.id}: ${error}`);
+        }
+      }
+
+      // Trigger Next.js Revalidation
+      try {
+        const storefrontUrl = process.env.STOREFRONT_URL || 'http://localhost:3001';
+        const secret = process.env.REVALIDATE_SECRET || 'dev_secret';
+        await fetch(`${storefrontUrl}/api/revalidate?tag=layout-${shop.id}&secret=${secret}`, {
+          method: 'POST',
+        }).catch(() => {
+            // Ignore fetch errors, just log
+            this.logger.warn(`Failed to reach Storefront for revalidation.`);
+        });
+      } catch (e) {
+          // Ignore
       }
 
       // 7. Return UC-01 spec-compliant response
@@ -213,23 +261,29 @@ export class ShopService {
       });
 
       try {
-        // Keep Mongo initialization best-effort only; shop creation success is driven by Postgres writes.
-        const template = new ShopTemplate({
-          shopId: shop.id,
-          publishedData: {
-            shopId: shop.id,
-            templateType: shop.templateType,
-            pages: { home: [] },
-            metadata: {},
-          },
-          draftData: {},
+        // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
+        await this.layoutService.publishLayout(ownerId, shop.id, {
+          templateType: shop.templateType,
         });
-        await template.save();
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `[createShop] Failed to initialize Mongo ShopTemplate for shop ${shop.id}: ${msg}`,
+          `[createShop] Failed to publish layout for shop ${shop.id}: ${msg}`,
         );
+      }
+
+      // Trigger Next.js Revalidation
+      try {
+        const storefrontUrl = process.env.STOREFRONT_URL || 'http://localhost:3001';
+        const secret = process.env.REVALIDATE_SECRET || 'dev_secret';
+        await fetch(`${storefrontUrl}/api/revalidate?tag=layout-${shop.id}&secret=${secret}`, {
+          method: 'POST',
+        }).catch(() => {
+            // Ignore fetch errors, just log
+            this.logger.warn(`Failed to reach Storefront for revalidation.`);
+        });
+      } catch (e) {
+          // Ignore
       }
 
       return BaseResponseDto.success(shop);

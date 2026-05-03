@@ -34,18 +34,13 @@ export class NavigationController {
   }
 
   @Post()
-  async createMenu(
-    @Body() dto: CreateNavigationDto,
-  ) {
+  async createMenu(@Body() dto: CreateNavigationDto) {
     const userId = 'dev-user-123';
     return this.navigationService.createMenu(userId, dto);
   }
 
   @Put(':id')
-  async updateMenu(
-    @Param('id') id: string,
-    @Body() dto: UpdateNavigationDto,
-  ) {
+  async updateMenu(@Param('id') id: string, @Body() dto: UpdateNavigationDto) {
     const userId = 'dev-user-123';
     return this.navigationService.updateMenu(userId, id, dto);
   }

@@ -27,6 +27,9 @@ export class ProductLayout {
   @Prop({ type: Object, default: {} })
   attributes: Record<string, any>;
 
+  @Prop({ type: Array, default: [] })
+  variantsData: Array<{ sku: string, attributes: Record<string, any>, image: string }>;
+
   // Custom SEO Tags cho riêng sản phẩm
   @Prop({
     type: {

@@ -33,12 +33,6 @@ services:
     volumes:
       - mongodata:/data/db
 
-volumes:
-  pgdata_shard1:
-  pgdata_shard2:
-  mongodata:
-  miniodata:
-
   minio:
     image: minio/minio
     command: server /data --console-address ":9001"
@@ -62,3 +56,9 @@ volumes:
       /usr/bin/mc anonymous set public myminio/shop-images;
       exit 0;
       "
+
+volumes:
+  pgdata_shard1:
+  pgdata_shard2:
+  mongodata:
+  miniodata:

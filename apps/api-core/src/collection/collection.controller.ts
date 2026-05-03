@@ -36,9 +36,7 @@ export class CollectionController {
   }
 
   @Post()
-  async createCollection(
-    @Body() dto: CreateCollectionDto,
-  ) {
+  async createCollection(@Body() dto: CreateCollectionDto) {
     const userId = 'dev-user-123';
     return this.collectionService.createCollection(userId, dto);
   }
@@ -58,11 +56,7 @@ export class CollectionController {
     @Body() dto: AddProductsToCollectionDto,
   ) {
     const userId = 'dev-user-123';
-    return this.collectionService.addProductsToCollection(
-      userId,
-      id,
-      dto,
-    );
+    return this.collectionService.addProductsToCollection(userId, id, dto);
   }
 
   @Delete(':id/products/:productId')

@@ -8,7 +8,11 @@ import {
   Inject,
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
-import { CreateShopDto, UpdateShopDto, RegisterTenantDto } from './dto/shop-zod.dto';
+import {
+  CreateShopDto,
+  UpdateShopDto,
+  RegisterTenantDto,
+} from './dto/shop-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';

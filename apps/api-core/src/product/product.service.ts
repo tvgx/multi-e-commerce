@@ -76,16 +76,6 @@ export class ProductService {
           },
         });
 
-        const variant = await tx.variant.create({
-          data: {
-            productId: p.id,
-            sku: dto.sku,
-            price: dto.basePrice,
-            weight: dto.weight,
-            isMaster: true,
-          },
-        });
-
         let stockLocation = await tx.stockLocation.findFirst({
           where: { shopId, isDefault: true },
         });
@@ -100,23 +90,57 @@ export class ProductService {
           });
         }
 
-        await tx.stockItem.create({
-          data: {
-            stockLocationId: stockLocation.id,
-            variantId: variant.id,
-            countOnHand: dto.inStock || 0,
-          },
-        });
+        const variantsToCreate = dto.variants && dto.variants.length > 0
+          ? dto.variants
+          : [
+              {
+                sku: dto.sku || `SKU-${Date.now()}`,
+                price: dto.basePrice || 0,
+                weight: dto.weight,
+                inStock: dto.inStock || 0,
+                isMaster: true,
+              },
+            ];
+
+        for (let i = 0; i < variantsToCreate.length; i++) {
+          const vData = variantsToCreate[i];
+          const variant = await tx.variant.create({
+            data: {
+              productId: p.id,
+              sku: vData.sku,
+              price: vData.price,
+              weight: vData.weight,
+              isMaster: i === 0, // First variant is master
+            },
+          });
+
+          await tx.stockItem.create({
+            data: {
+              stockLocationId: stockLocation.id,
+              variantId: variant.id,
+              countOnHand: vData.inStock || 0,
+            },
+          });
+        }
 
         return p;
       });
 
       // 4. Create in MongoDB
+      const variantsDataForMongo = dto.variants
+        ? dto.variants.map((v: any) => ({
+            sku: v.sku,
+            attributes: v.attributes || {},
+            image: v.image || '',
+          }))
+        : [];
+
       const layout = new this.productLayoutModel({
         productId: product.id,
         shopId: shopId,
         metadata: dto.extraMetadata || {},
         images: dto.images || [],
+        variantsData: variantsDataForMongo,
       });
       await layout.save();
 

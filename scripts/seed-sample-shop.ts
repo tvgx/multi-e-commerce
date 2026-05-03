@@ -208,9 +208,8 @@ async function main() {
 
     // 8. Load and modify Master Template (fashion.json)
     console.log("🎨 Cooking Master Template for Genta...");
-    const masterPath = path.join(__dirname, '../packages/master-templates/src/fashion.json');
-    const templateContent = fs.readFileSync(masterPath, 'utf8');
-    const masterTemplate = JSON.parse(templateContent);
+    const masterPath = path.join(__dirname, '../packages/master-templates/src/standard.ts');
+    const masterTemplate = require(masterPath).default;
 
     // Deep copy and modify
     const gentaLayout = {

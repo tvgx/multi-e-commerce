@@ -22,9 +22,7 @@ export class ShippingController {
   }
 
   @Put()
-  async updateSettings(
-    @Body() body: any,
-  ): Promise<BaseResponseDto<any>> {
+  async updateSettings(@Body() body: any): Promise<BaseResponseDto<any>> {
     const userId = 'dev-user-123';
     return this.shippingService.updateShippingSettings(userId, body);
   }

@@ -1,4 +1,4 @@
-{
+export default {
   "shopId": "MASTER_STANDARD",
   "isMaster": true,
   "templateType": "standard",
@@ -38,4 +38,4 @@
     "primaryColor": "#2563eb",
     "fontFamily": "Inter"
   }
-}
+} as const;

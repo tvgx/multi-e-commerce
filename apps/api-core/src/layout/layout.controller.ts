@@ -30,9 +30,7 @@ export class LayoutController {
   }
 
   @Post('layouts/publish')
-  async publishLayout(
-    @Body() payload: any,
-  ): Promise<BaseResponseDto<any>> {
+  async publishLayout(@Body() payload: any): Promise<BaseResponseDto<any>> {
     const userId = 'dev-user-123';
 
     const { shopId, ...layoutData } = payload;

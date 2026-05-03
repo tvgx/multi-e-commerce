@@ -1,6 +1,6 @@
-import StandardTemplate from './standard.json';
-import VisualTemplate from './visual.json';
-import TechnicalTemplate from './technical.json';
-import ServiceTemplate from './service.json';
+import StandardTemplate from './standard.js';
+import VisualTemplate from './visual.js';
+import TechnicalTemplate from './technical.js';
+import ServiceTemplate from './service.js';
 
 export { StandardTemplate, VisualTemplate, TechnicalTemplate, ServiceTemplate };

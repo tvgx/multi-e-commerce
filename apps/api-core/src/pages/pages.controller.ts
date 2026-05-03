@@ -28,18 +28,13 @@ export class PagesController {
   }
 
   @Post()
-  async createPage(
-    @Body() dto: CreatePageDto,
-  ) {
+  async createPage(@Body() dto: CreatePageDto) {
     const userId = 'dev-user-123';
     return this.pagesService.createPage(userId, dto);
   }
 
   @Put(':id')
-  async updatePage(
-    @Param('id') id: string,
-    @Body() dto: UpdatePageDto,
-  ) {
+  async updatePage(@Param('id') id: string, @Body() dto: UpdatePageDto) {
     const userId = 'dev-user-123';
     return this.pagesService.updatePage(userId, id, dto);
   }

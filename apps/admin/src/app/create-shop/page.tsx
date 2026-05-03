@@ -188,8 +188,8 @@ export default function CreateShopPage() {
                       key={tmpl.id}
                       onClick={() => setFormData({ ...formData, templateId: tmpl.id })}
                       className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${formData.templateId === tmpl.id
-                          ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
-                          : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
+                        ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
+                        : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
                         }`}
                     >
                       <div className="text-3xl">{tmpl.icon}</div>

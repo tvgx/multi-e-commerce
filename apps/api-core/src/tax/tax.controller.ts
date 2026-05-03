@@ -22,9 +22,7 @@ export class TaxController {
   }
 
   @Put()
-  async updateSettings(
-    @Body() body: any,
-  ): Promise<BaseResponseDto<any>> {
+  async updateSettings(@Body() body: any): Promise<BaseResponseDto<any>> {
     const userId = 'dev-user-123';
     return this.taxService.updateTaxSettings(userId, body);
   }

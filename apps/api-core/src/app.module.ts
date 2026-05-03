@@ -34,7 +34,9 @@ import * as path from 'path';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_DB_ATLAS') || 'mongodb://localhost:27017/ecommerce',
+        uri:
+          configService.get<string>('MONGO_DB_ATLAS') ||
+          'mongodb://localhost:27017/ecommerce',
         maxPoolSize: 10,
       }),
     }),
