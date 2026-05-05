@@ -35,6 +35,14 @@ export class CollectionController {
     return this.collectionService.getCollectionDetail(slug, shopId);
   }
 
+  @Get('storefront/:slug/products')
+  async getStorefrontCollectionProducts(
+    @Param('slug') slug: string,
+    @Query('shopId') shopId?: string,
+  ) {
+    return this.collectionService.getStorefrontCollectionProducts(slug, shopId);
+  }
+
   @Post()
   async createCollection(@Body() dto: CreateCollectionDto) {
     const userId = 'dev-user-123';

@@ -4,20 +4,36 @@ import React, { useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { useCollections } from "@/hooks/useCollections";
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const router = useRouter();
+  const { createCollection } = useCollections(shopId);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
+    slug: "",
     description: "",
     imageUrl: "",
-    isActive: true,
+    isActive: true
   });
+
+  const generateSlug = (title: string) => {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const title = e.target.value;
+    setFormData({
+      ...formData,
+      title,
+      slug: generateSlug(title)
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,27 +41,16 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
     setError("");
 
     try {
-      const slug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      
-      const payload = {
-        shopId,
-        title: formData.title,
-        slug,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        isActive: formData.isActive,
-      };
-
-      await apiClient.post(`/api/collections`, payload, { shopId });
+      await createCollection(formData);
       router.push(`/dashboard/${shopId}/collections`);
     } catch (err: any) {
-      setError(err.message || "Failed to create collection");
+      setError(err.message || "Failed to create category");
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link 
@@ -54,7 +59,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
           >
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Create Collection</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Create Category</h1>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -65,11 +70,11 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
           </Link>
           <button
             onClick={handleSubmit}
-            disabled={loading || !formData.title}
+            disabled={loading || !formData.title || !formData.slug}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Collection
+            Save Category
           </button>
         </div>
       </div>
@@ -80,80 +85,108 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Basic Info */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Collection Details</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Summer Collection, Men's Shoes"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
+          <h2 className="text-lg font-bold text-white">Basic Information</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Summer Collection 2026"
+                value={formData.title}
+                onChange={handleTitleChange}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe your collection..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Slug (URL)</label>
+              <input
+                type="text"
+                required
+                placeholder="summer-collection-2026"
+                value={formData.slug}
+                onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+              <textarea
+                rows={4}
+                placeholder="Describe this category..."
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              />
             </div>
           </div>
+        </div>
 
-          {/* Media */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Cover Image (URL)</h2>
+            <h2 className="text-lg font-bold text-white">Cover Image</h2>
             
             <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Image URL</label>
               <input
                 type="url"
-                placeholder="https://example.com/collection-cover.png"
+                placeholder="https://example.com/image.png"
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all mb-4"
               />
               
               {formData.imageUrl ? (
-                <div className="relative aspect-video rounded-xl border border-white/10 bg-black/40 overflow-hidden max-w-sm">
-                  <img src={formData.imageUrl} alt="Cover preview" className="w-full h-full object-cover" />
+                <div className="aspect-video rounded-xl border border-white/10 overflow-hidden bg-black/40">
+                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="aspect-video max-w-sm border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-slate-500">
+                <div className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500 bg-black/20">
                   <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">Image preview</p>
+                  <span className="text-sm">Image preview will appear here</span>
                 </div>
               )}
             </div>
           </div>
-        </div>
 
-        <div className="space-y-8">
-          {/* Status */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
             <h2 className="text-lg font-bold text-white">Status</h2>
             
-            <div>
-              <select 
-                value={formData.isActive ? "ACTIVE" : "INACTIVE"}
-                onChange={(e) => setFormData({...formData, isActive: e.target.value === "ACTIVE"})}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none"
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive / Hidden</option>
-              </select>
-              <p className="text-xs text-slate-400 mt-2">Active collections are visible in the storefront.</p>
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 cursor-pointer hover:bg-indigo-500/10 transition-colors">
+                <div className="flex h-6 items-center">
+                  <input
+                    type="radio"
+                    checked={formData.isActive}
+                    onChange={() => setFormData({...formData, isActive: true})}
+                    className="h-4 w-4 rounded-full border-white/20 bg-transparent text-indigo-500 focus:ring-indigo-500 focus:ring-offset-black"
+                  />
+                </div>
+                <div>
+                  <div className="font-medium text-white">Active</div>
+                  <div className="text-sm text-slate-400">Category is visible to customers on the storefront</div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-black/20 cursor-pointer hover:bg-white/[0.02] transition-colors">
+                <div className="flex h-6 items-center">
+                  <input
+                    type="radio"
+                    checked={!formData.isActive}
+                    onChange={() => setFormData({...formData, isActive: false})}
+                    className="h-4 w-4 rounded-full border-white/20 bg-transparent text-indigo-500 focus:ring-indigo-500 focus:ring-offset-black"
+                  />
+                </div>
+                <div>
+                  <div className="font-medium text-white">Draft (Hidden)</div>
+                  <div className="text-sm text-slate-400">Category is hidden from the storefront</div>
+                </div>
+              </label>
             </div>
           </div>
         </div>

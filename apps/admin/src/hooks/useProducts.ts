@@ -1,0 +1,69 @@
+import { useState, useCallback } from 'react';
+import { apiClient } from '@/lib/api-client';
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  basePrice: number;
+  inStock: number;
+  images: string[];
+  variants?: any[];
+  collections?: { collection: { id: string, title: string, slug: string } }[];
+}
+
+export function useProducts(shopId: string) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProducts = useCallback(async (searchQuery: string = '') => {
+    if (!shopId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const url = `/api/products/shop/${shopId}` + (searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '');
+      const res = await apiClient.get<Product[]>(url);
+      setProducts(res.data || []);
+    } catch (err: any) {
+      if (err.message !== "No Data or end of list data") {
+        setError(err.message || "Failed to fetch products");
+      }
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  const createProduct = async (data: any) => {
+    setError(null);
+    try {
+      const res = await apiClient.post<Product>(`/api/products`, data, { shopId });
+      return res.data;
+    } catch (err: any) {
+      setError(err.message || "Failed to create product");
+      throw err;
+    }
+  };
+
+  const updateProduct = async (id: string, data: any) => {
+    setError(null);
+    try {
+      const res = await apiClient.put<Product>(`/api/products/${id}`, data, { shopId });
+      return res.data;
+    } catch (err: any) {
+      setError(err.message || "Failed to update product");
+      throw err;
+    }
+  };
+
+  return {
+    products,
+    loading,
+    error,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+  };
+}

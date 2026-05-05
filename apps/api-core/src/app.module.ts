@@ -24,6 +24,7 @@ import { TaxModule } from './tax/tax.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as path from 'path';
+import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import * as path from 'path';
     DatabaseModule,
     CommonModule,
     AuthModule,
+    StorefrontAuthModule,
     ShopModule,
     ProductModule,
     CustomerModule,

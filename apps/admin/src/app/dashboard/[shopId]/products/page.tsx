@@ -3,33 +3,16 @@
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { useProducts } from "@/hooks/useProducts";
 
 export default function ProductsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading, fetchProducts } = useProducts(shopId);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchProducts();
-  }, [shopId]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get<any[]>(`/api/products?shopId=${shopId}`);
-      // Based on BaseResponseDto structure
-      setProducts(res.data || []);
-    } catch (err: any) {
-      if (err.message !== "No Data or end of list data") {
-        console.error("Failed to fetch products:", err);
-      }
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchProducts]);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -75,6 +58,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
             <thead className="bg-white/5 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-6 py-4 font-medium">Product</th>
+                <th className="px-6 py-4 font-medium">Categories</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Inventory</th>
                 <th className="px-6 py-4 font-medium">Base Price</th>
@@ -84,14 +68,14 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
             <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
                     <p>Loading products...</p>
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                       <PackageOpen className="w-8 h-8 text-slate-500" />
                     </div>
@@ -117,6 +101,19 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                           </div>
                           <div className="text-xs text-slate-500 mt-0.5">{product.variants?.length || 1} variants</div>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {product.collections && product.collections.length > 0 ? (
+                          product.collections.map((pc: any) => (
+                            <span key={pc.collection.id} className="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-0.5 rounded-md border border-indigo-500/20">
+                              {pc.collection.title}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-600 text-xs">-</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">

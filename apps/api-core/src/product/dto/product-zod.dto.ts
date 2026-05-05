@@ -11,6 +11,7 @@ export const CreateProductSchema = z.object({
   inStock: z.number().int().min(0).optional().default(0),
   images: z.array(z.string()).optional().default([]),
   extraMetadata: z.record(z.string(), z.any()).optional().default({}),
+  collectionIds: z.array(z.string()).optional().default([]),
   variants: z.array(
     z.object({
       sku: z.string().min(1),
@@ -30,6 +31,7 @@ export const UpdateProductSchema = z.object({
   weight: z.number().max(20).optional(),
   inStock: z.number().int().min(0).optional(),
   extraMetadata: z.record(z.string(), z.any()).optional(),
+  collectionIds: z.array(z.string()).optional(),
 });
 
 export class CreateProductDto extends createZodDto(CreateProductSchema) {}

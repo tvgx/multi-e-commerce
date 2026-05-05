@@ -146,11 +146,15 @@ model Shop {
 }
 
 model Customer {
-  id     String  @id @default(uuid())
-  shopId String
-  email  String
-  name   String?
-  orders Order[]
+  id        String   @id @default(uuid())
+  shopId    String
+  email     String
+  password  String?  // Hashed password for Storefront auth
+  name      String?
+  orders    Order[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 

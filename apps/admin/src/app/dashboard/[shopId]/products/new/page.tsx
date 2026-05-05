@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Plus, Trash2, Image as ImageIcon } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { useCollections } from "@/hooks/useCollections";
 
 export default function NewProductPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const router = useRouter();
+  const { collections, fetchCollections } = useCollections(shopId);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,10 +23,13 @@ export default function NewProductPage({ params }: { params: Promise<{ shopId: s
     variants: [
       { sku: "", price: 0, inStock: 0, attributes: {} as Record<string, string>, image: "" }
     ],
-    // For a simple multi-variant UI, we let users define attributes like Size/Color
-    newAttributeName: "",
-    newAttributeValue: "",
+    collectionIds: [] as string[],
+    status: "PUBLISHED",
   });
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   const addVariant = () => {
     setFormData({
@@ -71,13 +77,21 @@ export default function NewProductPage({ params }: { params: Promise<{ shopId: s
     setFormData({ ...formData, images: newImages });
   };
 
+  const toggleCollection = (collectionId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      collectionIds: prev.collectionIds.includes(collectionId)
+        ? prev.collectionIds.filter(id => id !== collectionId)
+        : [...prev.collectionIds, collectionId]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      // Basic slug generation
       const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
       
       const payload = {
@@ -85,6 +99,7 @@ export default function NewProductPage({ params }: { params: Promise<{ shopId: s
         name: formData.name,
         slug,
         images: formData.images,
+        collectionIds: formData.collectionIds,
         variants: formData.variants.map((v, i) => ({
           sku: v.sku || `SKU-${slug}-${i+1}`,
           price: Number(v.price),
@@ -92,7 +107,8 @@ export default function NewProductPage({ params }: { params: Promise<{ shopId: s
           attributes: v.attributes,
           image: v.image
         })),
-        extraMetadata: { description: formData.description }
+        extraMetadata: { description: formData.description },
+        status: formData.status,
       };
 
       await apiClient.post(`/api/products`, payload, { shopId });
@@ -328,23 +344,46 @@ export default function NewProductPage({ params }: { params: Promise<{ shopId: s
             <h2 className="text-lg font-bold text-white">Status</h2>
             
             <div>
-              <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none">
-                <option value="ACTIVE">Active</option>
+              <select 
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none"
+              >
+                <option value="PUBLISHED">Active</option>
                 <option value="DRAFT">Draft</option>
               </select>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Organization</h2>
+            <h2 className="text-lg font-bold text-white">Categories</h2>
             
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Category</label>
-              <input
-                type="text"
-                placeholder="E.g., T-Shirts"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-              />
+              <label className="block text-sm font-medium text-slate-300 mb-2">Select Categories</label>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {collections.length === 0 ? (
+                  <div className="text-sm text-slate-500">No categories found. Create one first.</div>
+                ) : (
+                  collections.map(collection => (
+                    <label 
+                      key={collection.id} 
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
+                        formData.collectionIds.includes(collection.id) 
+                          ? 'bg-indigo-500/10 border-indigo-500/30 text-white' 
+                          : 'bg-black/20 border-white/10 text-slate-400 hover:bg-white/5'
+                      }`}
+                    >
+                      <input 
+                        type="checkbox"
+                        checked={formData.collectionIds.includes(collection.id)}
+                        onChange={() => toggleCollection(collection.id)}
+                        className="rounded border-white/20 bg-black/40 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-black"
+                      />
+                      <span className="text-sm font-medium">{collection.title}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

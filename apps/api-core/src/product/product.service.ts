@@ -123,6 +123,17 @@ export class ProductService {
           });
         }
 
+        // 3.5 Attach collections
+        if (dto.collectionIds && dto.collectionIds.length > 0) {
+          await tx.productCollection.createMany({
+            data: dto.collectionIds.map((colId: string) => ({
+              productId: p.id,
+              collectionId: colId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
         return p;
       });
 
@@ -189,6 +200,9 @@ export class ProductService {
     const products = await this.prisma.product.findMany({
       where: whereClause,
       include: {
+        collections: {
+          include: { collection: true },
+        },
         variants: {
           where: {
             isMaster: true,
@@ -242,6 +256,9 @@ export class ProductService {
     const productPostgres = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
+        collections: {
+          include: { collection: true },
+        },
         variants: {
           include: {
             stockItems: {
@@ -360,6 +377,25 @@ export class ProductService {
               },
             });
           }
+        }
+      }
+
+      // 4. Sync Collections
+      if (dto.collectionIds !== undefined) {
+        // Delete old assignments
+        await tx.productCollection.deleteMany({
+          where: { productId },
+        });
+
+        // Insert new ones
+        if (dto.collectionIds.length > 0) {
+          await tx.productCollection.createMany({
+            data: dto.collectionIds.map((colId: string) => ({
+              productId,
+              collectionId: colId,
+            })),
+            skipDuplicates: true,
+          });
         }
       }
 

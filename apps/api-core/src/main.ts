@@ -3,9 +3,13 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from './common/exceptions/custom-exception.filter';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './modules/auth/auth.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Mount Better Auth endpoints for Admin
+  app.use('/api/auth', toNodeHandler(auth));
   // Global Exception Filter
   app.useGlobalFilters(new CustomExceptionFilter());
   // Graceful shutdown

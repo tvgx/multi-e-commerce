@@ -133,6 +133,57 @@ export class CollectionService {
     return BaseResponseDto.success(collection);
   }
 
+  async getStorefrontCollectionProducts(
+    slug: string,
+    shopId?: string,
+  ): Promise<BaseResponseDto<any>> {
+    const targetShopId = shopId || this.tenantService.getTenantId();
+    if (!targetShopId) {
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Tenant identity unknown',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const collection = await (this.prisma as any).collection.findUnique({
+      where: { shopId_slug: { shopId: targetShopId, slug } },
+    });
+
+    if (!collection || !collection.isActive) {
+      throw new CustomException(
+        ResponseCodes.NO_DATA_END_OF_LIST,
+        'Collection not found or inactive',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        shopId: targetShopId,
+        status: 'PUBLISHED',
+        collections: {
+          some: {
+            collectionId: collection.id,
+          },
+        },
+      },
+      include: {
+        variants: {
+          where: { isMaster: true },
+          include: { stockItems: { include: { stockLocation: true } } },
+        },
+      },
+    });
+
+    if (products.length === 0) {
+      return BaseResponseDto.success({ collection, products: [] });
+    }
+
+    // Merge layout images if needed, but for Storefront we can just return the PG data + placeholder layout
+    return BaseResponseDto.success({ collection, products });
+  }
+
   async updateCollection(
     ownerId: string,
     id: string,
