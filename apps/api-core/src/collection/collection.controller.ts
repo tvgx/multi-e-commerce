@@ -6,8 +6,8 @@ import {
   Delete,
   Body,
   Param,
-  HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CollectionService } from './collection.service';
 import {
@@ -15,18 +15,22 @@ import {
   UpdateCollectionDto,
   AddProductsToCollectionDto,
 } from './dto/collection-zod.dto';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('collections')
+@UseGuards(BetterAuthGuard)
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
 
+  @Public()
   @Get()
   async getCollections(@Query('shopId') shopId?: string) {
     return this.collectionService.getCollectionsByShop(shopId);
   }
 
+  @Public()
   @Get(':slug')
   async getCollectionDetail(
     @Param('slug') slug: string,
@@ -35,6 +39,7 @@ export class CollectionController {
     return this.collectionService.getCollectionDetail(slug, shopId);
   }
 
+  @Public()
   @Get('storefront/:slug/products')
   async getStorefrontCollectionProducts(
     @Param('slug') slug: string,
@@ -44,37 +49,39 @@ export class CollectionController {
   }
 
   @Post()
-  async createCollection(@Body() dto: CreateCollectionDto) {
-    const userId = 'dev-user-123';
-    return this.collectionService.createCollection(userId, dto);
+  async createCollection(
+    @CurrentUser() user: any,
+    @Body() dto: CreateCollectionDto,
+  ) {
+    return this.collectionService.createCollection(user.id, dto);
   }
 
   @Put(':id')
   async updateCollection(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateCollectionDto,
   ) {
-    const userId = 'dev-user-123';
-    return this.collectionService.updateCollection(userId, id, dto);
+    return this.collectionService.updateCollection(user.id, id, dto);
   }
 
   @Post(':id/products')
   async addProductsToCollection(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: AddProductsToCollectionDto,
   ) {
-    const userId = 'dev-user-123';
-    return this.collectionService.addProductsToCollection(userId, id, dto);
+    return this.collectionService.addProductsToCollection(user.id, id, dto);
   }
 
   @Delete(':id/products/:productId')
   async removeProductFromCollection(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Param('productId') productId: string,
   ) {
-    const userId = 'dev-user-123';
     return this.collectionService.removeProductFromCollection(
-      userId,
+      user.id,
       id,
       productId,
     );

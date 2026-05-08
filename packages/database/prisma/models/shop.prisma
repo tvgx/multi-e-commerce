@@ -44,13 +44,19 @@ model Shop {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  shopId    String
-  email     String
-  password  String?  // Hashed password for Storefront auth
-  name      String?
-  orders    Order[]
-  
+  id             String    @id @default(uuid())
+  shopId         String
+  email          String
+  emailVerified  Boolean   @default(false) // Better Auth standard
+  name           String?
+  image          String?   // Avatar URL
+  phoneNumber    String?   // Số điện thoại
+
+  // Sessions & Accounts for Better Auth (Customer scope)
+  customerSessions CustomerSession[]
+  customerAccounts CustomerAccount[]
+  orders           Order[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -58,4 +64,50 @@ model Customer {
 
   @@unique([shopId, email]) // Mỗi shop có tập khách hàng riêng
   @@map("customers")
+}
+
+model CustomerSession {
+  id          String   @id
+  expiresAt   DateTime
+  token       String   @unique
+  createdAt   DateTime
+  updatedAt   DateTime
+  ipAddress   String?
+  userAgent   String?
+  customerId  String
+  shopId      String   // Để scope session theo tenant
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("customer_sessions")
+}
+
+model CustomerAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  customerId            String
+  customer              Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?   // Hashed password
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("customer_accounts")
+}
+
+model CustomerVerification {
+  id         String    @id
+  identifier String    // email hoặc shopId:email
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("customer_verifications")
 }

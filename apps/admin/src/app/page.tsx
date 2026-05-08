@@ -23,9 +23,9 @@ export default function PlatformLandingPage() {
             <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-sm font-semibold text-white/80 hover:text-white transition-colors hidden sm:block">
+            <Link href="/login" className="text-sm font-semibold text-white/80 hover:text-white transition-colors hidden sm:block">
               Log in
-            </button>
+            </Link>
             <Link
               href="/create-shop"
               className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"

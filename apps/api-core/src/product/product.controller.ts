@@ -6,27 +6,29 @@ import {
   Body,
   Param,
   Query,
-  HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('api/products')
+@UseGuards(BetterAuthGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
   async createProduct(
+    @CurrentUser() user: any,
     @Body() dto: CreateProductDto,
   ): Promise<BaseResponseDto<object>> {
-    // Temporary: Use dummy userId for development
-    const userId = 'dev-user-123';
-    return this.productService.createProduct(userId, dto);
+    return this.productService.createProduct(user.id, dto);
   }
 
+  @Public()
   @Get('shop/:shopId')
   async getShopProducts(
     @Param('shopId') shopId: string,
@@ -48,6 +50,7 @@ export class ProductController {
     );
   }
 
+  @Public()
   @Get(':id')
   async getProductDetail(
     @Param('id') id: string,
@@ -57,11 +60,10 @@ export class ProductController {
 
   @Put(':id')
   async updateProduct(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
   ): Promise<BaseResponseDto<object>> {
-    // Temporary: Use dummy userId for development
-    const userId = 'dev-user-123';
-    return this.productService.updateProduct(userId, id, dto);
+    return this.productService.updateProduct(user.id, id, dto);
   }
 }

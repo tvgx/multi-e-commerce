@@ -15,6 +15,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
 
     let status = 500;
     let code = '9999';
@@ -36,10 +37,16 @@ export class CustomExceptionFilter implements ExceptionFilter {
     }
 
     // Keep response format stable while surfacing root cause in server logs.
-    this.logger.error(
-      `Unhandled exception: ${message}`,
-      exception?.stack || String(exception),
-    );
+    const isNoise = status === 404 && (req.url.includes('.well-known') || req.url.includes('favicon.ico'));
+
+    if (status >= 500) {
+      this.logger.error(
+        `Unhandled exception: ${message}`,
+        exception?.stack || String(exception),
+      );
+    } else if (!isNoise) {
+      this.logger.warn(`Http Exception (${status}): ${message} - ${req.method} ${req.url}`);
+    }
 
     response.status(status).json({
       code,

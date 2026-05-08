@@ -3,19 +3,27 @@ import { PrismaService } from '../../database/prisma.service';
 import { CustomException } from '../../common/exceptions/custom.exception';
 import { ResponseCodes } from '../../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
-import { hashPassword, verifyPassword, signJwt } from './jwt.utils';
 
+/**
+ * StorefrontAuthService
+ *
+ * @deprecated Luồng auth chính cho Customer hiện được xử lý bởi Better Auth
+ * thông qua endpoint /api/auth/customer/* (customer-auth.config.ts).
+ *
+ * Service này giữ lại cho compatibility với các endpoint cũ.
+ * Password hiện được lưu trong CustomerAccount (thay vì trực tiếp trên Customer).
+ */
 @Injectable()
 export class StorefrontAuthService {
   constructor(private readonly prisma: PrismaService) {}
 
   async register(body: any): Promise<BaseResponseDto<any>> {
-    const { email, password, shopId, name } = body;
+    const { email, shopId, name } = body;
 
-    if (!email || !password || !shopId) {
+    if (!email || !shopId) {
       throw new CustomException(
         ResponseCodes.PARAM_VALUE_INVALID,
-        'Email, password, and shopId are required',
+        'Email and shopId are required. For password auth, use /api/auth/customer/sign-up/email',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -32,9 +40,7 @@ export class StorefrontAuthService {
 
     // Check if customer already exists for this shop
     const existing = await this.prisma.customer.findUnique({
-      where: {
-        shopId_email: { shopId, email },
-      },
+      where: { shopId_email: { shopId, email } },
     });
 
     if (existing) {
@@ -45,117 +51,54 @@ export class StorefrontAuthService {
       );
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
-    // Create customer
     const customer = await this.prisma.customer.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        shopId,
-      },
+      data: { email, name, shopId },
     });
 
-    // Generate token
-    const token = signJwt({ sub: customer.id, email: customer.email, shopId: customer.shopId });
-
     return BaseResponseDto.success({
-      token,
       customer: {
         id: customer.id,
         email: customer.email,
         name: customer.name,
       },
+      message: 'Customer created. Use /api/auth/customer/sign-in/email to authenticate.',
     });
   }
 
   async login(body: any): Promise<BaseResponseDto<any>> {
-    const { email, password, shopId } = body;
+    const { email, shopId } = body;
 
-    if (!email || !password || !shopId) {
+    if (!email || !shopId) {
       throw new CustomException(
         ResponseCodes.PARAM_VALUE_INVALID,
-        'Email, password, and shopId are required',
+        'Use /api/auth/customer/sign-in/email for authentication',
         HttpStatus.BAD_REQUEST,
       );
     }
 
     const customer = await this.prisma.customer.findUnique({
-      where: {
-        shopId_email: { shopId, email },
-      },
+      where: { shopId_email: { shopId, email } },
     });
 
-    if (!customer || !customer.password) {
+    if (!customer) {
       throw new CustomException(
         ResponseCodes.PASSWORD_NOT_CORRECT,
-        'Invalid credentials',
+        'Customer not found',
         HttpStatus.UNAUTHORIZED,
       );
     }
-
-    const isMatch = await verifyPassword(password, customer.password);
-    if (!isMatch) {
-      throw new CustomException(
-        ResponseCodes.PASSWORD_NOT_CORRECT,
-        'Invalid credentials',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const token = signJwt({ sub: customer.id, email: customer.email, shopId: customer.shopId });
 
     return BaseResponseDto.success({
-      token,
-      customer: {
-        id: customer.id,
-        email: customer.email,
-        name: customer.name,
-      },
+      message: 'Use /api/auth/customer/sign-in/email for session-based authentication.',
+      customerId: customer.id,
     });
   }
 
-  async changePassword(body: any, customerId: string): Promise<BaseResponseDto<any>> {
-    const { oldPassword, newPassword, shopId } = body;
-
-    if (!oldPassword || !newPassword || !shopId) {
-      throw new CustomException(
-        ResponseCodes.PARAM_VALUE_INVALID,
-        'oldPassword, newPassword, and shopId are required',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const customer = await this.prisma.customer.findUnique({
-      where: { id: customerId },
+  async changePassword(_body: any, _customerId: string): Promise<BaseResponseDto<any>> {
+    // Password management is now handled by Better Auth via CustomerAccount
+    // Use /api/auth/customer/change-password endpoint
+    return BaseResponseDto.success({
+      message: 'Use /api/auth/customer/change-password endpoint (Better Auth) for password changes.',
     });
-
-    if (!customer || customer.shopId !== shopId || !customer.password) {
-      throw new CustomException(
-        ResponseCodes.USER_INFO_NOT_MATCH,
-        'Customer not found or invalid shop',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const isMatch = await verifyPassword(oldPassword, customer.password);
-    if (!isMatch) {
-      throw new CustomException(
-        ResponseCodes.PASSWORD_NOT_CORRECT,
-        'Old password incorrect',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const hashedPassword = await hashPassword(newPassword);
-
-    await this.prisma.customer.update({
-      where: { id: customerId },
-      data: { password: hashedPassword },
-    });
-
-    return BaseResponseDto.success({ updated: true });
   }
 }

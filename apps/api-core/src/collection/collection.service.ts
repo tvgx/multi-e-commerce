@@ -26,7 +26,7 @@ export class CollectionService {
     dto: CreateCollectionDto,
   ): Promise<BaseResponseDto<any>> {
     try {
-      const shopId = this.tenantService.getTenantId();
+      const shopId = this.tenantService.getTenantId() || dto.shopId;
       if (!shopId) {
         throw new CustomException(
           ResponseCodes.NOT_ACCESS,

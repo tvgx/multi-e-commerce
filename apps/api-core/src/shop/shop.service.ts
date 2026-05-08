@@ -10,6 +10,8 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { ShopTemplate, MongoProduct } from '@ecommerce/database';
 import { LayoutService } from '../layout/layout.service';
+import { ProductService } from '../product/product.service';
+import { CollectionService } from '../collection/collection.service';
 import {
   CreateShopDto,
   UpdateShopDto,
@@ -34,6 +36,10 @@ export class ShopService {
     private readonly domainVerifyService: DomainVerifyService,
     @Inject(LayoutService)
     private readonly layoutService: LayoutService,
+    @Inject(ProductService)
+    private readonly productService: ProductService,
+    @Inject(CollectionService)
+    private readonly collectionService: CollectionService,
   ) {}
 
   // UC-01: Tenant Registration
@@ -41,7 +47,11 @@ export class ShopService {
     dto: RegisterTenantDto,
   ): Promise<BaseResponseDto<object>> {
     try {
-      const normalizedDomain = dto.domain.trim().toLowerCase();
+      let normalizedDomain = dto.domain.trim().toLowerCase();
+      // Ensure .localhost suffix in development if only a slug is provided
+      if (!normalizedDomain.includes('.') && process.env.NODE_ENV !== 'production') {
+        normalizedDomain = `${normalizedDomain}.localhost`;
+      }
 
       // 1. Check domain availability
       const existingDomain = await this.prisma.shop.findUnique({
@@ -126,38 +136,55 @@ export class ShopService {
         );
       }
 
-      // 6. Seed Demo Products if requested
+      // 6. Seed Demo Products & Collections if requested
       if (dto.seedDemoProducts) {
         try {
+          // 6a. Create a demo collection
+          const collection = await this.collectionService.createCollection(
+            owner.id,
+            {
+              title: 'Featured Collection',
+              slug: 'featured',
+              description: 'Our best products selected for you',
+              shopId: shop.id,
+            },
+          );
+
           const demoProducts = [
             {
-              shopId: shop.id,
               name: `${shop.name} Signature T-Shirt`,
+              slug: 'signature-t-shirt',
               description: 'High-quality cotton t-shirt',
-              basePrice: { value: 29.99, currency: 'USD' },
-              category: 'Apparel',
-              status: 'ACTIVE',
-              images: [],
-              attributes: [],
-              tierVariations: [],
-              variants: [],
+              basePrice: 29.99,
+              sku: `TSHIRT-${shop.id.substring(0, 5)}`,
+              inStock: 100,
             },
             {
-              shopId: shop.id,
               name: `${shop.name} Limited Hoodie`,
+              slug: 'limited-hoodie',
               description: 'Keep warm in style',
-              basePrice: { value: 59.99, currency: 'USD' },
-              category: 'Apparel',
-              status: 'ACTIVE',
-              images: [],
-              attributes: [],
-              tierVariations: [],
-              variants: [],
+              basePrice: 59.99,
+              sku: `HOODIE-${shop.id.substring(0, 5)}`,
+              inStock: 50,
             },
           ];
-          await MongoProduct.insertMany(demoProducts);
+
+          for (const dp of demoProducts) {
+            // Using productService.createProduct to ensure both Postgres and Mongo are synced
+            await this.productService.createProduct(owner.id, {
+              ...dp,
+              shopId: shop.id,
+              status: 'PUBLISHED',
+              images: [
+                'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800',
+              ],
+              collectionIds: [collection.data.id],
+            } as any);
+          }
         } catch (error) {
-          this.logger.warn(`[registerTenant] Failed to seed demo products for shop ${shop.id}: ${error}`);
+          this.logger.warn(
+            `[registerTenant] Failed to seed demo products for shop ${shop.id}: ${error}`,
+          );
         }
       }
 
@@ -293,10 +320,14 @@ export class ShopService {
     }
   }
 
-  async getOnboardingProgress(shopId: string): Promise<BaseResponseDto<any>> {
+  async getOnboardingProgress(
+    ownerId: string,
+    shopId: string,
+  ): Promise<BaseResponseDto<any>> {
     const shop = await (this.prisma as any).shop.findUnique({
       where: { id: shopId },
       select: {
+        ownerId: true,
         onboardingStep: true,
         onboardingStatus: true,
         domain: true,
@@ -305,6 +336,14 @@ export class ShopService {
     });
 
     if (!shop) throw new NotFoundException('Shop not found');
+
+    if (shop.ownerId !== ownerId) {
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'không có quyền truy cập tài nguyên',
+        HttpStatus.FORBIDDEN,
+      );
+    }
 
     // Real-time check for dynamic steps
     const productCount = await this.prisma.product.count({ where: { shopId } });
@@ -345,6 +384,7 @@ export class ShopService {
   }
 
   async completeStep(
+    ownerId: string,
     shopId: string,
     step: number,
   ): Promise<BaseResponseDto<any>> {
@@ -352,6 +392,14 @@ export class ShopService {
       where: { id: shopId },
     });
     if (!shop) throw new NotFoundException('Shop not found');
+
+    if (shop.ownerId !== ownerId) {
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'không có quyền truy cập tài nguyên',
+        HttpStatus.FORBIDDEN,
+      );
+    }
 
     // 1. Strict sequence check
     if (step !== shop.onboardingStep + 1 && step !== shop.onboardingStep) {

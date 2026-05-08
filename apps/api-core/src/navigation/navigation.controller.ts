@@ -5,26 +5,30 @@ import {
   Put,
   Body,
   Param,
-  HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { NavigationService } from './navigation.service';
 import {
   CreateNavigationDto,
   UpdateNavigationDto,
 } from './dto/navigation-zod.dto';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('navigation')
+@UseGuards(BetterAuthGuard)
 export class NavigationController {
   constructor(private readonly navigationService: NavigationService) {}
 
+  @Public()
   @Get()
   async getAllMenus(@Query('shopId') shopId?: string) {
     return this.navigationService.getAllMenusByShop(shopId);
   }
 
+  @Public()
   @Get(':handle')
   async getMenu(
     @Param('handle') handle: string,
@@ -34,14 +38,19 @@ export class NavigationController {
   }
 
   @Post()
-  async createMenu(@Body() dto: CreateNavigationDto) {
-    const userId = 'dev-user-123';
-    return this.navigationService.createMenu(userId, dto);
+  async createMenu(
+    @CurrentUser() user: any,
+    @Body() dto: CreateNavigationDto,
+  ) {
+    return this.navigationService.createMenu(user.id, dto);
   }
 
   @Put(':id')
-  async updateMenu(@Param('id') id: string, @Body() dto: UpdateNavigationDto) {
-    const userId = 'dev-user-123';
-    return this.navigationService.updateMenu(userId, id, dto);
+  async updateMenu(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateNavigationDto,
+  ) {
+    return this.navigationService.updateMenu(user.id, id, dto);
   }
 }

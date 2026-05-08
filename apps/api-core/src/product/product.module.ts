@@ -17,5 +17,6 @@ import { DatabaseModule } from '../database/database.module';
   ],
   controllers: [ProductController],
   providers: [ProductService],
+  exports: [ProductService],
 })
 export class ProductModule {}

@@ -4,33 +4,55 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from './common/exceptions/custom-exception.filter';
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from './modules/auth/auth.config';
+import { OWNER_AUTH, CUSTOMER_AUTH } from './modules/auth/auth.constants';
+import type { OwnerAuth } from './modules/auth/owner-auth.config';
+import type { CustomerAuth } from './modules/auth/customer-auth.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Mount Better Auth endpoints for Admin
-  app.use('/api/auth', toNodeHandler(auth));
+
+  // Enable CORS cho admin và storefront
+  app.enableCors({
+    origin: [
+      process.env.ADMIN_URL || 'http://localhost:3001',
+      process.env.STOREFRONT_URL || 'http://localhost:3002',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-type'],
+  });
+
+  // Lấy auth instances từ NestJS DI container (registered via factory providers)
+  const ownerAuth = app.get<OwnerAuth>(OWNER_AUTH);
+  const customerAuth = app.get<CustomerAuth>(CUSTOMER_AUTH);
+
+  // Mount Better Auth handlers trước NestJS middleware
+  // Owner Auth: /api/auth/owner/* (dành cho admin dashboard)
+  app.use('/api/auth/owner', toNodeHandler(ownerAuth));
+
+  // Customer Auth: /api/auth/customer/* (dành cho storefront)
+  app.use('/api/auth/customer', toNodeHandler(customerAuth));
+
   // Global Exception Filter
   app.useGlobalFilters(new CustomExceptionFilter());
+
   // Graceful shutdown
   app.enableShutdownHooks();
-  // Enable CORS for frontend integration
-  app.enableCors({
-    origin: true, // This allows any origin and automatically sets Access-Control-Allow-Origin to the requested origin
-    credentials: true,
-  });
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
   const logger = new Logger('Infrastructure');
   logger.log(`=================================================`);
-  logger.log(`🚀 API Core is running on: http://localhost:${port}`);
+  logger.log(`🚀 API Core running on: http://localhost:${port}`);
+  logger.log(`🔐 Owner Auth: http://localhost:${port}/api/auth/owner`);
+  logger.log(`👤 Customer Auth: http://localhost:${port}/api/auth/customer`);
 
   // Supabase (Postgres)
   const dbUrl = process.env.DATABASE_URL || '';
   if (dbUrl.includes('supabase')) {
     logger.log(
-      `🐘 Postgres (Supabase): Connected to pooler -> ${dbUrl.split('@')[1] || 'Supabase'}`,
+      `🐘 Postgres (Supabase): Connected → ${dbUrl.split('@')[1] || 'Supabase'}`,
     );
   }
 
@@ -38,7 +60,7 @@ async function bootstrap() {
   const mongoUrl = process.env.MONGO_DB_ATLAS || '';
   if (mongoUrl.includes('mongodb.net')) {
     logger.log(
-      `🍃 MongoDB (Atlas): Connected to cluster -> ${mongoUrl.split('@')[1]?.split('/')[0] || 'Atlas'}`,
+      `🍃 MongoDB (Atlas): Connected → ${mongoUrl.split('@')[1]?.split('/')[0] || 'Atlas'}`,
     );
   }
 
@@ -46,7 +68,7 @@ async function bootstrap() {
   const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
   const minioPort = process.env.MINIO_PORT || '9000';
   logger.log(
-    `🪣 MinIO Storage: http://${minioEndpoint}:${minioPort} (Console typically on port 9001)`,
+    `🪣 MinIO Storage: http://${minioEndpoint}:${minioPort}`,
   );
   logger.log(`=================================================`);
 }

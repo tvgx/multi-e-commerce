@@ -6,6 +6,7 @@ import {
   Body,
   HttpStatus,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LayoutService } from './layout.service';
@@ -13,14 +14,19 @@ import { SystemCacheService } from '../system/cache/cache.service';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('api')
+@UseGuards(BetterAuthGuard)
 export class LayoutController {
   constructor(
     private readonly layoutService: LayoutService,
     private readonly cacheService: SystemCacheService,
   ) {}
 
+  @Public()
   @Get('storefront/:domain/layout')
   @UseInterceptors(CacheInterceptor)
   async getStorefrontLayout(
@@ -30,8 +36,10 @@ export class LayoutController {
   }
 
   @Post('layouts/publish')
-  async publishLayout(@Body() payload: any): Promise<BaseResponseDto<any>> {
-    const userId = 'dev-user-123';
+  async publishLayout(
+    @CurrentUser() user: any,
+    @Body() payload: any,
+  ): Promise<BaseResponseDto<any>> {
 
     const { shopId, ...layoutData } = payload;
     if (!shopId)
@@ -42,7 +50,7 @@ export class LayoutController {
       );
 
     const result = await this.layoutService.publishLayout(
-      userId,
+      user.id,
       shopId,
       layoutData,
     );
@@ -53,6 +61,7 @@ export class LayoutController {
     return result;
   }
 
+  @Public()
   @Get('layouts/:shopId')
   @UseInterceptors(CacheInterceptor)
   async getCompiledLayout(

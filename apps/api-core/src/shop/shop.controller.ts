@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import {
@@ -14,10 +15,12 @@ import {
   RegisterTenantDto,
 } from './dto/shop-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('api')
+@UseGuards(BetterAuthGuard)
 export class ShopController {
   constructor(
     @Inject(ShopService)
@@ -35,6 +38,7 @@ export class ShopController {
   }
 
   // UC-01: Tenant Registration (New spec-compliant endpoint)
+  @Public()
   @Post('v1/tenants/register')
   async registerTenant(
     @Body() dto: RegisterTenantDto,
@@ -45,18 +49,18 @@ export class ShopController {
   // Legacy endpoint (kept for backward compatibility during migration period)
   @Post('shops')
   async createShop(
+    @CurrentUser() user: any,
     @Body() dto: CreateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    const userId = 'dev-user-123';
-    return this.shopService.createShop(userId, dto);
+    return this.shopService.createShop(user.id, dto);
   }
 
   @Get('shops/my-shops')
-  async getMyShops(): Promise<BaseResponseDto<object[]>> {
-    const userId = 'dev-user-123';
-    return this.shopService.getMyShops(userId);
+  async getMyShops(@CurrentUser() user: any): Promise<BaseResponseDto<object[]>> {
+    return this.shopService.getMyShops(user.id);
   }
 
+  @Public()
   @Get('shops/resolve/:identifier')
   async resolveShop(
     @Param('identifier') identifier: string,
@@ -64,6 +68,7 @@ export class ShopController {
     return this.shopService.resolveShop(identifier);
   }
 
+  @Public()
   @Get('shops/:id')
   async getShopSettings(
     @Param('id') id: string,
@@ -73,24 +78,28 @@ export class ShopController {
 
   @Put('shops/:id')
   async updateShop(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    const userId = 'dev-user-123';
-    return this.shopService.updateShop(userId, id, dto);
+    return this.shopService.updateShop(user.id, id, dto);
   }
 
   @Get('shops/:id/onboarding')
-  async getOnboarding(@Param('id') id: string): Promise<BaseResponseDto<any>> {
-    return this.shopService.getOnboardingProgress(id);
+  async getOnboarding(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.shopService.getOnboardingProgress(user.id, id);
   }
 
   @Put('shops/:id/onboarding/complete/:step')
   async completeOnboardingStep(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Param('step') step: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.shopService.completeStep(id, parseInt(step));
+    return this.shopService.completeStep(user.id, id, parseInt(step));
   }
 
   @Get('shops/system/all-shops')
