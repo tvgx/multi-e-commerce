@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Zap, Target, LayoutTemplate, ShieldCheck, Code2, Rocket, PlayCircle } from "lucide-react";
+import { CreateShopButton } from "@/components/home/CreateShopButton";
+
 
 export default function PlatformLandingPage() {
   return (
@@ -26,13 +28,8 @@ export default function PlatformLandingPage() {
             <Link href="/login" className="text-sm font-semibold text-white/80 hover:text-white transition-colors hidden sm:block">
               Log in
             </Link>
-            <Link
-              href="/create-shop"
-              className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
-            >
-              Start Free Trial
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            <CreateShopButton variant="secondary" />
+
           </div>
         </div>
       </nav>
@@ -54,13 +51,8 @@ export default function PlatformLandingPage() {
             Hệ thống thương mại điện tử đa kênh tích hợp <strong className="text-white font-semibold">Zero-File Layout Engine</strong> và kiến trúc dữ liệu Hybrid SQL/NoSQL chuyên biệt. Khởi tạo ngay hệ sinh thái của riêng bạn mà không cần bận tâm đến hạ tầng.
           </p>
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5">
-            <Link
-              href="/create-shop"
-              className="w-full sm:w-auto group relative inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-4 text-base font-bold text-white transition-all hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-105 ring-1 ring-white/10"
-            >
-              Tạo cửa hàng của bạn
-              <Rocket className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
-            </Link>
+            <CreateShopButton />
+
             <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10">
               <PlayCircle className="w-5 h-5" />
               Xem Demo
@@ -85,28 +77,28 @@ export default function PlatformLandingPage() {
               </div>
               {/* Fake Content */}
               <div className="aspect-[16/9] bg-gradient-to-br from-[#0f172a] to-[#020617] p-8 flex flex-col gap-6 relative">
-                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-                 <div className="flex justify-between items-center relative z-10 w-full">
-                    <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
-                    <div className="flex gap-3">
-                       <div className="h-8 w-8 bg-white/10 rounded-full animate-pulse" />
-                       <div className="h-8 w-24 bg-indigo-500/20 rounded-full border border-indigo-500/30" />
-                    </div>
-                 </div>
-                 <div className="flex gap-6 h-full relative z-10">
-                    <div className="w-1/4 flex flex-col gap-4">
-                       <div className="h-24 bg-white/5 rounded-xl border border-white/5" />
-                       <div className="h-48 bg-white/5 rounded-xl border border-white/5" />
-                    </div>
-                    <div className="flex-1 bg-white/5 rounded-xl border border-white/5 relative overflow-hidden flex items-center justify-center">
-                       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-indigo-500/10 to-transparent" />
-                       <LayoutTemplate className="w-24 h-24 text-white/10" />
-                    </div>
-                 </div>
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+                <div className="flex justify-between items-center relative z-10 w-full">
+                  <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
+                  <div className="flex gap-3">
+                    <div className="h-8 w-8 bg-white/10 rounded-full animate-pulse" />
+                    <div className="h-8 w-24 bg-indigo-500/20 rounded-full border border-indigo-500/30" />
+                  </div>
+                </div>
+                <div className="flex gap-6 h-full relative z-10">
+                  <div className="w-1/4 flex flex-col gap-4">
+                    <div className="h-24 bg-white/5 rounded-xl border border-white/5" />
+                    <div className="h-48 bg-white/5 rounded-xl border border-white/5" />
+                  </div>
+                  <div className="flex-1 bg-white/5 rounded-xl border border-white/5 relative overflow-hidden flex items-center justify-center">
+                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-indigo-500/10 to-transparent" />
+                    <LayoutTemplate className="w-24 h-24 text-white/10" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          
+
           {/* Glow Behind the preview */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[40%] bg-indigo-500/30 blur-[120px] rounded-full -z-10" />
         </div>
@@ -122,17 +114,17 @@ export default function PlatformLandingPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <FeatureCard 
+            <FeatureCard
               icon={<ShieldCheck />}
               title="Identity & Auth Độc Lập"
               desc="Hệ thống xác thực phân quyền mạnh mẽ bằng Better Auth, đảm bảo cách ly dữ liệu tuyệt đối giữa các Tenant."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Code2 />}
               title="Zero-File Layout"
               desc="Thiết kế giao diện cửa hàng dạng JSON schema lưu trong MongoDB, render siêu tốc không cần code-server rendering phức tạp."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Target />}
               title="Hybrid Database"
               desc="Kết hợp hoàn hảo giữa PostgreSQL (ACID cho đơn hàng/tồn kho) và MongoDB (Flexible cho giao diện & logs)."

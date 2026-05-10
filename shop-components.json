@@ -1,5 +1,4 @@
-export default {
-    "shopId": "MASTER_STANDARD",
+{
     "isMaster": true,
     "templateType": "standard",
     "theme": {
@@ -25,8 +24,8 @@ export default {
     },
     "globalComponents": [
         {
-            "id": "global-navbar",
-            "componentId": "navbar",
+            "id": "main-navbar",
+            "componentId": "Header",
             "props": {
                 "brand": "Aladdin",
                 "links": ["Home", "About Us", "Shop", "Contact Us", "My Account"],
@@ -39,8 +38,8 @@ export default {
             }
         },
         {
-            "id": "global-footer",
-            "componentId": "footer",
+            "id": "main-footer",
+            "componentId": "Footer",
             "props": {
                 "brand": "Aladdin",
                 "tagline": "Aladdin for everyone order regular and become a prime customer.",
@@ -53,34 +52,25 @@ export default {
             }
         }
     ],
-    "pages": {
-        "home": [
+    "componentRegistry": {
+        "feedback": {
+            "ratings": {
+                "icon": "star",
+                "active_color": "#F59E0B",
+                "types": ["full", "half", "empty"]
+            }
+        },
+        "banners": [
             {
-                "id": "home-hero",
-                "componentId": "hero_slider",
-                "order": 1,
-                "props": { "ref": "banners" }
+                "id": "beauty-buzz",
+                "title": "Get the new beauty buzz.",
+                "primary_color": "#A87A51"
             },
             {
-                "id": "popular_categories",
-                "componentId": "category_grid",
-                "order": 2,
-                "props": {
-                    "title": "Explore popular category",
-                    "items": [
-                        { "label": "Beauty & Personal Care", "image": "beauty.jpg" },
-                        { "label": "Health & Household", "image": "health.jpg" },
-                        { "label": "Home & Kitchen", "image": "home.jpg" }
-                    ]
-                }
-            }
-        ],
-        "product_listing": [
-            {
-                "id": "listing-header",
-                "componentId": "page_header",
-                "props": { "title": "Best Sellers" }
+                "id": "kitchen-appliances",
+                "title": "Handy kitchen appliances",
+                "primary_color": "#D97706"
             }
         ]
     }
-} as const;
+}

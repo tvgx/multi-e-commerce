@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import * as os from 'os';
 import { PrismaService } from '../database/prisma.service';
-import { ShopTemplate } from '@ecommerce/database';
+import { GlobalLayout, PageLayout } from '@ecommerce/database';
 
 @Injectable()
 export class SystemService {
@@ -21,7 +21,8 @@ export class SystemService {
     let pgStatus = 'Disconnected';
     let mongoStatus = 'Disconnected';
     let pgShopCount = 0;
-    let mongoTemplateCount = 0;
+    let mongoGlobalCount = 0;
+    let mongoPageCount = 0;
 
     try {
       pgShopCount = await this.prisma.shop.count();
@@ -31,7 +32,8 @@ export class SystemService {
     }
 
     try {
-      mongoTemplateCount = await ShopTemplate.countDocuments();
+      mongoGlobalCount = await GlobalLayout.countDocuments();
+      mongoPageCount = await PageLayout.countDocuments();
       mongoStatus = 'Connected';
     } catch {
       mongoStatus = 'Error';
@@ -56,7 +58,8 @@ export class SystemService {
         },
         mongodb: {
           status: mongoStatus,
-          jsonCount: mongoTemplateCount,
+          globalLayoutCount: mongoGlobalCount,
+          pageLayoutCount: mongoPageCount,
         },
       },
       timestamp: new Date().toISOString(),
@@ -99,10 +102,9 @@ export class SystemService {
   // Mass sync generic template logic
   async massSyncFeature(targetAttr: string, newValue: unknown) {
     // Simplified implementation using Mongoose updateMany to modify matching templates
-    // Ex: targetAttr = 'publishedData.theme.fontFamily', newValue = 'Roboto'
     const updateQuery = { $set: { [targetAttr]: newValue } };
 
-    const result = await ShopTemplate.updateMany({}, updateQuery);
+    const result = await GlobalLayout.updateMany({}, updateQuery);
     return {
       success: true,
       matchedCount: result.matchedCount,
@@ -110,3 +112,4 @@ export class SystemService {
     };
   }
 }
+

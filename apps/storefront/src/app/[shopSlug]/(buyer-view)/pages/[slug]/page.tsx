@@ -20,14 +20,8 @@ export default async function CustomPage({ params }: Props) {
 
   // A custom page is essentially a collection of sections
   // We wrap it in a Layout-like object to use LayoutRenderer
-  const mockLayout = {
-    shopId: shopSlug,
-    isMaster: false,
-    templateType: 'standard' as const,
-    pages: {
-      [slug]: page.sections || []
-    },
-    metadata: {}
+  const mockPageLayout = {
+    components: page.sections || []
   };
 
   return (
@@ -39,7 +33,7 @@ export default async function CustomPage({ params }: Props) {
         </div>
       )}
 
-      <LayoutRenderer layout={mockLayout} pageKey={slug} />
+      <LayoutRenderer pageLayout={mockPageLayout} />
     </div>
   );
 }

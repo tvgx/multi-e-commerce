@@ -115,22 +115,19 @@ export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | nu
 // ─────────────────────────────────────────
 
 /**
- * Fetches and returns the compiled (Master + Tenant merged) Layout JSON for a shop.
- * When the CLI syncs a new layout, NestJS calls Next.js revalidateTag(`layout-${shopId}`)
- * so this cached data is invalidated immediately.
- *
- * Returns null if no layout is configured yet (caller should render fallback).
+ * Fetches and returns the compiled Global Layout JSON for a shop.
+ * Returns null if no layout is configured yet.
  */
-export async function getShopLayout(shopIdentifier: string) {
+export async function getShopGlobalLayout(shopIdentifier: string) {
     try {
         const resolvedShop = await resolveShopContext(shopIdentifier);
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}`, {
+        const res = await fetch(`${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}/global`, {
             headers: getTenantHeaders(shopId),
             next: {
-                tags: [`layout-${shopId}`],
+                tags: [`layout-${shopId}-global`],
                 revalidate: 60, // 1 minute fallback TTL
             },
         });
@@ -142,7 +139,42 @@ export async function getShopLayout(shopIdentifier: string) {
 
         return body.data ?? null;
     } catch (err) {
-        console.error(`[storefront.api] getShopLayout failed for shopIdentifier=${shopIdentifier}`, err);
+        console.error(`[storefront.api] getShopGlobalLayout failed for shopIdentifier=${shopIdentifier}`, err);
+        return null;
+    }
+}
+
+/**
+ * Fetches and returns the compiled Page Layout JSON for a specific page type.
+ * Returns null if no layout is configured yet.
+ */
+export async function getShopPageLayout(shopIdentifier: string, pageType: string, slug?: string) {
+    try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
+        let url = `${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}/page/${encodeURIComponent(pageType)}`;
+        if (slug) {
+            url += `?slug=${encodeURIComponent(slug)}`;
+        }
+
+        const res = await fetch(url, {
+            headers: getTenantHeaders(shopId),
+            next: {
+                tags: [`layout-${shopId}-page-${pageType}`],
+                revalidate: 60,
+            },
+        });
+
+        if (!res.ok) return null;
+
+        const body = await res.json();
+        if (!body.success) return null;
+
+        return body.data ?? null;
+    } catch (err) {
+        console.error(`[storefront.api] getShopPageLayout failed for shopIdentifier=${shopIdentifier}, pageType=${pageType}`, err);
         return null;
     }
 }

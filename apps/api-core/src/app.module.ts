@@ -25,6 +25,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as path from 'path';
 import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.
     PagesModule,
     ShippingModule,
     TaxModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

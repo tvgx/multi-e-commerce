@@ -1,4 +1,4 @@
-import { ShopLayout, UIComponentRef } from '@ecommerce/schema';
+import { ShopGlobalLayout, ShopPageLayout, UIComponentRef } from '@ecommerce/schema';
 
 /**
  * Merges an array of UI Components.
@@ -34,38 +34,50 @@ export function mergeComponentArrays(
 }
 
 /**
- * Core Algorithm: Merges a Tenant's Delta Layout with the Master Template Layout
+ * Merges a Tenant's Global Layout with the Master Global Layout
  */
-export function mergeLayouts(
-  master: ShopLayout,
-  tenant: ShopLayout,
-): ShopLayout {
-  // If tenant is not inheriting, just return tenant.
+export function mergeGlobalLayouts(
+  master: ShopGlobalLayout,
+  tenant: ShopGlobalLayout,
+): ShopGlobalLayout {
   if (!tenant.templateType || !master) {
     return tenant;
   }
 
-  // Merge Pages
-  const pages: Record<string, UIComponentRef[]> = {};
-
-  // Get all unique page keys from both master and tenant
-  const allPageKeys = new Set([
-    ...Object.keys(master.pages || {}),
-    ...Object.keys(tenant.pages || {}),
-  ]);
-
-  allPageKeys.forEach((pageKey) => {
-    pages[pageKey] = mergeComponentArrays(
-      master.pages?.[pageKey],
-      tenant.pages?.[pageKey],
-    );
-  });
+  const globalComponents = mergeComponentArrays(
+    master.globalComponents,
+    tenant.globalComponents,
+  );
 
   return {
-    ...master, // keep master shape
-    ...tenant, // overwrite with tenant base fields
-    isMaster: false, // merged result is always a tenant view
-    pages,
-    metadata: { ...master.metadata, ...tenant.metadata },
+    ...master,
+    ...tenant,
+    isMaster: false,
+    globalComponents,
+    theme: { ...master.theme, ...tenant.theme },
+  };
+}
+
+/**
+ * Merges a Tenant's Page Layout with the Master Page Layout
+ */
+export function mergePageLayouts(
+  master: ShopPageLayout,
+  tenant: ShopPageLayout,
+): ShopPageLayout {
+  if (!master) {
+    return tenant;
+  }
+
+  const components = mergeComponentArrays(
+    master.components,
+    tenant.components,
+  );
+
+  return {
+    ...master,
+    ...tenant,
+    isMaster: false,
+    components,
   };
 }

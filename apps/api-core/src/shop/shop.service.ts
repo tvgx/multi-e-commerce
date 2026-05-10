@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { ShopTemplate, MongoProduct } from '@ecommerce/database';
+import { MongoProduct, GlobalLayout } from '@ecommerce/database';
 import { LayoutService } from '../layout/layout.service';
 import { ProductService } from '../product/product.service';
 import { CollectionService } from '../collection/collection.service';
@@ -126,9 +126,11 @@ export class ShopService {
 
       try {
         // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
-        await this.layoutService.publishLayout(owner.id, shop.id, {
+        await this.layoutService.publishGlobalLayout(owner.id, shop.id, {
           templateType: shop.templateType,
-        });
+          globalComponents: [],
+          theme: {}
+        } as any);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
@@ -289,9 +291,11 @@ export class ShopService {
 
       try {
         // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
-        await this.layoutService.publishLayout(ownerId, shop.id, {
+        await this.layoutService.publishGlobalLayout(ownerId, shop.id, {
           templateType: shop.templateType,
-        });
+          globalComponents: [],
+          theme: {}
+        } as any);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
@@ -561,7 +565,7 @@ export class ShopService {
       );
     }
 
-    const template = (await ShopTemplate.findOne(
+    const template = (await GlobalLayout.findOne(
       { shopId: targetId },
       { publishedData: 1, _id: 0 },
     ).lean()) as {
@@ -621,3 +625,4 @@ export class ShopService {
     return BaseResponseDto.success(shop);
   }
 }
+

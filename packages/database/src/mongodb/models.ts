@@ -5,19 +5,37 @@ import mongoose, { Schema, Document } from 'mongoose';
 // ==========================================
 
 // ------------------------------------------
-// 1. ShopTemplates (UI-as-Code Configuration)
+// 1. GlobalLayouts & PageLayouts (Hybrid Layout Architecture)
 // ------------------------------------------
-export interface IShopTemplate extends Document {
+export interface IGlobalLayout extends Document {
     shopId: string; // Foreign key linking to PostgreSQL Shop.id
     publishedData: Record<string, unknown>;
     draftData: Record<string, unknown>;
 }
 
-const ShopTemplateSchema: Schema = new Schema({
+const GlobalLayoutSchema: Schema = new Schema({
     shopId: { type: String, required: true, unique: true, index: true },
     publishedData: { type: Schema.Types.Mixed, default: {} },
     draftData: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
+
+export interface IPageLayout extends Document {
+    shopId: string;
+    pageType: string;
+    slug?: string;
+    publishedData: Record<string, unknown>;
+    draftData: Record<string, unknown>;
+}
+
+const PageLayoutSchema: Schema = new Schema({
+    shopId: { type: String, required: true },
+    pageType: { type: String, required: true },
+    slug: { type: String },
+    publishedData: { type: Schema.Types.Mixed, default: {} },
+    draftData: { type: Schema.Types.Mixed, default: {} },
+}, { timestamps: true });
+
+PageLayoutSchema.index({ shopId: 1, pageType: 1, slug: 1 }, { unique: true });
 
 
 // ------------------------------------------
@@ -96,6 +114,7 @@ const ProductSchema: Schema = new Schema({
 }, { timestamps: true });
 
 // Exports
-export const ShopTemplate = mongoose.models.ShopTemplate || mongoose.model<IShopTemplate>('ShopTemplate', ShopTemplateSchema);
+export const GlobalLayout = mongoose.models.GlobalLayout || mongoose.model<IGlobalLayout>('GlobalLayout', GlobalLayoutSchema);
+export const PageLayout = mongoose.models.PageLayout || mongoose.model<IPageLayout>('PageLayout', PageLayoutSchema);
 export const MongoProduct = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
 

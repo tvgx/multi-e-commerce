@@ -19,7 +19,7 @@ const AUTH_ONLY_ROUTES = ['/login', '/register'];
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));

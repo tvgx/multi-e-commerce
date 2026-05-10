@@ -20,9 +20,6 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
-  "engines": {
-    "node": "22.22.1"
-  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.883.0",
     "@better-auth/prisma-adapter": "^1.5.5",
@@ -36,6 +33,7 @@
     "@nestjs/platform-socket.io": "^11.1.16",
     "@nestjs/websockets": "^11.1.16",
     "@thallesp/nestjs-better-auth": "2.4.0",
+    "@types/multer": "^2.1.0",
     "better-auth": "^1.5.5",
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
@@ -47,6 +45,7 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.34.5",
     "socket.io": "^4.8.3",
     "zod": "^3.24.3"
   },

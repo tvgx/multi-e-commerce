@@ -17,28 +17,57 @@ export const UIComponentRefSchema = z.object({
 
 export type UIComponentRef = z.infer<typeof UIComponentRefSchema>;
 
-export const ShopLayoutSchema = z.object({
-    shopId: z.string().optional(), // Can be optional for Master Templates
+export const PageTypeEnum = z.enum([
+    'home',
+    'product_listing',
+    'product_detail',
+    'all_products',
+    'cart',
+    'checkout',
+    'shipping',
+    'payment',
+    'review',
+    'order_success',
+    'profile',
+    'system_message',
+    'custom_page'
+]);
+export type PageType = z.infer<typeof PageTypeEnum>;
+
+export const ShopGlobalLayoutSchema = z.object({
+    shopId: z.string().optional(), // Optional for Master Templates
     isMaster: z.boolean().default(false),
     templateType: TemplateTypeEnum.default('standard'),
-    pages: z.record(z.string(), z.array(UIComponentRefSchema)), // e.g., { "home": [...], "about": [...] }
-    metadata: z.record(z.string(), z.any()).optional().default({}), // Extra metadata like theme colors, font families
+    theme: z.record(z.string(), z.any()).optional().default({}),
+    globalComponents: z.array(UIComponentRefSchema).optional().default([]), // For Header, Footer, AnnouncementBar, etc.
 });
+export type ShopGlobalLayout = z.infer<typeof ShopGlobalLayoutSchema>;
 
-export type ShopLayout = z.infer<typeof ShopLayoutSchema>;
+export const ShopPageLayoutSchema = z.object({
+    shopId: z.string().optional(),
+    isMaster: z.boolean().default(false),
+    pageType: PageTypeEnum,
+    slug: z.string().optional(), // For custom pages
+    components: z.array(UIComponentRefSchema),
+});
+export type ShopPageLayout = z.infer<typeof ShopPageLayoutSchema>;
 
 /**
- * @deprecated Use ShopLayout instead
+ * @deprecated Use ShopGlobalLayout and ShopPageLayout instead
  */
-export const CustomerLayoutSchema = ShopLayoutSchema;
+export const ShopLayoutSchema = ShopGlobalLayoutSchema;
+export type ShopLayout = ShopGlobalLayout;
+
 /**
- * @deprecated Use ShopLayout instead
+ * @deprecated Use ShopGlobalLayout and ShopPageLayout instead
  */
-export type CustomerLayout = ShopLayout;
+export const CustomerLayoutSchema = ShopGlobalLayoutSchema;
+export type CustomerLayout = ShopGlobalLayout;
 
 // Builder Specific View State (used in Admin UI)
 export const BuilderStateSchema = z.object({
-    pages: z.record(z.string(), z.array(UIComponentRefSchema)),
+    globalComponents: z.array(UIComponentRefSchema).optional().default([]),
+    pages: z.record(z.string(), z.array(UIComponentRefSchema)), // Mapping pageType -> components for editor
     theme: z.record(z.string(), z.any()).optional().default({}),
 });
 

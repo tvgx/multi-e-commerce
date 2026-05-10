@@ -1,5 +1,5 @@
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
-import { getShopLayout, getShopInfo } from '@/lib/api/storefront.api';
+import { getShopPageLayout, getShopInfo } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import React from 'react';
 
@@ -7,19 +7,12 @@ interface Props {
     params: Promise<{ shopSlug: string }>;
 }
 
-/**
- * Shop Homepage — React Server Component (RSC)
- *
- * Fetches the compiled layout from NestJS and renders it via LayoutRenderer.
- * The DynamicRenderer maps componentIds → actual React components (via registry).
- * Next.js caches this server-render and invalidates when CLI pushes a new layout.
- */
 export default async function ShopHomePage({ params }: Props) {
     const { shopSlug } = await params;
 
     // Fetch layout and shop info in parallel — both are server-side only
-    const [layout, shopInfo] = await Promise.all([
-        getShopLayout(shopSlug),
+    const [pageLayout, shopInfo] = await Promise.all([
+        getShopPageLayout(shopSlug, 'home'),
         getShopInfo(shopSlug),
     ]);
 
@@ -29,7 +22,7 @@ export default async function ShopHomePage({ params }: Props) {
     }
 
     // If shop exists but has no layout configured yet, show a friendly fallback
-    if (!layout) {
+    if (!pageLayout) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                 <div className="text-6xl mb-6">🛍️</div>
@@ -50,5 +43,6 @@ export default async function ShopHomePage({ params }: Props) {
     }
 
     // Full dynamic render driven by the merged Layout JSON from NestJS
-    return <LayoutRenderer layout={layout} pageKey="home" />;
+    return <LayoutRenderer pageLayout={pageLayout} />;
 }
+

@@ -7,6 +7,7 @@ import {
   HttpStatus,
   UseInterceptors,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LayoutService } from './layout.service';
@@ -17,6 +18,7 @@ import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 import { Public } from '../modules/auth/decorators/public.decorator';
+import type { PageType } from '@ecommerce/schema';
 
 @Controller('api')
 @UseGuards(BetterAuthGuard)
@@ -27,46 +29,59 @@ export class LayoutController {
   ) {}
 
   @Public()
-  @Get('storefront/:domain/layout')
+  @Get('storefront/:domain/layout/global')
   @UseInterceptors(CacheInterceptor)
-  async getStorefrontLayout(
+  async getStorefrontGlobalLayout(
     @Param('domain') domain: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.layoutService.getLayoutByDomain(domain);
+    return this.layoutService.getGlobalLayoutByDomain(domain);
   }
 
-  @Post('layouts/publish')
-  async publishLayout(
+  @Post('layouts/publish/global')
+  async publishGlobalLayout(
     @CurrentUser() user: any,
     @Body() payload: any,
   ): Promise<BaseResponseDto<any>> {
-
     const { shopId, ...layoutData } = payload;
     if (!shopId)
-      throw new CustomException(
-        ResponseCodes.PARAM_NOT_ENOUGH,
-        'Parameter is not enought.',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'Parameter is not enough.', HttpStatus.BAD_REQUEST);
 
-    const result = await this.layoutService.publishLayout(
-      user.id,
-      shopId,
-      layoutData,
-    );
+    const result = await this.layoutService.publishGlobalLayout(user.id, shopId, layoutData);
+    await this.cacheService.revalidateStorefront(`layout-${shopId}-global`);
+    return result;
+  }
 
-    // Invalidate Next.js Storefront ISR cache for this specific shop
-    await this.cacheService.revalidateStorefront(`layout-${shopId}`);
+  @Post('layouts/publish/page')
+  async publishPageLayout(
+    @CurrentUser() user: any,
+    @Body() payload: any,
+  ): Promise<BaseResponseDto<any>> {
+    const { shopId, pageType, ...layoutData } = payload;
+    if (!shopId || !pageType)
+      throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'shopId and pageType are required.', HttpStatus.BAD_REQUEST);
 
+    const result = await this.layoutService.publishPageLayout(user.id, shopId, pageType, layoutData);
+    await this.cacheService.revalidateStorefront(`layout-${shopId}-page-${pageType}`);
     return result;
   }
 
   @Public()
-  @Get('layouts/:shopId')
+  @Get('layouts/:shopId/global')
   @UseInterceptors(CacheInterceptor)
-  async getCompiledLayout(
+  async getGlobalLayout(
     @Param('shopId') shopId: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.layoutService.getCompiledLayout(shopId);
+    return this.layoutService.getGlobalLayout(shopId);
+  }
+
+  @Public()
+  @Get('layouts/:shopId/page/:pageType')
+  @UseInterceptors(CacheInterceptor)
+  async getPageLayout(
+    @Param('shopId') shopId: string,
+    @Param('pageType') pageType: PageType,
+    @Query('slug') slug?: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.layoutService.getPageLayout(shopId, pageType, slug);
   }
 }
