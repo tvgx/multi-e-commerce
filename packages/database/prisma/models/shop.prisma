@@ -39,6 +39,8 @@ model Shop {
   shopPages      ShopPage[]
 
   mergedLayoutsCache MergedLayoutsCache?
+  media              Media[]
+  storageUsage       StorageUsage?
 
   @@map("shops")
 }

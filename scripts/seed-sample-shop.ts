@@ -226,9 +226,10 @@ async function main() {
     
     // Customize Hero Section to make it unique
     const homePages = gentaLayout.pages.home;
-    const heroSection = homePages.find((comp: any) => comp.componentId === "Hero");
+    const heroSection = homePages.find((comp: any) => comp.componentId === "hero_slider" || comp.componentId === "Hero");
     if (heroSection) {
         heroSection.props = {
+            ...heroSection.props,
             title: "Tuyên Ngôn Phong Cách - Genta 2026",
             subtitle: "Khám phá bộ sưu tập thời trang đương đại, vượt thời gian.",
             imageUrl: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80", 
@@ -236,9 +237,11 @@ async function main() {
         };
     }
 
-    const marqueeSection = gentaLayout.global.header.find((comp: any) => comp.componentId === "HeroMarquee");
-    if (marqueeSection) {
-        marqueeSection.props.text = "MIỄN PHÍ VẬN CHUYỂN TẤT CẢ ĐƠN HÀNG TRÊN 500,000Đ • BỘ SƯU TẬP XUÂN HÈ ĐÃ LÊN KỆ CÙNG GENTA";
+    // Fix: Use globalComponents instead of global.header
+    const globalComponents = (gentaLayout as any).globalComponents || [];
+    const navbar = globalComponents.find((comp: any) => comp.componentId === "navbar");
+    if (navbar) {
+        navbar.props.brand = "Genta Apparel";
     }
 
     // 9. Save Layout to Postgres Cache

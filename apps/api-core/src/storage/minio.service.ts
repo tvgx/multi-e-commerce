@@ -23,10 +23,14 @@ import {
   DeleteObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
+  PutBucketCorsCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { v4 as uuidv4 } from 'uuid';
 
 const LAYOUT_BUCKET = 'shop-layouts';
-const MEDIA_BUCKET = 'shop-media';
+const PUBLIC_BUCKET = 'shop-public';
+const PRIVATE_BUCKET = 'shop-private';
 
 @Injectable()
 export class MinioService implements OnModuleInit {
@@ -48,12 +52,21 @@ export class MinioService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.ensureBucketExists(LAYOUT_BUCKET);
+      await Promise.all([
+        this.ensureBucketExists(LAYOUT_BUCKET),
+        this.ensureBucketExists(PUBLIC_BUCKET, true),
+        this.ensureBucketExists(PRIVATE_BUCKET, false),
+      ]);
+      
+      // Cấu hình CORS để cho phép upload từ trình duyệt
+      await this.ensureCorsConfig(PUBLIC_BUCKET);
+      await this.ensureCorsConfig(PRIVATE_BUCKET);
+      
       this.isAvailable = true;
     } catch (err) {
       this.isAvailable = false;
       this.logger.warn(
-        '[MinIO] Unavailable at startup; layout persistence to object storage is disabled for this run.',
+        '[MinIO] Unavailable at startup; object storage features may be disabled.',
       );
       if (err instanceof Error) {
         this.logger.warn(err.message);
@@ -204,13 +217,76 @@ export class MinioService implements OnModuleInit {
     }
   }
 
+  private async ensureCorsConfig(bucket: string): Promise<void> {
+    const corsRules = {
+      CORSRules: [
+        {
+          AllowedHeaders: ['*'],
+          AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
+          AllowedOrigins: ['*'], // Trong thực tế nên giới hạn domain của admin/storefront
+          ExposeHeaders: ['ETag'],
+          MaxAgeSeconds: 3000,
+        },
+      ],
+    };
+
+    try {
+      await this.client.send(
+        new PutBucketCorsCommand({
+          Bucket: bucket,
+          CORSConfiguration: corsRules,
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(`[MinIO] Could not set CORS policy for bucket ${bucket}: ${error}`);
+    }
+  }
+
   // ─────────────────────────────────────────
   // Media Upload (Images)
   // ─────────────────────────────────────────
 
   /**
-   * Uploads and optimizes an image to WebP format.
-   * Returns the full URL to the uploaded file.
+   * Tạo Presigned URL để Frontend upload trực tiếp lên MinIO.
+   */
+  async getUploadPresignedUrl(
+    shopId: string,
+    fileName: string,
+    contentType: string,
+    isPublic = true,
+  ): Promise<{ uploadUrl: string; fileUrl: string; key: string }> {
+    if (!this.isAvailable) {
+      throw new Error('Storage is currently unavailable');
+    }
+
+    const bucket = isPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
+    const fileExtension = fileName.split('.').pop() || 'bin';
+    const uniqueId = uuidv4();
+    const objectKey = `${shopId}/${uniqueId}.${fileExtension}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: objectKey,
+      ContentType: contentType,
+    });
+
+    // URL hết hạn sau 15 phút
+    const uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 900 });
+
+    const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
+    const port = process.env.MINIO_PORT ?? '9000';
+    const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+    
+    // Nếu là public bucket, trả về URL truy cập trực tiếp
+    const fileUrl = isPublic 
+      ? `${protocol}://${endpoint}:${port}/${bucket}/${objectKey}`
+      : `private://${bucket}/${objectKey}`; // Private key để Backend xử lý sau
+
+    return { uploadUrl, fileUrl, key: objectKey };
+  }
+
+  /**
+   * Uploads and optimizes an image to WebP format (Legacy/Server-side).
    */
   async uploadMedia(shopId: string, fileBuffer: Buffer, originalName: string): Promise<string> {
     if (!this.isAvailable) {
@@ -218,36 +294,28 @@ export class MinioService implements OnModuleInit {
     }
 
     try {
-      // Import sharp dynamically so it doesn't block startup if missing
       const sharp = (await import('sharp')).default;
-      
-      // Optimize to WebP
-      const optimizedBuffer = await sharp(fileBuffer)
-        .webp({ quality: 80 })
-        .toBuffer();
+      const optimizedBuffer = await sharp(fileBuffer).webp({ quality: 80 }).toBuffer();
 
       const timestamp = Date.now();
-      // Clean filename, just get alphanumeric parts
       const cleanName = originalName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
       const objectKey = `${shopId}/${timestamp}-${cleanName}.webp`;
 
       await this.client.send(
         new PutObjectCommand({
-          Bucket: MEDIA_BUCKET,
+          Bucket: PUBLIC_BUCKET,
           Key: objectKey,
           Body: optimizedBuffer,
           ContentType: 'image/webp',
         }),
       );
 
-      this.logger.log(`[MinIO] Uploaded media → ${MEDIA_BUCKET}/${objectKey}`);
-      
       const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
       const port = process.env.MINIO_PORT ?? '9000';
       const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
-      return `${protocol}://${endpoint}:${port}/${MEDIA_BUCKET}/${objectKey}`;
+      return `${protocol}://${endpoint}:${port}/${PUBLIC_BUCKET}/${objectKey}`;
     } catch (error) {
-      this.logger.error(`[MinIO] uploadMedia failed for shopId=${shopId}`, error instanceof Error ? error.stack : error);
+      this.logger.error(`[MinIO] uploadMedia failed`, error);
       throw error;
     }
   }

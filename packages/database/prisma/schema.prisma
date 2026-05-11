@@ -141,6 +141,8 @@ model Shop {
   shopPages      ShopPage[]
 
   mergedLayoutsCache MergedLayoutsCache?
+  media              Media[]
+  storageUsage       StorageUsage?
 
   @@map("shops")
 }
@@ -744,4 +746,43 @@ model MergedLayoutsCache {
 
   @@index([shopId])
   @@map("merged_layouts_cache")
+}
+
+// ==========================================
+// Media & Storage Management Models
+// ==========================================
+
+model Media {
+  id        String   @id @default(uuid())
+  shopId    String
+  url       String
+  key       String   // S3/MinIO key (prefix/filename)
+  bucket    String   // shop-public or shop-private
+  mimeType  String
+  size      Int      // In bytes
+  width     Int?
+  height    Int?
+  blurHash  String?  // For premium loading experience
+  alt       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("media")
+}
+
+model StorageUsage {
+  id            String   @id @default(uuid())
+  shopId        String   @unique
+  usedBytes     BigInt   @default(0)
+  totalLimit    BigInt   @default(1073741824) // Default 1GB
+  chunkCount    Int      @default(0)         // Number of 16MB chunks used
+  lastUpdated   DateTime @default(now())
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("storage_usage")
 }

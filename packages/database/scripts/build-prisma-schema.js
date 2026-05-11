@@ -29,6 +29,7 @@ const MODEL_FILES = [
   'geography-tax.prisma',
   'promotion.prisma',
   'content.prisma',
+  'media.prisma',
 ];
 
 /**

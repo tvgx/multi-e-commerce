@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Body,
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
@@ -11,18 +12,63 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { MinioService } from './minio.service';
+import { StorageQuotaService } from './storage-quota.service';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 
 @Controller('storage')
 export class StorageController {
-  constructor(private readonly minioService: MinioService) {}
+  constructor(
+    private readonly minioService: MinioService,
+    private readonly storageQuotaService: StorageQuotaService,
+  ) {}
+
+  @Post('presigned-url')
+  @UseGuards(BetterAuthGuard)
+  async getPresignedUrl(
+    @Req() req: any,
+    @Body() body: { fileName: string; contentType: string; isPublic?: boolean; size?: number },
+  ) {
+    const { fileName, contentType, isPublic = true, size } = body;
+    const shopId = req.user?.shopId || 'default-shop';
+
+    if (size) {
+      await this.storageQuotaService.checkQuota(shopId, size);
+    }
+
+    const result = await this.minioService.getUploadPresignedUrl(
+      shopId,
+      fileName,
+      contentType,
+      isPublic,
+    );
+
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
+  @Post('confirm-upload')
+  @UseGuards(BetterAuthGuard)
+  async confirmUpload(
+    @Req() req: any,
+    @Body() body: { key: string; size: number; bucket: string },
+  ) {
+    const shopId = req.user?.shopId || 'default-shop';
+    await this.storageQuotaService.recordUpload(shopId, body.size);
+
+    return {
+      success: true,
+      message: 'Upload confirmed and quota updated',
+    };
+  }
 
   @Post('upload')
   @UseGuards(BetterAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 10 * 1024 * 1024, // 10MB limit
       },
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
@@ -46,6 +92,9 @@ export class StorageController {
 
     let shopId = req.user?.shopId || 'default-shop';
     
+    // Check quota
+    await this.storageQuotaService.checkQuota(shopId, file.size);
+
     // Nếu upload type là avatar của customer
     if (uploadType === 'avatar') {
        const userId = req.user?.id || 'unknown-user';
@@ -57,6 +106,9 @@ export class StorageController {
       file.buffer,
       file.originalname,
     );
+
+    // Record usage
+    await this.storageQuotaService.recordUpload(shopId, file.size);
 
     return {
       success: true,
@@ -70,7 +122,7 @@ export class StorageController {
   @UseInterceptors(
     FilesInterceptor('files', 10, { // Max 10 files
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB per file
+        fileSize: 10 * 1024 * 1024, // 10MB per file
       },
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
@@ -94,6 +146,9 @@ export class StorageController {
 
     let shopId = req.user?.shopId || 'default-shop';
     
+    const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+    await this.storageQuotaService.checkQuota(shopId, totalSize);
+
     if (uploadType === 'avatar') {
        const userId = req.user?.id || 'unknown-user';
        shopId = `${shopId}/customers/${userId}`;
@@ -108,6 +163,9 @@ export class StorageController {
     );
 
     const urls = await Promise.all(uploadPromises);
+    
+    // Record total usage
+    await this.storageQuotaService.recordUpload(shopId, totalSize);
 
     return {
       success: true,
