@@ -114,6 +114,7 @@ model Shop {
   onboardingStep   Int       @default(1)
   onboardingStatus Json?     @default("{}")
   domainVerified   Boolean   @default(false)
+  bankAccount      Json?     @default("{}") // { bankName, accountNumber, accountHolder }
 
   // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
   mapAddress        String? // Tọa độ hoặc địa chỉ map
@@ -122,6 +123,7 @@ model Shop {
   licenseIssuedBy   String? // Nơi cấp
   licenseExpiryDate DateTime?
 
+  currency         String    @default("VND")
   productsPerPage Int @default(30)
 
   createdAt DateTime @default(now())
@@ -131,16 +133,12 @@ model Shop {
   orders    Order[]
   products  Product[]
   stockLocations StockLocation[]
-  markets   Market[]
-  zones     Zone[]
-  taxCategories TaxCategory[]
   promotions Promotion[]
   paymentMethods PaymentMethod[]
   collections    Collection[]
   navigationMenus NavigationMenu[]
   shopPages      ShopPage[]
 
-  mergedLayoutsCache MergedLayoutsCache?
   media              Media[]
   storageUsage       StorageUsage?
 
@@ -228,11 +226,7 @@ model Product {
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId    String?
-  taxCategoryId String?
-  brand         String?
-
   shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  taxCategory   TaxCategory? @relation(fields: [taxCategoryId], references: [id])
   variants      Variant[]
   optionTypes   ProductOptionType[]
   collections   ProductCollection[]
@@ -257,7 +251,6 @@ model Variant {
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
   lineItems   LineItem[]
-  inventoryUnits InventoryUnit[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -332,7 +325,6 @@ model StockLocation {
 
   shop                 Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   stockItems           StockItem[]
-  shipmentsFrom        Shipment[]  @relation("ShipsFrom")
 
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
@@ -350,28 +342,12 @@ model StockItem {
 
   stockLocation   StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
   variant         Variant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  stockMovements  StockMovement[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@unique([stockLocationId, variantId])
   @@map("stock_items")
-}
-
-model StockMovement {
-  id           String   @id @default(uuid())
-  stockItemId  String
-  quantity     Int
-  action       String?  // vd: "ORDER CHILD", "RESTOCK", "MANUAL ADJUST"
-  originatorId String?  // ID của OrderItem hoặc User thực hiện
-
-  stockItem    StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-
-  createdAt    DateTime @default(now())
-
-  @@index([stockItemId])
-  @@map("stock_movements")
 }
 
 // ==========================================
@@ -402,9 +378,7 @@ model Order {
   shop          Shop          @relation(fields: [shopId], references: [id])
   customer      Customer      @relation(fields: [customerId], references: [id])
   lineItems     LineItem[]
-  shipments     Shipment[]
   payments      Payment[]
-  adjustments   Adjustment[]
 
   @@index([shopId])
   @@index([number])
@@ -423,69 +397,9 @@ model LineItem {
 
   order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant         Variant      @relation(fields: [variantId], references: [id])
-  inventoryUnits  InventoryUnit[]
-  adjustments     Adjustment[]
 
   @@index([orderId])
   @@map("line_items")
-}
-
-model Shipment {
-  id              String   @id @default(uuid())
-  orderId         String
-  stockLocationId String
-  number          String   @unique
-  tracking        String?
-  state           String   @default("pending") // pending, ready, shipped, canceled
-  cost            Float    @default(0)
-  shippedAt       DateTime?
-
-  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  stockLocation   StockLocation @relation("ShipsFrom", fields: [stockLocationId], references: [id])
-  inventoryUnits  InventoryUnit[]
-  adjustments     Adjustment[]
-
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@index([orderId])
-  @@map("shipments")
-}
-
-model InventoryUnit {
-  id          String   @id @default(uuid())
-  lineItemId  String
-  variantId   String
-  shipmentId  String?
-  state       String   @default("on_hand") // on_hand, backordered, shipped
-
-  lineItem    LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
-  variant     Variant  @relation(fields: [variantId], references: [id])
-  shipment    Shipment? @relation(fields: [shipmentId], references: [id])
-
-  @@index([lineItemId])
-  @@index([variantId])
-  @@map("inventory_units")
-}
-
-model Adjustment {
-  id          String   @id @default(uuid())
-  orderId     String
-  adjustableId String  // Morphic: ID của LineItem, Shipment hoặc Order (nhưng Prisma dùng relation cụ thể)
-
-  label       String   // vd: "VAT 10%", "Freeship Promotion"
-  amount      Float
-  included    Boolean  @default(false)
-
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  lineItem    LineItem? @relation(fields: [adjustableId], references: [id], map: "adj_line_item")
-  shipment    Shipment? @relation(fields: [adjustableId], references: [id], map: "adj_shipment")
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([orderId])
-  @@map("adjustments")
 }
 
 // ==========================================
@@ -503,6 +417,7 @@ model PaymentMethod {
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   payments    Payment[]
 
+  @@unique([shopId, type])
   @@map("payment_methods")
 }
 
@@ -522,102 +437,6 @@ model Payment {
 
   @@index([orderId])
   @@map("payments")
-}
-
-// ==========================================
-// Geography & Tax Models
-// ==========================================
-
-model Market {
-  id              String   @id @default(uuid())
-  shopId          String
-  name            String
-  currency        String   @default("VND")
-  defaultLocale   String   @default("vi")
-  taxInclusive    Boolean  @default(true)
-  isActive        Boolean  @default(true)
-
-  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  marketCountries MarketCountry[]
-
-  @@index([shopId])
-  @@map("markets")
-}
-
-model Country {
-  id              String   @id @default(uuid())
-  iso             String   @unique // vd: "VN", "US"
-  name            String
-
-  marketCountries MarketCountry[]
-  zoneMembers     ZoneMember[]
-
-  @@map("countries")
-}
-
-model MarketCountry {
-  id        String   @id @default(uuid())
-  marketId  String
-  countryId String
-
-  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
-  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-
-  @@unique([marketId, countryId])
-  @@map("market_countries")
-}
-
-model Zone {
-  id          String   @id @default(uuid())
-  shopId      String
-  name        String
-  kind        String   // country, state
-
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  members     ZoneMember[]
-  taxRates    TaxRate[]
-
-  @@map("zones")
-}
-
-model ZoneMember {
-  id        String   @id @default(uuid())
-  zoneId    String
-  countryId String
-
-  zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-
-  @@index([zoneId])
-  @@map("zone_members")
-}
-
-model TaxCategory {
-  id          String   @id @default(uuid())
-  shopId      String
-  name        String
-  isDefault   Boolean  @default(false)
-  taxCode     String?
-
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  taxRates    TaxRate[]
-  products    Product[]
-
-  @@map("tax_categories")
-}
-
-model TaxRate {
-  id            String   @id @default(uuid())
-  taxCategoryId String
-  zoneId        String
-  name          String
-  amount        Float    @default(0) // Percentage (vd: 0.1 for 10%)
-  included      Boolean  @default(false)
-
-  taxCategory   TaxCategory @relation(fields: [taxCategoryId], references: [id], onDelete: Cascade)
-  zone          Zone        @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-
-  @@map("tax_rates")
 }
 
 // ==========================================
@@ -668,9 +487,6 @@ model Collection {
   description String?
   imageUrl    String?
   isActive    Boolean  @default(true)
-  // Người dùng có thể override layout mặc định của trang Collection bằng Builder
-  // null = dùng default Product Grid template
-  layoutJson  Json?    // sections: PageSection[] — giống Homepage JSON
 
   shop        Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
   products    ProductCollection[]
@@ -717,14 +533,11 @@ model NavigationMenu {
 }
 
 // Custom Pages: /pages/about, /pages/faq — do user tạo
-// Dùng JSON sections (giống Homepage) thay vì HTML thuần
 model ShopPage {
   id        String   @id @default(uuid())
   shopId    String
   slug      String   // vd: about, faq, contact
   title     String
-  // sections: PageSection[] — Builder JSON, giống homepage layout
-  sections  Json     @default("[]")
   isVisible Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -734,18 +547,6 @@ model ShopPage {
   @@unique([shopId, slug])
   @@index([shopId])
   @@map("shop_pages")
-}
-
-model MergedLayoutsCache {
-  id           String   @id @default(uuid())
-  shopId       String   @unique
-  layoutJson   Json     // Toàn bộ cục JSON đã được Merge hoàn chỉnh
-  lastSyncedAt DateTime @default(now())
-
-  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  @@index([shopId])
-  @@map("merged_layouts_cache")
 }
 
 // ==========================================

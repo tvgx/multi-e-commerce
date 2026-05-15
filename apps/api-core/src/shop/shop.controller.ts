@@ -56,7 +56,9 @@ export class ShopController {
   }
 
   @Get('shops/my-shops')
-  async getMyShops(@CurrentUser() user: any): Promise<BaseResponseDto<object[]>> {
+  async getMyShops(
+    @CurrentUser() user: any,
+  ): Promise<BaseResponseDto<object[]>> {
     return this.shopService.getMyShops(user.id);
   }
 

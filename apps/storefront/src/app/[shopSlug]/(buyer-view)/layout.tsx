@@ -1,4 +1,4 @@
-import { getShopInfo, getNavigationMenu, getShopGlobalLayout } from '@/lib/api/storefront.api';
+import { getShopBootstrapData } from '@/lib/api/storefront.api';
 import React from 'react';
 import { CartInitializer } from '@ecommerce/ui-registry/src/components/cart/CartInitializer';
 import { CartSidebar } from '@ecommerce/ui-registry/src/components/cart/CartSidebar';
@@ -14,13 +14,13 @@ interface Props {
 export default async function BuyerLayout({ children, params }: Props) {
     const { shopSlug } = await params;
 
-    // Parallel fetch for shop info, menus, and global layout
-    const [shopInfo, mainMenu, footerMenu, globalLayout] = await Promise.all([
-        getShopInfo(shopSlug),
-        getNavigationMenu(shopSlug, 'main-menu'),
-        getNavigationMenu(shopSlug, 'footer-menu'),
-        getShopGlobalLayout(shopSlug),
-    ]);
+    // Combined fetch via Bootstrap API (Reduces 4 round-trips to 1)
+    const bootstrapData = await getShopBootstrapData(shopSlug);
+
+    const shopInfo = bootstrapData?.shop;
+    const globalLayout = bootstrapData?.globalLayout;
+    const mainMenu = bootstrapData?.navigation?.mainMenu;
+    const footerMenu = bootstrapData?.navigation?.footerMenu;
 
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
     const globalComponents = globalLayout?.globalComponents || [];

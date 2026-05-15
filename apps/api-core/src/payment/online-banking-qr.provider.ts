@@ -69,8 +69,12 @@ export class OnlineBankingQRProvider implements PaymentProvider {
         note: `Order #${orderId}`,
       };
 
-      // Generate QR code image (base64)
-      const qrCodeBase64 = await this.qrCodeService.generateQRCode(qrData);
+      // Generate QR code image (base64) from URL
+      // Format: STOREFRONT_URL/payment/confirm?paymentId=...
+      const storefrontUrl =
+        process.env.STOREFRONT_URL || 'http://localhost:3002';
+      const paymentUrl = `${storefrontUrl}/payment/confirm?id=${transactionId}`;
+      const qrCodeBase64 = await this.qrCodeService.generateQRCode(paymentUrl);
 
       this.logger.log(
         `Online Banking QR Code created - Transaction: ${transactionId}, Amount: ${amount} ${currency}, Order: ${orderId}`,
@@ -81,7 +85,7 @@ export class OnlineBankingQRProvider implements PaymentProvider {
         status: 'PENDING',
         qrCode: qrCodeBase64,
         qrData,
-        paymentUrl: `data:image/png;base64,${qrCodeBase64}`,
+        paymentUrl, // Now this is the actual confirmation URL
       };
     } catch (error) {
       const errorMessage =

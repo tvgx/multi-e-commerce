@@ -2,6 +2,7 @@ import {
   Injectable,
   HttpStatus,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from '../common/services/tenant.service';
@@ -9,12 +10,15 @@ import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { CreatePageDto, UpdatePageDto } from './dto/pages-zod.dto';
+import { LayoutService } from '../layout/layout.service';
+import { PageLayout } from '@ecommerce/database';
 
 @Injectable()
 export class PagesService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly tenantService: TenantService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(TenantService) private readonly tenantService: TenantService,
+    @Inject(LayoutService) private readonly layoutService: LayoutService,
   ) {}
 
   async createPage(
@@ -42,7 +46,7 @@ export class PagesService {
       }
 
       // Check slug uniqueness
-      const existing = await (this.prisma as any).shopPage.findUnique({
+      const existing = await this.prisma.shopPage.findUnique({
         where: { shopId_slug: { shopId, slug: dto.slug } },
       });
       if (existing) {
@@ -53,13 +57,22 @@ export class PagesService {
         );
       }
 
-      const page = await (this.prisma as any).shopPage.create({
+      // 1. Create Metadata in Postgres (Registry)
+      const page = await this.prisma.shopPage.create({
         data: {
-          ...dto,
+          title: dto.title,
+          slug: dto.slug,
+          isVisible: dto.isVisible,
           shopId,
-          sections: dto.sections,
         },
       });
+
+      // 2. Create/Publish Content in MongoDB using LayoutService
+      await this.layoutService.publishPageLayout(ownerId, shopId, 'custom_page', {
+        pageType: 'custom_page',
+        slug: dto.slug,
+        components: dto.sections || [],
+      } as any);
 
       return BaseResponseDto.success(page);
     } catch (error) {
@@ -93,7 +106,17 @@ export class PagesService {
       );
     }
 
-    return BaseResponseDto.success(page);
+    // Fetch content from MongoDB using shared model
+    const layout = await PageLayout.findOne({
+      shopId: targetShopId,
+      pageType: 'custom_page',
+      slug,
+    }).lean();
+
+    return BaseResponseDto.success({
+      ...page,
+      sections: layout?.publishedData?.['components'] || [],
+    });
   }
 
   async updatePage(
@@ -120,13 +143,29 @@ export class PagesService {
           HttpStatus.FORBIDDEN,
         );
 
+      // 1. Update Metadata in Postgres
       const updated = await this.prisma.shopPage.update({
         where: { id },
         data: {
-          ...dto,
-          sections: dto.sections,
+          title: dto.title,
+          slug: dto.slug,
+          isVisible: dto.isVisible,
         },
       });
+
+      // 2. Update Content in MongoDB if sections provided
+      if (dto.sections || (dto.slug && dto.slug !== page.slug)) {
+        await this.layoutService.publishPageLayout(ownerId, page.shopId, 'custom_page', {
+          pageType: 'custom_page',
+          slug: dto.slug || page.slug,
+          components: dto.sections || [],
+        } as any);
+        
+        // If slug changed, we should probably delete the old layout in Mongo
+        if (dto.slug && dto.slug !== page.slug) {
+            await PageLayout.deleteOne({ shopId: page.shopId, pageType: 'custom_page', slug: page.slug });
+        }
+      }
 
       return BaseResponseDto.success(updated);
     } catch (error) {

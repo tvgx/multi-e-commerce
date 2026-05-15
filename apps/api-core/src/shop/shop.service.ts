@@ -8,7 +8,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { MongoProduct, GlobalLayout } from '@ecommerce/database';
 import { LayoutService } from '../layout/layout.service';
 import { ProductService } from '../product/product.service';
 import { CollectionService } from '../collection/collection.service';
@@ -22,6 +21,7 @@ import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { TenantService } from '../common/services/tenant.service';
 import { DomainVerifyService } from './domain-verify.service';
+import { SystemCacheService } from '../system/cache/cache.service';
 
 @Injectable()
 export class ShopService {
@@ -40,6 +40,8 @@ export class ShopService {
     private readonly productService: ProductService,
     @Inject(CollectionService)
     private readonly collectionService: CollectionService,
+    @Inject(SystemCacheService)
+    private readonly cacheService: SystemCacheService,
   ) {}
 
   // UC-01: Tenant Registration
@@ -49,7 +51,10 @@ export class ShopService {
     try {
       let normalizedDomain = dto.domain.trim().toLowerCase();
       // Ensure .localhost suffix in development if only a slug is provided
-      if (!normalizedDomain.includes('.') && process.env.NODE_ENV !== 'production') {
+      if (
+        !normalizedDomain.includes('.') &&
+        process.env.NODE_ENV !== 'production'
+      ) {
         normalizedDomain = `${normalizedDomain}.localhost`;
       }
 
@@ -129,7 +134,7 @@ export class ShopService {
         await this.layoutService.publishGlobalLayout(owner.id, shop.id, {
           templateType: shop.templateType,
           globalComponents: [],
-          theme: {}
+          theme: {},
         } as any);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -191,18 +196,7 @@ export class ShopService {
       }
 
       // Trigger Next.js Revalidation
-      try {
-        const storefrontUrl = process.env.STOREFRONT_URL || 'http://localhost:3001';
-        const secret = process.env.REVALIDATE_SECRET || 'dev_secret';
-        await fetch(`${storefrontUrl}/api/revalidate?tag=layout-${shop.id}&secret=${secret}`, {
-          method: 'POST',
-        }).catch(() => {
-            // Ignore fetch errors, just log
-            this.logger.warn(`Failed to reach Storefront for revalidation.`);
-        });
-      } catch (e) {
-          // Ignore
-      }
+      await this.cacheService.revalidateStorefront(`layout-${shop.id}`);
 
       // 7. Return UC-01 spec-compliant response
       return BaseResponseDto.success({
@@ -294,7 +288,7 @@ export class ShopService {
         await this.layoutService.publishGlobalLayout(ownerId, shop.id, {
           templateType: shop.templateType,
           globalComponents: [],
-          theme: {}
+          theme: {},
         } as any);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -304,18 +298,7 @@ export class ShopService {
       }
 
       // Trigger Next.js Revalidation
-      try {
-        const storefrontUrl = process.env.STOREFRONT_URL || 'http://localhost:3001';
-        const secret = process.env.REVALIDATE_SECRET || 'dev_secret';
-        await fetch(`${storefrontUrl}/api/revalidate?tag=layout-${shop.id}&secret=${secret}`, {
-          method: 'POST',
-        }).catch(() => {
-            // Ignore fetch errors, just log
-            this.logger.warn(`Failed to reach Storefront for revalidation.`);
-        });
-      } catch (e) {
-          // Ignore
-      }
+      await this.cacheService.revalidateStorefront(`layout-${shop.id}`);
 
       return BaseResponseDto.success(shop);
     } catch (error) {
@@ -328,6 +311,10 @@ export class ShopService {
     ownerId: string,
     shopId: string,
   ): Promise<BaseResponseDto<any>> {
+    const cacheKey = `onboarding:${shopId}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
     const shop = await (this.prisma as any).shop.findUnique({
       where: { id: shopId },
       select: {
@@ -360,7 +347,7 @@ export class ShopService {
 
     const status = shop.onboardingStatus || {};
 
-    return BaseResponseDto.success({
+    const onboardingData = {
       currentStep: shop.onboardingStep,
       steps: {
         step1: { status: 'COMPLETED', label: 'Create Store' },
@@ -384,7 +371,12 @@ export class ShopService {
           label: 'Verify Domain',
         },
       },
-    });
+    };
+
+    // Cache onboarding data for 1 minute
+    await this.cacheService.set(cacheKey, onboardingData, 60000);
+
+    return BaseResponseDto.success(onboardingData);
   }
 
   async completeStep(
@@ -430,8 +422,40 @@ export class ShopService {
         isValid = true; // Homepage design always has a default after step 1
         break;
       case 6:
+        const bankInfo = shop.bankAccount;
+        isValid = !!(
+          bankInfo?.bankName &&
+          bankInfo?.accountNumber &&
+          bankInfo?.accountHolder
+        );
+        if (isValid) {
+          // Initialize default payment methods for this shop
+          await (this.prisma as any).paymentMethod.upsert({
+            where: { shopId_type: { shopId, type: 'QRPAY' } },
+            update: { active: true },
+            create: {
+              shopId,
+              type: 'QRPAY',
+              name: 'Chuyển khoản QR (QRPAY)',
+              description: 'Thanh toán quét mã QR qua ứng dụng ngân hàng',
+              active: true,
+            },
+          });
+          await (this.prisma as any).paymentMethod.upsert({
+            where: { shopId_type: { shopId, type: 'COD' } },
+            update: { active: true },
+            create: {
+              shopId,
+              type: 'COD',
+              name: 'Thanh toán khi nhận hàng (COD)',
+              description: 'Thanh toán tiền mặt khi shipper giao hàng tới',
+              active: true,
+            },
+          });
+        }
+        break;
       case 7:
-        isValid = true; // Placeholders for now
+        isValid = true; // Placeholder for shipping & tax
         break;
       case 8:
         if (!shop.domain)
@@ -477,6 +501,12 @@ export class ShopService {
         status: step === 8 ? 'PUBLISHED' : 'DRAFT',
       },
     });
+
+    // Invalidate onboarding cache
+    await this.cacheService.del(`onboarding:${shopId}`);
+    if (step === 8) {
+      await this.cacheService.revalidateStorefront(`layout-${shopId}`);
+    }
 
     return BaseResponseDto.success(updatedShop);
   }
@@ -529,6 +559,18 @@ export class ShopService {
         },
       });
 
+      // Invalidate caches
+      await this.cacheService.del(`shop-settings:${targetId}`);
+      await this.cacheService.del(`shop-resolve:${targetId}`);
+      if (shop.domain)
+        await this.cacheService.del(
+          `shop-resolve:${shop.domain.toLowerCase()}`,
+        );
+      if (normalizedDomain)
+        await this.cacheService.del(`shop-resolve:${normalizedDomain}`);
+
+      await this.cacheService.revalidateStorefront(`layout-${targetId}`);
+
       return BaseResponseDto.success(updated);
     } catch (error) {
       if (error instanceof CustomException) throw error;
@@ -548,6 +590,10 @@ export class ShopService {
       );
     }
 
+    const cacheKey = `shop-settings:${targetId}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
     const shop = await this.prisma.shop.findUnique({
       where: { id: targetId },
       include: {
@@ -565,17 +611,22 @@ export class ShopService {
       );
     }
 
-    const template = (await GlobalLayout.findOne(
-      { shopId: targetId },
-      { publishedData: 1, _id: 0 },
-    ).lean()) as {
-      publishedData?: Record<string, unknown>;
+    const layoutRes = await this.layoutService.getGlobalLayout(targetId);
+    const uiStructure = layoutRes.data;
+
+    const paymentMethods = await this.prisma.paymentMethod.findMany({
+      where: { shopId: targetId, active: true },
+    });
+
+    const result = {
+      metadata: shop,
+      uiStructure,
+      paymentMethods,
     };
 
-    return BaseResponseDto.success({
-      metadata: shop,
-      uiStructure: template?.publishedData || null,
-    });
+    await this.cacheService.set(cacheKey, result, 300000); // 5 minutes cache
+
+    return BaseResponseDto.success(result);
   }
 
   async getMyShops(ownerId: string): Promise<BaseResponseDto<any>> {
@@ -598,6 +649,9 @@ export class ShopService {
 
   async resolveShop(identifier: string): Promise<BaseResponseDto<object>> {
     const normalized = identifier.trim().toLowerCase();
+    const cacheKey = `shop-resolve:${normalized}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
 
     const shop = await this.prisma.shop.findFirst({
       where: {
@@ -622,7 +676,7 @@ export class ShopService {
       );
     }
 
+    await this.cacheService.set(cacheKey, shop, 600000); // 10 minutes cache
     return BaseResponseDto.success(shop);
   }
 }
-

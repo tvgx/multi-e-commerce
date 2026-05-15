@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 
-const SECRET = process.env.BETTER_AUTH_SECRET || 'default_fallback_secret_key_12345';
+const SECRET =
+  process.env.BETTER_AUTH_SECRET || 'default_fallback_secret_key_12345';
 
 // Helper to base64url encode
 function base64urlEncode(str: string | Buffer): string {
@@ -12,7 +13,10 @@ function base64urlEncode(str: string | Buffer): string {
 }
 
 // Generate JWT Token
-export function signJwt(payload: Record<string, any>, expiresInDays: number = 7): string {
+export function signJwt(
+  payload: Record<string, any>,
+  expiresInDays: number = 7,
+): string {
   const header = {
     alg: 'HS256',
     typ: 'JWT',
@@ -31,7 +35,10 @@ export function signJwt(payload: Record<string, any>, expiresInDays: number = 7)
   const encodedPayload = base64urlEncode(JSON.stringify(payloadWithClaims));
 
   const signatureInput = `${encodedHeader}.${encodedPayload}`;
-  const signature = crypto.createHmac('sha256', SECRET).update(signatureInput).digest('base64url');
+  const signature = crypto
+    .createHmac('sha256', SECRET)
+    .update(signatureInput)
+    .digest('base64url');
 
   return `${signatureInput}.${signature}`;
 }
@@ -46,14 +53,19 @@ export function verifyJwt(token: string): Record<string, any> {
 
     const [encodedHeader, encodedPayload, signature] = parts;
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
-    
-    const expectedSignature = crypto.createHmac('sha256', SECRET).update(signatureInput).digest('base64url');
+
+    const expectedSignature = crypto
+      .createHmac('sha256', SECRET)
+      .update(signatureInput)
+      .digest('base64url');
 
     if (signature !== expectedSignature) {
       throw new Error('Invalid signature');
     }
 
-    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf-8'));
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf-8'),
+    );
 
     if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
       throw new Error('Token expired');
@@ -77,11 +89,14 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 // Verify Password
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const [salt, key] = hash.split(':');
     if (!salt || !key) return resolve(false);
-    
+
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
       if (err) reject(err);
       resolve(key === derivedKey.toString('hex'));

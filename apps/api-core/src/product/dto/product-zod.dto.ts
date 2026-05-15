@@ -10,18 +10,20 @@ export const CreateProductSchema = z.object({
   weight: z.number().max(20).optional(),
   inStock: z.number().int().min(0).optional().default(0),
   images: z.array(z.string()).optional().default([]),
-  extraMetadata: z.record(z.string(), z.any()).optional().default({}),
+  attributes: z.record(z.string(), z.any()).optional().default({}),
   collectionIds: z.array(z.string()).optional().default([]),
-  variants: z.array(
-    z.object({
-      sku: z.string().min(1),
-      price: z.number().min(0),
-      weight: z.number().optional(),
-      inStock: z.number().int().min(0).optional().default(0),
-      attributes: z.record(z.string(), z.string()).optional(),
-      image: z.string().optional(),
-    })
-  ).optional(),
+  variants: z
+    .array(
+      z.object({
+        sku: z.string().min(1),
+        price: z.number().min(0),
+        weight: z.number().optional(),
+        inStock: z.number().int().min(0).optional().default(0),
+        attributes: z.record(z.string(), z.string()).optional(),
+        image: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const UpdateProductSchema = z.object({
@@ -30,7 +32,7 @@ export const UpdateProductSchema = z.object({
   basePrice: z.number().min(0).max(30000000).optional(),
   weight: z.number().max(20).optional(),
   inStock: z.number().int().min(0).optional(),
-  extraMetadata: z.record(z.string(), z.any()).optional(),
+  attributes: z.record(z.string(), z.any()).optional(),
   collectionIds: z.array(z.string()).optional(),
 });
 

@@ -43,7 +43,10 @@ export class BetterAuthGuard implements CanActivate {
     // Ưu tiên header 'x-auth-type', fallback kiểm tra cả hai
     const authType = request.headers['x-auth-type'] as string | undefined;
 
-    let session: { user: Record<string, unknown>; session: Record<string, unknown> } | null = null;
+    let session: {
+      user: Record<string, unknown>;
+      session: Record<string, unknown>;
+    } | null = null;
 
     if (authType === 'customer') {
       session = await this.authService.getCustomerSession(request);

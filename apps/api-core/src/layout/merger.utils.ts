@@ -1,4 +1,8 @@
-import { ShopGlobalLayout, ShopPageLayout, UIComponentRef } from '@ecommerce/schema';
+import {
+  ShopGlobalLayout,
+  ShopPageLayout,
+  UIComponentRef,
+} from '@ecommerce/schema';
 
 /**
  * Merges an array of UI Components.
@@ -69,10 +73,7 @@ export function mergePageLayouts(
     return tenant;
   }
 
-  const components = mergeComponentArrays(
-    master.components,
-    tenant.components,
-  );
+  const components = mergeComponentArrays(master.components, tenant.components);
 
   return {
     ...master,

@@ -67,9 +67,7 @@ async function bootstrap() {
   // MinIO
   const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
   const minioPort = process.env.MINIO_PORT || '9000';
-  logger.log(
-    `🪣 MinIO Storage: http://${minioEndpoint}:${minioPort}`,
-  );
+  logger.log(`🪣 MinIO Storage: http://${minioEndpoint}:${minioPort}`);
   logger.log(`=================================================`);
 }
 bootstrap();

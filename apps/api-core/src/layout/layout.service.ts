@@ -1,11 +1,10 @@
-import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpStatus, Logger, Inject } from '@nestjs/common';
+import { SystemCacheService } from '../system/cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
 import { GlobalLayout, PageLayout } from '@ecommerce/database';
 import { mergeGlobalLayouts, mergePageLayouts } from './merger.utils';
 import { MinioService } from '../storage/minio.service';
-import {
-  StandardTemplate,
-} from '@ecommerce/master-templates';
+import { StandardTemplate } from '@ecommerce/master-templates';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
@@ -18,14 +17,24 @@ export class LayoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly minioService: MinioService,
+    @Inject(SystemCacheService)
+    private readonly cacheService: SystemCacheService,
   ) {}
 
   private async checkAuth(ownerId: string, shopId: string) {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
     if (!shop)
-      throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, 'Shop not found', HttpStatus.NOT_FOUND);
+      throw new CustomException(
+        ResponseCodes.URL_USER_IS_EXIST,
+        'Shop not found',
+        HttpStatus.NOT_FOUND,
+      );
     if (shop.ownerId !== ownerId)
-      throw new CustomException(ResponseCodes.NOT_ACCESS, 'Not access.', HttpStatus.FORBIDDEN);
+      throw new CustomException(
+        ResponseCodes.NOT_ACCESS,
+        'Not access.',
+        HttpStatus.FORBIDDEN,
+      );
     return shop;
   }
 
@@ -42,7 +51,7 @@ export class LayoutService {
         isMaster: true,
         templateType: tenantDelta.templateType || 'standard',
         globalComponents: [],
-        theme: {}
+        theme: {},
       };
 
       const finalLayout = mergeGlobalLayouts(masterTemplate, tenantDelta);
@@ -53,10 +62,17 @@ export class LayoutService {
         { upsert: true },
       );
 
+      // Invalidate Redis cache - Next fetch will re-merge on the fly
+      await this.cacheService.del(`layout:global:${shopId}`);
+
       return BaseResponseDto.success({ published: true });
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Exception error.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Exception error.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -73,7 +89,7 @@ export class LayoutService {
       const masterTemplate: ShopPageLayout = {
         isMaster: true,
         pageType: pageType,
-        components: []
+        components: [],
       };
 
       const finalLayout = mergePageLayouts(masterTemplate, tenantDelta);
@@ -84,27 +100,56 @@ export class LayoutService {
         { upsert: true },
       );
 
+      // Invalidate Redis cache for page layout
+      const cacheKey = `layout:page:${shopId}:${pageType}${tenantDelta.slug ? ':' + tenantDelta.slug : ''}`;
+      await this.cacheService.del(cacheKey);
+
       return BaseResponseDto.success({ published: true });
     } catch (error) {
       if (error instanceof CustomException) throw error;
-      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Exception error.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Exception error.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   async getGlobalLayout(shopId: string): Promise<BaseResponseDto<any>> {
+    const cacheKey = `layout:global:${shopId}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
+    // 1. Fetch from MongoDB
     const layout = await GlobalLayout.findOne({ shopId });
     if (!layout) {
       return BaseResponseDto.success(null);
     }
-    
-    // In production, merge with master again or return cached compiled version
-    const masterTemplate: ShopGlobalLayout = { isMaster: true, templateType: 'standard', globalComponents: [], theme: {} };
-    const merged = mergeGlobalLayouts(masterTemplate, layout.publishedData as any);
+
+    // 2. Perform On-the-fly Merge (Fast enough for 16GB RAM / optimized node)
+    const masterTemplate: ShopGlobalLayout = {
+      isMaster: true,
+      templateType: 'standard',
+      globalComponents: [],
+      theme: {},
+    };
+    const merged = mergeGlobalLayouts(masterTemplate, layout.publishedData);
+
+    // 3. Cache merged version in Redis (Persistent enough for performance)
+    await this.cacheService.set(cacheKey, merged, 3600000); // 1 hour Redis cache
     
     return BaseResponseDto.success(merged);
   }
 
-  async getPageLayout(shopId: string, pageType: PageType, slug?: string): Promise<BaseResponseDto<any>> {
+  async getPageLayout(
+    shopId: string,
+    pageType: PageType,
+    slug?: string,
+  ): Promise<BaseResponseDto<any>> {
+    const cacheKey = `layout:page:${shopId}:${pageType}${slug ? ':' + slug : ''}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
     const query: any = { shopId, pageType };
     if (slug) query.slug = slug;
 
@@ -113,15 +158,37 @@ export class LayoutService {
       return BaseResponseDto.success(null);
     }
 
-    const masterTemplate: ShopPageLayout = { isMaster: true, pageType, components: [] };
-    const merged = mergePageLayouts(masterTemplate, layout.publishedData as any);
+    const masterTemplate: ShopPageLayout = {
+      isMaster: true,
+      pageType,
+      components: [],
+    };
+    const merged = mergePageLayouts(masterTemplate, layout.publishedData);
 
+    await this.cacheService.set(cacheKey, merged, 3600000);
     return BaseResponseDto.success(merged);
   }
 
   async getGlobalLayoutByDomain(domain: string): Promise<BaseResponseDto<any>> {
-    const shop = await this.prisma.shop.findUnique({ where: { domain }, select: { id: true } });
-    if (!shop) throw new CustomException(ResponseCodes.URL_USER_IS_EXIST, 'Domain is not exist.', HttpStatus.NOT_FOUND);
+    const cacheKey = `domain-shop-id:${domain.toLowerCase()}`;
+    const cachedShopId = await this.cacheService.get<string>(cacheKey);
+
+    if (cachedShopId) {
+      return this.getGlobalLayout(cachedShopId);
+    }
+
+    const shop = await this.prisma.shop.findUnique({
+      where: { domain: domain.toLowerCase() },
+      select: { id: true },
+    });
+    if (!shop)
+      throw new CustomException(
+        ResponseCodes.URL_USER_IS_EXIST,
+        'Domain is not exist.',
+        HttpStatus.NOT_FOUND,
+      );
+
+    await this.cacheService.set(cacheKey, shop.id, 3600000); // 1 hour cache for mapping
     return this.getGlobalLayout(shop.id);
   }
 }

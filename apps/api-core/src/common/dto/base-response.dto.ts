@@ -11,6 +11,10 @@ export class BaseResponseDto<T> {
     }
   }
 
+  get success(): boolean {
+    return this.code === '1000';
+  }
+
   static success<T>(data?: T): BaseResponseDto<T> {
     return new BaseResponseDto('1000', 'OK', data);
   }

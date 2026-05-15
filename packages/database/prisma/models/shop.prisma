@@ -12,6 +12,7 @@ model Shop {
   onboardingStep   Int       @default(1)
   onboardingStatus Json?     @default("{}")
   domainVerified   Boolean   @default(false)
+  bankAccount      Json?     @default("{}") // { bankName, accountNumber, accountHolder }
 
   // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
   mapAddress        String? // Tọa độ hoặc địa chỉ map
@@ -20,6 +21,7 @@ model Shop {
   licenseIssuedBy   String? // Nơi cấp
   licenseExpiryDate DateTime?
 
+  currency         String    @default("VND")
   productsPerPage Int @default(30)
 
   createdAt DateTime @default(now())
@@ -29,16 +31,12 @@ model Shop {
   orders    Order[]
   products  Product[]
   stockLocations StockLocation[]
-  markets   Market[]
-  zones     Zone[]
-  taxCategories TaxCategory[]
   promotions Promotion[]
   paymentMethods PaymentMethod[]
   collections    Collection[]
   navigationMenus NavigationMenu[]
   shopPages      ShopPage[]
 
-  mergedLayoutsCache MergedLayoutsCache?
   media              Media[]
   storageUsage       StorageUsage?
 

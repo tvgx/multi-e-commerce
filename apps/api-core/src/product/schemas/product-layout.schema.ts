@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type ProductDocument = ProductLayout & Document;
 
-@Schema({ timestamps: true, collection: 'products' })
+@Schema({ timestamps: true, collection: 'product_layouts' })
 export class ProductLayout {
   @Prop({ type: String, required: true, index: true })
   productId: string; // Khớp với id bên bảng Product của PostgreSQL
@@ -28,7 +28,11 @@ export class ProductLayout {
   attributes: Record<string, any>;
 
   @Prop({ type: Array, default: [] })
-  variantsData: Array<{ sku: string, attributes: Record<string, any>, image: string }>;
+  variantsData: Array<{
+    sku: string;
+    attributes: Record<string, any>;
+    image: string;
+  }>;
 
   // Custom SEO Tags cho riêng sản phẩm
   @Prop({

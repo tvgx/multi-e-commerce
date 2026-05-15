@@ -38,10 +38,7 @@ export class NavigationController {
   }
 
   @Post()
-  async createMenu(
-    @CurrentUser() user: any,
-    @Body() dto: CreateNavigationDto,
-  ) {
+  async createMenu(@CurrentUser() user: any, @Body() dto: CreateNavigationDto) {
     return this.navigationService.createMenu(user.id, dto);
   }
 

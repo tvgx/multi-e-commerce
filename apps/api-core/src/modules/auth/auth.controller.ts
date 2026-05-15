@@ -1,4 +1,11 @@
-import { Controller, Get, Put, Body, UseGuards, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { BetterAuthGuard } from './guards/better-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';

@@ -30,9 +30,7 @@ export function createOwnerAuth(prisma: PrismaService) {
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     basePath: '/api/auth/owner',
-    trustedOrigins: [
-      process.env.ADMIN_URL || 'http://localhost:3001',
-    ],
+    trustedOrigins: [process.env.ADMIN_URL || 'http://localhost:3001'],
     advanced: {
       useSecureCookies: process.env.NODE_ENV === 'production',
       // Cookie prefix để phân biệt với customer sessions

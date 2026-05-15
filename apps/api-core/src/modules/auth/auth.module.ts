@@ -30,11 +30,6 @@ import { OWNER_AUTH, CUSTOMER_AUTH } from './auth.constants';
     Reflector,
   ],
   controllers: [AuthController],
-  exports: [
-    AuthService,
-    BetterAuthGuard,
-    OWNER_AUTH,
-    CUSTOMER_AUTH,
-  ],
+  exports: [AuthService, BetterAuthGuard, OWNER_AUTH, CUSTOMER_AUTH],
 })
 export class AuthModule {}

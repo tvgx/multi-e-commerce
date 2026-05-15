@@ -1,12 +1,10 @@
 import { Controller, Get, Header } from '@nestjs/common';
 
-
 @Controller('explorer')
 export class ExplorerController {
   @Get()
   @Header('Content-Type', 'text/html')
   getExplorer() {
-
     return `
 <!DOCTYPE html>
 <html lang="en">

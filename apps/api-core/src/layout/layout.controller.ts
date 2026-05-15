@@ -44,9 +44,17 @@ export class LayoutController {
   ): Promise<BaseResponseDto<any>> {
     const { shopId, ...layoutData } = payload;
     if (!shopId)
-      throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'Parameter is not enough.', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.PARAM_NOT_ENOUGH,
+        'Parameter is not enough.',
+        HttpStatus.BAD_REQUEST,
+      );
 
-    const result = await this.layoutService.publishGlobalLayout(user.id, shopId, layoutData);
+    const result = await this.layoutService.publishGlobalLayout(
+      user.id,
+      shopId,
+      layoutData,
+    );
     await this.cacheService.revalidateStorefront(`layout-${shopId}-global`);
     return result;
   }
@@ -58,10 +66,21 @@ export class LayoutController {
   ): Promise<BaseResponseDto<any>> {
     const { shopId, pageType, ...layoutData } = payload;
     if (!shopId || !pageType)
-      throw new CustomException(ResponseCodes.PARAM_NOT_ENOUGH, 'shopId and pageType are required.', HttpStatus.BAD_REQUEST);
+      throw new CustomException(
+        ResponseCodes.PARAM_NOT_ENOUGH,
+        'shopId and pageType are required.',
+        HttpStatus.BAD_REQUEST,
+      );
 
-    const result = await this.layoutService.publishPageLayout(user.id, shopId, pageType, layoutData);
-    await this.cacheService.revalidateStorefront(`layout-${shopId}-page-${pageType}`);
+    const result = await this.layoutService.publishPageLayout(
+      user.id,
+      shopId,
+      pageType,
+      layoutData,
+    );
+    await this.cacheService.revalidateStorefront(
+      `layout-${shopId}-page-${pageType}`,
+    );
     return result;
   }
 

@@ -40,9 +40,7 @@ export function createCustomerAuth(prisma: PrismaService) {
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     basePath: '/api/auth/customer',
-    trustedOrigins: [
-      process.env.STOREFRONT_URL || 'http://localhost:3002',
-    ],
+    trustedOrigins: [process.env.STOREFRONT_URL || 'http://localhost:3002'],
     advanced: {
       useSecureCookies: process.env.NODE_ENV === 'production',
       // Cookie prefix riêng cho customer

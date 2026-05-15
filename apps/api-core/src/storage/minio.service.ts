@@ -57,11 +57,11 @@ export class MinioService implements OnModuleInit {
         this.ensureBucketExists(PUBLIC_BUCKET, true),
         this.ensureBucketExists(PRIVATE_BUCKET, false),
       ]);
-      
+
       // Cấu hình CORS để cho phép upload từ trình duyệt
       await this.ensureCorsConfig(PUBLIC_BUCKET);
       await this.ensureCorsConfig(PRIVATE_BUCKET);
-      
+
       this.isAvailable = true;
     } catch (err) {
       this.isAvailable = false;
@@ -176,7 +176,10 @@ export class MinioService implements OnModuleInit {
   // Internal helpers
   // ─────────────────────────────────────────
 
-  private async ensureBucketExists(bucket: string, isPublic = false): Promise<void> {
+  private async ensureBucketExists(
+    bucket: string,
+    isPublic = false,
+  ): Promise<void> {
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: bucket }));
       this.logger.log(`[MinIO] Bucket ready: ${bucket}`);
@@ -210,10 +213,12 @@ export class MinioService implements OnModuleInit {
         new PutBucketPolicyCommand({
           Bucket: bucket,
           Policy: JSON.stringify(policy),
-        })
+        }),
       );
     } catch (error) {
-      this.logger.warn(`[MinIO] Could not set public policy for bucket ${bucket}: ${error}`);
+      this.logger.warn(
+        `[MinIO] Could not set public policy for bucket ${bucket}: ${error}`,
+      );
     }
   }
 
@@ -238,7 +243,9 @@ export class MinioService implements OnModuleInit {
         }),
       );
     } catch (error) {
-      this.logger.warn(`[MinIO] Could not set CORS policy for bucket ${bucket}: ${error}`);
+      this.logger.warn(
+        `[MinIO] Could not set CORS policy for bucket ${bucket}: ${error}`,
+      );
     }
   }
 
@@ -271,14 +278,16 @@ export class MinioService implements OnModuleInit {
     });
 
     // URL hết hạn sau 15 phút
-    const uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 900 });
+    const uploadUrl = await getSignedUrl(this.client, command, {
+      expiresIn: 900,
+    });
 
     const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
     const port = process.env.MINIO_PORT ?? '9000';
     const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
-    
+
     // Nếu là public bucket, trả về URL truy cập trực tiếp
-    const fileUrl = isPublic 
+    const fileUrl = isPublic
       ? `${protocol}://${endpoint}:${port}/${bucket}/${objectKey}`
       : `private://${bucket}/${objectKey}`; // Private key để Backend xử lý sau
 
@@ -288,17 +297,25 @@ export class MinioService implements OnModuleInit {
   /**
    * Uploads and optimizes an image to WebP format (Legacy/Server-side).
    */
-  async uploadMedia(shopId: string, fileBuffer: Buffer, originalName: string): Promise<string> {
+  async uploadMedia(
+    shopId: string,
+    fileBuffer: Buffer,
+    originalName: string,
+  ): Promise<string> {
     if (!this.isAvailable) {
       throw new Error('Storage is currently unavailable');
     }
 
     try {
       const sharp = (await import('sharp')).default;
-      const optimizedBuffer = await sharp(fileBuffer).webp({ quality: 80 }).toBuffer();
+      const optimizedBuffer = await sharp(fileBuffer)
+        .webp({ quality: 80 })
+        .toBuffer();
 
       const timestamp = Date.now();
-      const cleanName = originalName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+      const cleanName = originalName
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .substring(0, 20);
       const objectKey = `${shopId}/${timestamp}-${cleanName}.webp`;
 
       await this.client.send(

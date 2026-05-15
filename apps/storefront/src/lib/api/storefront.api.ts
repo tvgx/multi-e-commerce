@@ -29,6 +29,7 @@ export interface ShopInfo {
     navLinks?: { label: string; href: string }[];
     owner?: { fullName: string; email: string };
     productsPerPage?: number;
+    paymentMethods?: any[];
 }
 
 export interface ProductCard {
@@ -50,6 +51,25 @@ interface ResolvedShop {
     id: string;
     domain?: string | null;
     name?: string;
+}
+
+export async function getShopBootstrapData(shopIdentifier: string): Promise<any | null> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/shops/bootstrap/${encodeURIComponent(shopIdentifier)}`, {
+            next: {
+                tags: [`shop-bootstrap-${shopIdentifier}`],
+                revalidate: 60, // 1 minute revalidate
+            },
+        });
+
+        if (!res.ok) return null;
+
+        const body = await res.json();
+        return body?.data ?? null;
+    } catch (err) {
+        console.error(`[storefront.api] getShopBootstrapData failed for identifier=${shopIdentifier}`, err);
+        return null;
+    }
 }
 
 function getTenantHeaders(shopId: string): HeadersInit {
@@ -103,7 +123,11 @@ export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | nu
         if (!res.ok) return null;
 
         const data = await res.json();
-        return data?.data?.metadata ?? null;
+        const metadata = data?.data?.metadata;
+        if (metadata) {
+            metadata.paymentMethods = data?.data?.paymentMethods || [];
+        }
+        return metadata ?? null;
     } catch (err) {
         console.error(`[storefront.api] getShopInfo failed for shopIdentifier=${shopIdentifier}`, err);
         return null;

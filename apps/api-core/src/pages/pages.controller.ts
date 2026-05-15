@@ -32,10 +32,7 @@ export class PagesController {
   }
 
   @Post()
-  async createPage(
-    @CurrentUser() user: any,
-    @Body() dto: CreatePageDto,
-  ) {
+  async createPage(@CurrentUser() user: any, @Body() dto: CreatePageDto) {
     return this.pagesService.createPage(user.id, dto);
   }
 

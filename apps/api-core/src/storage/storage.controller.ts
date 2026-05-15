@@ -26,7 +26,13 @@ export class StorageController {
   @UseGuards(BetterAuthGuard)
   async getPresignedUrl(
     @Req() req: any,
-    @Body() body: { fileName: string; contentType: string; isPublic?: boolean; size?: number },
+    @Body()
+    body: {
+      fileName: string;
+      contentType: string;
+      isPublic?: boolean;
+      size?: number;
+    },
   ) {
     const { fileName, contentType, isPublic = true, size } = body;
     const shopId = req.user?.shopId || 'default-shop';
@@ -73,7 +79,9 @@ export class StorageController {
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
           return cb(
-            new BadRequestException('Only JPG, PNG and WebP files are allowed!'),
+            new BadRequestException(
+              'Only JPG, PNG and WebP files are allowed!',
+            ),
             false,
           );
         }
@@ -91,14 +99,14 @@ export class StorageController {
     }
 
     let shopId = req.user?.shopId || 'default-shop';
-    
+
     // Check quota
     await this.storageQuotaService.checkQuota(shopId, file.size);
 
     // Nếu upload type là avatar của customer
     if (uploadType === 'avatar') {
-       const userId = req.user?.id || 'unknown-user';
-       shopId = `${shopId}/customers/${userId}`;
+      const userId = req.user?.id || 'unknown-user';
+      shopId = `${shopId}/customers/${userId}`;
     }
 
     const url = await this.minioService.uploadMedia(
@@ -120,14 +128,17 @@ export class StorageController {
   @Post('upload/batch')
   @UseGuards(BetterAuthGuard)
   @UseInterceptors(
-    FilesInterceptor('files', 10, { // Max 10 files
+    FilesInterceptor('files', 10, {
+      // Max 10 files
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB per file
       },
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
           return cb(
-            new BadRequestException('Only JPG, PNG and WebP files are allowed!'),
+            new BadRequestException(
+              'Only JPG, PNG and WebP files are allowed!',
+            ),
             false,
           );
         }
@@ -145,25 +156,21 @@ export class StorageController {
     }
 
     let shopId = req.user?.shopId || 'default-shop';
-    
+
     const totalSize = files.reduce((acc, f) => acc + f.size, 0);
     await this.storageQuotaService.checkQuota(shopId, totalSize);
 
     if (uploadType === 'avatar') {
-       const userId = req.user?.id || 'unknown-user';
-       shopId = `${shopId}/customers/${userId}`;
+      const userId = req.user?.id || 'unknown-user';
+      shopId = `${shopId}/customers/${userId}`;
     }
 
-    const uploadPromises = files.map((file) => 
-      this.minioService.uploadMedia(
-        shopId,
-        file.buffer,
-        file.originalname,
-      )
+    const uploadPromises = files.map((file) =>
+      this.minioService.uploadMedia(shopId, file.buffer, file.originalname),
     );
 
     const urls = await Promise.all(uploadPromises);
-    
+
     // Record total usage
     await this.storageQuotaService.recordUpload(shopId, totalSize);
 

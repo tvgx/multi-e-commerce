@@ -1,4 +1,10 @@
-import { Controller, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { StorefrontAuthService } from './storefront-auth.service';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { verifyJwt } from './jwt.utils';
@@ -25,7 +31,7 @@ export class StorefrontAuthController {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid token');
     }
-    
+
     const token = authHeader.split(' ')[1];
     try {
       const payload = verifyJwt(token);

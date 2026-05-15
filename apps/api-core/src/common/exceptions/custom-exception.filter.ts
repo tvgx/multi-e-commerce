@@ -37,7 +37,9 @@ export class CustomExceptionFilter implements ExceptionFilter {
     }
 
     // Keep response format stable while surfacing root cause in server logs.
-    const isNoise = status === 404 && (req.url.includes('.well-known') || req.url.includes('favicon.ico'));
+    const isNoise =
+      status === 404 &&
+      (req.url.includes('.well-known') || req.url.includes('favicon.ico'));
 
     if (status >= 500) {
       this.logger.error(
@@ -45,7 +47,9 @@ export class CustomExceptionFilter implements ExceptionFilter {
         exception?.stack || String(exception),
       );
     } else if (!isNoise) {
-      this.logger.warn(`Http Exception (${status}): ${message} - ${req.method} ${req.url}`);
+      this.logger.warn(
+        `Http Exception (${status}): ${message} - ${req.method} ${req.url}`,
+      );
     }
 
     response.status(status).json({

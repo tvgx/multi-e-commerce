@@ -36,6 +36,14 @@ export const UpdateShopSchema = z.object({
   mapAddress: z.string().optional(),
   licenseImageUrl: z.string().url().optional(),
   productsPerPage: z.number().int().positive().optional(),
+  bankAccount: z
+    .object({
+      bankName: z.string().optional(),
+      accountNumber: z.string().optional(),
+      accountHolder: z.string().optional(),
+      branch: z.string().optional(),
+    })
+    .optional(),
 });
 
 export class RegisterTenantDto extends createZodDto(RegisterTenantSchema) {}

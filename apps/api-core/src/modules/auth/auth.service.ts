@@ -21,9 +21,10 @@ export class AuthService {
    * Xác thực session của Owner/Admin.
    * Sử dụng Better Auth's api.getSession để parse token từ cookie/header.
    */
-  async getOwnerSession(
-    request: Request,
-  ): Promise<{ user: Record<string, unknown>; session: Record<string, unknown> } | null> {
+  async getOwnerSession(request: Request): Promise<{
+    user: Record<string, unknown>;
+    session: Record<string, unknown>;
+  } | null> {
     try {
       const session = await this.ownerAuth.api.getSession({
         headers: fromNodeHeaders(request.headers),
@@ -38,9 +39,10 @@ export class AuthService {
    * Xác thực session của Customer (Storefront).
    * Sử dụng Better Auth's api.getSession với customerAuth instance riêng biệt.
    */
-  async getCustomerSession(
-    request: Request,
-  ): Promise<{ user: Record<string, unknown>; session: Record<string, unknown> } | null> {
+  async getCustomerSession(request: Request): Promise<{
+    user: Record<string, unknown>;
+    session: Record<string, unknown>;
+  } | null> {
     try {
       const session = await this.customerAuth.api.getSession({
         headers: fromNodeHeaders(request.headers),

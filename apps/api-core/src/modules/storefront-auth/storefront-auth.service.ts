@@ -61,7 +61,8 @@ export class StorefrontAuthService {
         email: customer.email,
         name: customer.name,
       },
-      message: 'Customer created. Use /api/auth/customer/sign-in/email to authenticate.',
+      message:
+        'Customer created. Use /api/auth/customer/sign-in/email to authenticate.',
     });
   }
 
@@ -89,16 +90,21 @@ export class StorefrontAuthService {
     }
 
     return BaseResponseDto.success({
-      message: 'Use /api/auth/customer/sign-in/email for session-based authentication.',
+      message:
+        'Use /api/auth/customer/sign-in/email for session-based authentication.',
       customerId: customer.id,
     });
   }
 
-  async changePassword(_body: any, _customerId: string): Promise<BaseResponseDto<any>> {
+  async changePassword(
+    _body: any,
+    _customerId: string,
+  ): Promise<BaseResponseDto<any>> {
     // Password management is now handled by Better Auth via CustomerAccount
     // Use /api/auth/customer/change-password endpoint
     return BaseResponseDto.success({
-      message: 'Use /api/auth/customer/change-password endpoint (Better Auth) for password changes.',
+      message:
+        'Use /api/auth/customer/change-password endpoint (Better Auth) for password changes.',
     });
   }
 }
