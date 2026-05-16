@@ -40,6 +40,10 @@ import { StorageModule } from './storage/storage.module';
           configService.get<string>('MONGO_DB_ATLAS') ||
           'mongodb://localhost:27017/ecommerce',
         maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        retryWrites: true,
+        retryReads: true,
       }),
     }),
     DatabaseModule,
