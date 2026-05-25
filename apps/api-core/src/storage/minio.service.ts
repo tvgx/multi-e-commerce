@@ -45,7 +45,11 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.ensureBucketExists(LAYOUT_BUCKET);
+    await this.ensureBucketExists(LAYOUT_BUCKET).catch((err) => {
+      this.logger.warn(
+        `[MinIO] Failed to connect or create bucket. MinIO features will be disabled locally. Error: ${err.message || err}`,
+      );
+    });
   }
 
   // ─────────────────────────────────────────

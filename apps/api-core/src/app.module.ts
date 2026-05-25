@@ -28,6 +28,8 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 
 @Module({
   imports: [
+    DatabaseModule,
+    CommonModule,
     MongooseModule.forRoot(
       process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce',
       {
@@ -37,7 +39,6 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     BetterAuthModule.forRoot({
       auth,
     }),
-    DatabaseModule,
     AuthModule,
     ShopModule,
     ProductModule,
@@ -49,7 +50,6 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     SystemCacheModule,
     CartModule,
     PaymentModule,
-    CommonModule,
     CollectionModule,
     NavigationModule,
     PagesModule,

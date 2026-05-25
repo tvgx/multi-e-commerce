@@ -2,6 +2,7 @@ import {
   Injectable,
   HttpStatus,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -19,7 +20,9 @@ import { TenantService } from '../common/services/tenant.service';
 @Injectable()
 export class ProductService {
   constructor(
+    @Inject(PrismaService)
     private prisma: PrismaService,
+    @Inject(TenantService)
     private tenantService: TenantService,
     @InjectModel(ProductLayout.name)
     private productLayoutModel: Model<ProductDocument>,
