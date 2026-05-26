@@ -23,7 +23,7 @@ export function SaveModal({ onClose }: { onClose: () => void }) {
     console.log(`[API Mock] Saved Layout for ${currentPage}:`, nodes);
     await new Promise((r) => setTimeout(r, 600));
     setLoading(false);
-    
+
     // Move to next page in the builder
     router.push(`/create-shop/design?domain=${domain}&shopName=${searchParams?.get("shopName")}&page=${nextPage}`);
     onClose();
@@ -38,7 +38,7 @@ export function SaveModal({ onClose }: { onClose: () => void }) {
     setLoading(false);
 
     // Redirect to Storefront
-    window.location.href = `http://${domain}.localhost:5201`;
+    window.location.href = `http://${domain}.localhost:3002`;
   };
 
   return (
@@ -72,7 +72,7 @@ export function SaveModal({ onClose }: { onClose: () => void }) {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Có, tiếp tục thiết kế"}
               </button>
             )}
-            
+
             <button
               disabled={loading}
               onClick={handleFinish}

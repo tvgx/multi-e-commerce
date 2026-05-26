@@ -208,9 +208,8 @@ async function main() {
 
     // 8. Load and modify Master Template (fashion.json)
     console.log("🎨 Cooking Master Template for Genta...");
-    const masterPath = path.join(__dirname, '../packages/master-templates/src/fashion.json');
-    const templateContent = fs.readFileSync(masterPath, 'utf8');
-    const masterTemplate = JSON.parse(templateContent);
+    const masterPath = path.join(__dirname, '../packages/master-templates/src/standard.ts');
+    const masterTemplate = require(masterPath).default;
 
     // Deep copy and modify
     const gentaLayout = {
@@ -227,9 +226,10 @@ async function main() {
     
     // Customize Hero Section to make it unique
     const homePages = gentaLayout.pages.home;
-    const heroSection = homePages.find((comp: any) => comp.componentId === "Hero");
+    const heroSection = homePages.find((comp: any) => comp.componentId === "hero_slider" || comp.componentId === "Hero");
     if (heroSection) {
         heroSection.props = {
+            ...heroSection.props,
             title: "Tuyên Ngôn Phong Cách - Genta 2026",
             subtitle: "Khám phá bộ sưu tập thời trang đương đại, vượt thời gian.",
             imageUrl: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80", 
@@ -237,9 +237,11 @@ async function main() {
         };
     }
 
-    const marqueeSection = gentaLayout.global.header.find((comp: any) => comp.componentId === "HeroMarquee");
-    if (marqueeSection) {
-        marqueeSection.props.text = "MIỄN PHÍ VẬN CHUYỂN TẤT CẢ ĐƠN HÀNG TRÊN 500,000Đ • BỘ SƯU TẬP XUÂN HÈ ĐÃ LÊN KỆ CÙNG GENTA";
+    // Fix: Use globalComponents instead of global.header
+    const globalComponents = (gentaLayout as any).globalComponents || [];
+    const navbar = globalComponents.find((comp: any) => comp.componentId === "navbar");
+    if (navbar) {
+        navbar.props.brand = "Genta Apparel";
     }
 
     // 9. Save Layout to Postgres Cache
@@ -272,7 +274,7 @@ async function main() {
 
     console.log("\n🎉 Genta Store is ready! 🎉");
     console.log(`To view: Add to hosts file (if not using next-local): 127.0.0.1 genta.ecommerce.local`);
-    console.log(`Open in browser: http://genta.localhost:5201`);
+    console.log(`Open in browser: http://genta.localhost:3002`);
     process.exit(0);
 }
 

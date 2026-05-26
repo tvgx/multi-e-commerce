@@ -5,93 +5,106 @@ import {
   Put,
   Body,
   Param,
-  HttpStatus,
+  Inject,
+  UseGuards,
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CreateShopDto, UpdateShopDto } from './dto/shop-zod.dto';
+import {
+  CreateShopDto,
+  UpdateShopDto,
+  RegisterTenantDto,
+} from './dto/shop-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
-@Controller('api/shops')
+@Controller('api')
+@UseGuards(BetterAuthGuard)
 export class ShopController {
-  constructor(private readonly shopService: ShopService) {}
+  constructor(
+    @Inject(ShopService)
+    private readonly shopService: ShopService,
+  ) {
+    this.registerTenant = this.registerTenant.bind(this);
+    this.createShop = this.createShop.bind(this);
+    this.getMyShops = this.getMyShops.bind(this);
+    this.resolveShop = this.resolveShop.bind(this);
+    this.getShopSettings = this.getShopSettings.bind(this);
+    this.updateShop = this.updateShop.bind(this);
+    this.getOnboarding = this.getOnboarding.bind(this);
+    this.completeOnboardingStep = this.completeOnboardingStep.bind(this);
+    this.getSystemAllShops = this.getSystemAllShops.bind(this);
+  }
 
-  @Post()
+  // UC-01: Tenant Registration (New spec-compliant endpoint)
+  @Public()
+  @Post('v1/tenants/register')
+  async registerTenant(
+    @Body() dto: RegisterTenantDto,
+  ): Promise<BaseResponseDto<object>> {
+    return this.shopService.registerTenant(dto);
+  }
+
+  // Legacy endpoint (kept for backward compatibility during migration period)
+  @Post('shops')
   async createShop(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Body() dto: CreateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.createShop(session.user.id, dto);
+    return this.shopService.createShop(user.id, dto);
   }
 
-  @Get('my-shops')
+  @Get('shops/my-shops')
   async getMyShops(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
   ): Promise<BaseResponseDto<object[]>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.getMyShops(session.user.id);
+    return this.shopService.getMyShops(user.id);
   }
 
-  @Get('resolve/:identifier')
+  @Public()
+  @Get('shops/resolve/:identifier')
   async resolveShop(
     @Param('identifier') identifier: string,
   ): Promise<BaseResponseDto<object>> {
     return this.shopService.resolveShop(identifier);
   }
 
-  @Get(':id')
+  @Public()
+  @Get('shops/:id')
   async getShopSettings(
     @Param('id') id: string,
   ): Promise<BaseResponseDto<object>> {
     return this.shopService.getShopSettings(id);
   }
 
-  @Put(':id')
+  @Put('shops/:id')
   async updateShop(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateShopDto,
   ): Promise<BaseResponseDto<object>> {
-    if (!session) {
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    return this.shopService.updateShop(session.user.id, id, dto);
+    return this.shopService.updateShop(user.id, id, dto);
   }
 
-  @Get(':id/onboarding')
-  async getOnboarding(@Param('id') id: string): Promise<BaseResponseDto<any>> {
-    return this.shopService.getOnboardingProgress(id);
+  @Get('shops/:id/onboarding')
+  async getOnboarding(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.shopService.getOnboardingProgress(user.id, id);
   }
 
-  @Put(':id/onboarding/complete/:step')
+  @Put('shops/:id/onboarding/complete/:step')
   async completeOnboardingStep(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Param('step') step: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.shopService.completeStep(id, parseInt(step));
+    return this.shopService.completeStep(user.id, id, parseInt(step));
   }
 
-  @Get('system/all-shops')
+  @Get('shops/system/all-shops')
   async getSystemAllShops(): Promise<BaseResponseDto<object[]>> {
     return this.shopService.getAllShops();
   }

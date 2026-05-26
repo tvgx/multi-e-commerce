@@ -1,12 +1,16 @@
 import dynamic from 'next/dynamic';
 import React from 'react';
-import { ShopLayout, UIComponentRef } from '@ecommerce/schema';
+import type { ShopPageLayout, UIComponentRef } from '@ecommerce/schema';
 
 // 1. Component Registry Map
 // This maps the string 'componentId' from the JSON database to actual React Components.
 // We use next/dynamic to ensure chunks are only loaded if they exist in the user's layout.
 
 const ComponentRegistry: Record<string, React.ComponentType<any>> = {
+    // Global
+    Header: dynamic(() => import('@ecommerce/ui-registry').then(m => m.Header)),
+    Footer: dynamic(() => import('@ecommerce/ui-registry').then(m => m.Footer)),
+
     // Banners
     Hero: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/banners/Hero').then(m => m.Hero)),
     HeroBottomAligned: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/banners/HeroBottomAligned').then(m => m.HeroBottomAligned)),
@@ -54,11 +58,7 @@ const ComponentRegistry: Record<string, React.ComponentType<any>> = {
     PullQuote: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/text/PullQuote').then(m => m.PullQuote)),
     RichText: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/text/RichText').then(m => m.RichText)),
 
-    // Global Elements (Mocked for now)
-    StandardHeader: dynamic(() => Promise.resolve(() => <header className="p-4 bg-white border-b shadow-sm"><h1 className="text-xl font-bold">Store Header</h1></header>)),
-    StandardFooter: dynamic(() => Promise.resolve(() => <footer className="p-8 bg-black text-white text-center mt-20"><p>© 2026 E-commerce Platform</p></footer>))
 };
-
 
 interface DynamicRendererProps {
     components: UIComponentRef[];
@@ -98,29 +98,19 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
 }
 
 interface LayoutRendererProps {
-    layout: ShopLayout;
-    pageKey: string; // e.g. 'home', 'catalog', 'productDetail'
+    pageLayout?: any; // ShopPageLayout
 }
 
 /**
  * Renders an entire Page Content within the shop's styling.
- * Global elements (Header/Footer) are now managed by BuyerLayout.tsx
  */
-export function LayoutRenderer({ layout, pageKey }: LayoutRendererProps) {
-    const pageComponents = layout.pages?.[pageKey] || [];
+export function LayoutRenderer({ pageLayout }: LayoutRendererProps) {
+    const pageComponents = pageLayout?.components || [];
 
     return (
-        <div
-            className="storefront-layout-wrapper"
-            style={{
-                '--theme-primary': layout.metadata?.primaryColor || '#000',
-                fontFamily: layout.metadata?.fontFamily || 'Inter, sans-serif'
-            } as React.CSSProperties}
-        >
-            {/* Main Page Content */}
-            <main className="flex-grow">
-                <DynamicRenderer components={pageComponents} />
-            </main>
-        </div>
+        <main className="flex-grow w-full">
+            <DynamicRenderer components={pageComponents} />
+        </main>
     );
 }
+

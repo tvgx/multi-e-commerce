@@ -188,8 +188,8 @@ export default function CreateShopPage() {
                       key={tmpl.id}
                       onClick={() => setFormData({ ...formData, templateId: tmpl.id })}
                       className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${formData.templateId === tmpl.id
-                          ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
-                          : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
+                        ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
+                        : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
                         }`}
                     >
                       <div className="text-3xl">{tmpl.icon}</div>
@@ -242,7 +242,7 @@ export default function CreateShopPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                   <a
-                    href={`http://${formData.domain || "my-shop"}.localhost:5201`}
+                    href={`http://${formData.domain || "my-shop"}.localhost:3002`}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200"
                   >

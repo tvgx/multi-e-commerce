@@ -12,7 +12,6 @@ model StockLocation {
 
   shop                 Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   stockItems           StockItem[]
-  shipmentsFrom        Shipment[]  @relation("ShipsFrom")
 
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
@@ -30,26 +29,10 @@ model StockItem {
 
   stockLocation   StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
   variant         Variant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  stockMovements  StockMovement[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@unique([stockLocationId, variantId])
   @@map("stock_items")
-}
-
-model StockMovement {
-  id           String   @id @default(uuid())
-  stockItemId  String
-  quantity     Int
-  action       String?  // vd: "ORDER CHILD", "RESTOCK", "MANUAL ADJUST"
-  originatorId String?  // ID của OrderItem hoặc User thực hiện
-
-  stockItem    StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-
-  createdAt    DateTime @default(now())
-
-  @@index([stockItemId])
-  @@map("stock_movements")
 }

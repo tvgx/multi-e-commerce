@@ -10,9 +10,6 @@ model Collection {
   description String?
   imageUrl    String?
   isActive    Boolean  @default(true)
-  // Người dùng có thể override layout mặc định của trang Collection bằng Builder
-  // null = dùng default Product Grid template
-  layoutJson  Json?    // sections: PageSection[] — giống Homepage JSON
 
   shop        Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
   products    ProductCollection[]
@@ -59,14 +56,11 @@ model NavigationMenu {
 }
 
 // Custom Pages: /pages/about, /pages/faq — do user tạo
-// Dùng JSON sections (giống Homepage) thay vì HTML thuần
 model ShopPage {
   id        String   @id @default(uuid())
   shopId    String
   slug      String   // vd: about, faq, contact
   title     String
-  // sections: PageSection[] — Builder JSON, giống homepage layout
-  sections  Json     @default("[]")
   isVisible Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,16 +70,4 @@ model ShopPage {
   @@unique([shopId, slug])
   @@index([shopId])
   @@map("shop_pages")
-}
-
-model MergedLayoutsCache {
-  id           String   @id @default(uuid())
-  shopId       String   @unique
-  layoutJson   Json     // Toàn bộ cục JSON đã được Merge hoàn chỉnh
-  lastSyncedAt DateTime @default(now())
-
-  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  @@index([shopId])
-  @@map("merged_layouts_cache")
 }

@@ -16,17 +16,18 @@ import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { TenantService } from '../common/services/tenant.service';
+import { SystemCacheService } from '../system/cache/cache.service';
 
 @Injectable()
 export class ProductService {
   constructor(
-    @Inject(PrismaService)
-    private prisma: PrismaService,
-    @Inject(TenantService)
-    private tenantService: TenantService,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(TenantService) private tenantService: TenantService,
     @InjectModel(ProductLayout.name)
     private productLayoutModel: Model<ProductDocument>,
-  ) {}
+    @Inject(SystemCacheService)
+    private readonly cacheService: SystemCacheService,
+  ) { }
 
   async createProduct(
     ownerId: string,
@@ -69,25 +70,6 @@ export class ProductService {
 
       // 3. Create in Postgres
       const product = await this.prisma.$transaction(async (tx: any) => {
-        const p = await tx.product.create({
-          data: {
-            name: dto.name,
-            slug: dto.slug,
-            shopId: shopId,
-            status: 'PUBLISHED',
-          },
-        });
-
-        const variant = await tx.variant.create({
-          data: {
-            productId: p.id,
-            sku: dto.sku,
-            price: dto.basePrice,
-            weight: dto.weight,
-            isMaster: true,
-          },
-        });
-
         let stockLocation = await tx.stockLocation.findFirst({
           where: { shopId, isDefault: true },
         });
@@ -102,25 +84,78 @@ export class ProductService {
           });
         }
 
-        await tx.stockItem.create({
+        const variantsToCreate =
+          dto.variants && dto.variants.length > 0
+            ? dto.variants
+            : [
+              {
+                sku: dto.sku || `SKU-${Date.now()}`,
+                price: dto.basePrice || 0,
+                weight: dto.weight,
+                inStock: dto.inStock || 0,
+                isMaster: true,
+              },
+            ];
+
+        const p = await tx.product.create({
           data: {
-            stockLocationId: stockLocation.id,
-            variantId: variant.id,
-            countOnHand: dto.inStock || 0,
+            name: dto.name,
+            slug: dto.slug,
+            shopId: shopId,
+            status: 'PUBLISHED',
+            variants: {
+              create: variantsToCreate.map((vData: any, i: number) => ({
+                shopId: shopId,
+                sku: vData.sku,
+                price: vData.price,
+                weight: vData.weight,
+                isMaster: i === 0, // First variant is master
+                stockItems: {
+                  create: {
+                    stockLocationId: stockLocation.id,
+                    countOnHand: vData.inStock || 0,
+                  },
+                },
+              })),
+            },
           },
         });
+
+        // 3.5 Attach collections
+        if (dto.collectionIds && dto.collectionIds.length > 0) {
+          await tx.productCollection.createMany({
+            data: dto.collectionIds.map((colId: string) => ({
+              productId: p.id,
+              collectionId: colId,
+            })),
+            skipDuplicates: true,
+          });
+        }
 
         return p;
       });
 
       // 4. Create in MongoDB
+      const variantsDataForMongo = dto.variants
+        ? dto.variants.map((v: any) => ({
+          sku: v.sku,
+          attributes: v.attributes || {},
+          image: v.image || '',
+        }))
+        : [];
+
       const layout = new this.productLayoutModel({
         productId: product.id,
         shopId: shopId,
-        metadata: dto.extraMetadata || {},
-        images: dto.images || [],
+        attributes: dto.attributes || {},
+        imageUrls: dto.images || [],
+        variantsData: variantsDataForMongo,
       });
       await layout.save();
+
+      await this.cacheService.del(`products:${shopId}:*`); // Pattern matching would be nice, but simple delete for now or use a more specific strategy
+      // For now, let's just accept that we might need to purge all shop products on create/update
+      // A better way is to use a cache version or tags if Redis supports them
 
       return BaseResponseDto.success(product);
     } catch (error) {
@@ -150,6 +185,10 @@ export class ProductService {
       );
     }
 
+    const cacheKey = `products:${targetShopId}:${limit}:${JSON.stringify(filters || {})}`;
+    const cached = await this.cacheService.get<object[]>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
     const whereClause: any = { shopId: targetShopId };
 
     if (filters?.search) {
@@ -167,6 +206,9 @@ export class ProductService {
     const products = await this.prisma.product.findMany({
       where: whereClause,
       include: {
+        collections: {
+          include: { collection: true },
+        },
         variants: {
           where: {
             isMaster: true,
@@ -213,13 +255,21 @@ export class ProductService {
       };
     });
 
+    await this.cacheService.set(cacheKey, enrichedProducts, 300000); // 5 minutes cache
     return BaseResponseDto.success(enrichedProducts);
   }
 
   async getProductDetails(productId: string): Promise<BaseResponseDto<object>> {
+    const cacheKey = `product:${productId}`;
+    const cached = await this.cacheService.get<object>(cacheKey);
+    if (cached) return BaseResponseDto.success(cached);
+
     const productPostgres = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
+        collections: {
+          include: { collection: true },
+        },
         variants: {
           include: {
             stockItems: {
@@ -259,12 +309,15 @@ export class ProductService {
         0,
       ) || 0;
 
-    return BaseResponseDto.success({
+    const result = {
       ...productPostgres,
       basePrice: masterVariant?.price || 0,
       inStock: totalStock,
       layout: layoutDoc,
-    });
+    };
+
+    await this.cacheService.set(cacheKey, result, 600000); // 10 minutes cache
+    return BaseResponseDto.success(result);
   }
 
   async updateProduct(
@@ -341,15 +394,40 @@ export class ProductService {
         }
       }
 
+      // 4. Sync Collections
+      if (dto.collectionIds !== undefined) {
+        // Delete old assignments
+        await tx.productCollection.deleteMany({
+          where: { productId },
+        });
+
+        // Insert new ones
+        if (dto.collectionIds.length > 0) {
+          await tx.productCollection.createMany({
+            data: dto.collectionIds.map((colId: string) => ({
+              productId,
+              collectionId: colId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
       return p;
     });
 
-    if (dto.extraMetadata) {
+    if (dto.attributes) {
       await this.productLayoutModel.updateOne(
         { productId },
-        { $set: { metadata: dto.extraMetadata } },
+        { $set: { attributes: dto.attributes } },
       );
     }
+
+    // Invalidate caches
+    await this.cacheService.del(`product:${productId}`);
+    // We don't have a good way to delete pattern keys easily with standard cache-manager,
+    // but we can at least invalidate the details.
+    // For listing, it will expire in 5 mins anyway.
 
     return BaseResponseDto.success(updatedPostgres);
   }

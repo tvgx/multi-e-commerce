@@ -42,16 +42,16 @@ export class QRCodeService {
 
   /**
    * Generate QR code image (Base64)
-   * @param data QR Code data
+   * @param data QR Code data (structured object or simple string/URL)
    * @returns Promise<string> Base64 encoded QR code image
    */
-  async generateQRCode(data: QRCodeData): Promise<string> {
+  async generateQRCode(data: QRCodeData | string): Promise<string> {
     try {
       // Dynamically import qrcode library for optional dependency
       const QRCode = await import('qrcode');
 
-      // Use JSON format for QR content
-      const qrContent = this.toJSON(data);
+      // Use JSON format for QR content if object, otherwise use as is (for URLs)
+      const qrContent = typeof data === 'string' ? data : this.toJSON(data);
 
       // Generate QR code as data URL (PNG)
       const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
@@ -69,7 +69,7 @@ export class QRCodeService {
       const base64QR = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
 
       this.logger.debug(
-        `QR code generated for transaction ${data.transactionId}`,
+        `QR code generated for ${typeof data === 'string' ? 'URL content' : `transaction ${data.transactionId}`}`,
       );
       return base64QR;
     } catch (error) {

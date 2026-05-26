@@ -1,9 +1,16 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject } from '@nestjs/common';
 import { SystemService } from './system.service';
 
 @Controller('api/system')
 export class SystemController {
-  constructor(private readonly systemService: SystemService) {}
+  constructor(
+    @Inject(SystemService)
+    private readonly systemService: SystemService,
+  ) {
+    this.getHealth = this.getHealth.bind(this);
+    this.validateJson = this.validateJson.bind(this);
+    this.massSync = this.massSync.bind(this);
+  }
 
   @Get('health')
   getHealth() {

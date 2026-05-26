@@ -7,6 +7,7 @@ import {
   ProductLayout,
   ProductLayoutSchema,
 } from './schemas/product-layout.schema';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
@@ -17,5 +18,6 @@ import {
   ],
   controllers: [ProductController],
   providers: [ProductService],
+  exports: [ProductService],
 })
 export class ProductModule {}

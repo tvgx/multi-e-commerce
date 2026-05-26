@@ -5,6 +5,18 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: false,
   transpilePackages: ['@ecommerce/ui-registry'],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

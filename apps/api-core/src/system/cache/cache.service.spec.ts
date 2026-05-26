@@ -88,7 +88,7 @@ describe('SystemCacheService', () => {
     });
 
     it('should return false if fetch request fails', async () => {
-      process.env.STOREFRONT_URL = 'http://localhost:5201';
+      process.env.STOREFRONT_URL = 'http://localhost:3002';
       process.env.REVALIDATE_SECRET = 'dev_secret';
 
       fetchMock.mockResolvedValueOnce({
@@ -99,14 +99,14 @@ describe('SystemCacheService', () => {
       const result = await service.revalidateStorefront('test-tag');
 
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
+        'http://localhost:3002/api/revalidate?tag=test-tag&secret=dev_secret',
         { method: 'POST' },
       );
       expect(result).toBe(false);
     });
 
     it('should return true if fetch request is successful', async () => {
-      process.env.STOREFRONT_URL = 'http://localhost:5201';
+      process.env.STOREFRONT_URL = 'http://localhost:3002';
       process.env.REVALIDATE_SECRET = 'dev_secret';
 
       fetchMock.mockResolvedValueOnce({
@@ -117,14 +117,14 @@ describe('SystemCacheService', () => {
       const result = await service.revalidateStorefront('test-tag');
 
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:5201/api/revalidate?tag=test-tag&secret=dev_secret',
+        'http://localhost:3002/api/revalidate?tag=test-tag&secret=dev_secret',
         { method: 'POST' },
       );
       expect(result).toBe(true);
     });
 
     it('should return false if fetch throws an error', async () => {
-      process.env.STOREFRONT_URL = 'http://localhost:5201';
+      process.env.STOREFRONT_URL = 'http://localhost:3002';
       process.env.REVALIDATE_SECRET = 'dev_secret';
 
       fetchMock.mockRejectedValueOnce(new Error('Network error'));

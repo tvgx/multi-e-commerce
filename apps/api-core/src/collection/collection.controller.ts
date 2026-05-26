@@ -6,8 +6,8 @@ import {
   Delete,
   Body,
   Param,
-  HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CollectionService } from './collection.service';
 import {
@@ -15,20 +15,22 @@ import {
   UpdateCollectionDto,
   AddProductsToCollectionDto,
 } from './dto/collection-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('collections')
+@UseGuards(BetterAuthGuard)
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
 
+  @Public()
   @Get()
   async getCollections(@Query('shopId') shopId?: string) {
     return this.collectionService.getCollectionsByShop(shopId);
   }
 
+  @Public()
   @Get(':slug')
   async getCollectionDetail(
     @Param('slug') slug: string,
@@ -37,68 +39,49 @@ export class CollectionController {
     return this.collectionService.getCollectionDetail(slug, shopId);
   }
 
+  @Public()
+  @Get('storefront/:slug/products')
+  async getStorefrontCollectionProducts(
+    @Param('slug') slug: string,
+    @Query('shopId') shopId?: string,
+  ) {
+    return this.collectionService.getStorefrontCollectionProducts(slug, shopId);
+  }
+
   @Post()
   async createCollection(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Body() dto: CreateCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.collectionService.createCollection(session.user.id, dto);
+    return this.collectionService.createCollection(user.id, dto);
   }
 
   @Put(':id')
   async updateCollection(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.collectionService.updateCollection(session.user.id, id, dto);
+    return this.collectionService.updateCollection(user.id, id, dto);
   }
 
   @Post(':id/products')
   async addProductsToCollection(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: AddProductsToCollectionDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.collectionService.addProductsToCollection(
-      session.user.id,
-      id,
-      dto,
-    );
+    return this.collectionService.addProductsToCollection(user.id, id, dto);
   }
 
   @Delete(':id/products/:productId')
   async removeProductFromCollection(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Param('productId') productId: string,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
     return this.collectionService.removeProductFromCollection(
-      session.user.id,
+      user.id,
       id,
       productId,
     );

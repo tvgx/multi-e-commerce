@@ -7,6 +7,7 @@ export const CreateCollectionSchema = z.object({
   description: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isActive: z.boolean().optional().default(true),
+  shopId: z.string().uuid().optional(),
 });
 
 export const UpdateCollectionSchema = z.object({

@@ -5,28 +5,30 @@ import {
   Put,
   Body,
   Param,
-  HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { NavigationService } from './navigation.service';
 import {
   CreateNavigationDto,
   UpdateNavigationDto,
 } from './dto/navigation-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('navigation')
+@UseGuards(BetterAuthGuard)
 export class NavigationController {
   constructor(private readonly navigationService: NavigationService) {}
 
+  @Public()
   @Get()
   async getAllMenus(@Query('shopId') shopId?: string) {
     return this.navigationService.getAllMenusByShop(shopId);
   }
 
+  @Public()
   @Get(':handle')
   async getMenu(
     @Param('handle') handle: string,
@@ -36,31 +38,16 @@ export class NavigationController {
   }
 
   @Post()
-  async createMenu(
-    @Session() session: UserSession,
-    @Body() dto: CreateNavigationDto,
-  ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.navigationService.createMenu(session.user.id, dto);
+  async createMenu(@CurrentUser() user: any, @Body() dto: CreateNavigationDto) {
+    return this.navigationService.createMenu(user.id, dto);
   }
 
   @Put(':id')
   async updateMenu(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdateNavigationDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.navigationService.updateMenu(session.user.id, id, dto);
+    return this.navigationService.updateMenu(user.id, id, dto);
   }
 }

@@ -1,6 +1,6 @@
 """
 Create shop command.
-Provisions a brand new shop tenant across PostgreSQL and MongoDB.
+Provisions a brand new shop tenant across PostgreSQL and MongoDB using API Core.
 """
 
 import typer
@@ -8,12 +8,13 @@ import json
 import os
 from typing import Optional
 from rich.panel import Panel
-from database.postgres import create_tenant_owner, create_shop_record
-from database.mongo import seed_shop_template, seed_demo_products
+from rich.console import Console
+
+from config import get_config
+from api_client import set_base_url, get_api_client, ApiClientError
 from lib.utils.formatting import print_success, print_error, print_status
 from lib.validation.shop_validator import validate_shop_creation_data
 from lib.audit.audit_logger import AuditEventType, AuditLogger
-from lib.dry_run.simulator import DryRunSimulator
 
 app = typer.Typer(help="Create new shops")
 
@@ -26,17 +27,17 @@ def create(
     owner_name: str = typer.Option("Store Admin", "--owner-name", help="Full name of the owner"),
     template: str = typer.Option("fashion", "--template", "-t", help="Initial UI Template (fashion/electronics/health)"),
     products_per_page: int = typer.Option(30, "--products-per-page", help="Products displayed per page"),
+    seed_demo_products: bool = typer.Option(True, "--seed-demo-products", help="Seed demo products"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview changes without executing"),
     as_json: bool = typer.Option(False, "--json", help="Output result as JSON"),
 ):
     """
-    Provision a brand new shop tenant.
+    Provision a brand new shop tenant via API Core.
     
     This command:
-    1. Creates a PostgreSQL owner account
-    2. Creates a shop record
-    3. Seeds MongoDB template
-    4. Seeds demo products
+    1. Validates input
+    2. Sends provisioning request to API Core
+    3. API Core handles Database operations and Cache revalidation
     
     Example:
         shop create --name "My Shop" --domain myshop.com --owner-email owner@example.com --template fashion
@@ -47,123 +48,103 @@ def create(
         print_error(error)
         typer.Exit(1)
     
+    payload = {
+        "shopName": name,
+        "domain": domain,
+        "email": owner_email,
+        "ownerName": owner_name,
+        "template": template,
+        "seedDemoProducts": seed_demo_products
+    }
+
     # Dry-run preview
     if dry_run:
         preview = {
             "action": "create_shop",
-            "name": name,
-            "domain": domain,
-            "owner_email": owner_email,
-            "template": template,
+            **payload,
             "products_per_page": products_per_page,
             "status": "DRAFT"
         }
         
         if as_json:
-            import json
             typer.echo(json.dumps(preview, indent=2))
         else:
-            from rich.console import Console
             console = Console()
             console.print(Panel.fit(
                 f"[bold]Shop Name:[/bold] {name}\n"
                 f"[bold]Domain:[/bold] {domain}\n"
                 f"[bold]Owner Email:[/bold] {owner_email}\n"
                 f"[bold]Template:[/bold] {template}\n"
-                f"[bold]Products Per Page:[/bold] {products_per_page}",
+                f"[bold]Demo Products:[/bold] {seed_demo_products}",
                 title="[yellow]DRY RUN - Preview[/yellow]"
             ))
         return
     
-    # Execute shop creation
+    # Execute shop creation via API Core
     try:
-        from rich.console import Console
         console = Console()
         
-        # Step 1: Create PostgreSQL owner
-        with print_status("Creating PostgreSQL owner account..."):
-            user_id = create_tenant_owner(owner_email, owner_name)
-        print_success(f"Owner account created/found with ID: {user_id}")
+        # Initialize API Client
+        config = get_config()
+        set_base_url(config.get_api_url())
+        api_client = get_api_client()
         
-        # Step 2: Create shop record
-        with print_status("Creating shop record..."):
-            shop_id = create_shop_record(name, domain, user_id)
-        print_success(f"Shop record created with ID: {shop_id}")
-        
-        # Step 3: Seed MongoDB template
-        with print_status("Seeding MongoDB template..."):
-            template_path = os.path.join(
-                os.path.dirname(__file__), '..', '..', 'templates', f'{template}.json'
-            )
-            if os.path.exists(template_path):
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_data = json.load(f)
-            else:
-                template_data = {"sections": []}
+        # Apply API key if available
+        if config.config.get('api_key'):
+            api_client.set_auth_token(config.config.get('api_key'))
+        elif config.get_session_token():
+            api_client.set_auth_token(config.get_session_token())
             
-            seed_shop_template(shop_id, template_data)
-        print_success("Template seeded to MongoDB")
+        with print_status("Provisioning shop via API Core..."):
+            response = api_client.post("/v1/tenants/register", payload)
+            
+        # Parse Response
+        if not response or not response.get('success'):
+            raise Exception(response.get('message', 'Unknown API Error'))
+            
+        data = response.get('data', {})
+        shop_id = data.get('tenantId')
         
-        # Step 4: Seed demo products
-        with print_status("Seeding demo products..."):
-            demo_products = [
-                {
-                    "name": f"{name} Signature T-Shirt",
-                    "description": "High-quality cotton t-shirt",
-                    "basePrice": {"value": 29.99, "currency": "USD"},
-                    "category": ["Apparel", "T-Shirts"]
-                },
-                {
-                    "name": f"{name} Limited Hoodie",
-                    "description": "Keep warm in style",
-                    "basePrice": {"value": 59.99, "currency": "USD"},
-                    "category": ["Apparel", "Hoodies"]
-                }
-            ]
-            count = seed_demo_products(shop_id, demo_products)
-        print_success(f"{count} demo products seeded")
+        print_success("Shop successfully provisioned in PostgreSQL and MongoDB")
+        print_success("Navigation Menus initialized")
+        if seed_demo_products:
+            print_success("Demo products seeded")
+        print_success("Next.js Storefront Cache invalidated")
         
-        # Step 5: Log audit event
+        # Log audit event
         audit_logger = AuditLogger()
         audit_logger.log_operation(
             AuditEventType.SHOP_CREATED,
             shop_id=shop_id,
-            user_id=user_id,
-            action=f"Created shop: {name}",
-            details={
-                "name": name,
-                "domain": domain,
-                "template": template,
-                "owner_email": owner_email
-            },
+            user_id="cli-user",
+            action=f"Created shop via API: {name}",
+            details=payload,
             status="success"
         )
         print_success("Operation logged to audit trail")
         
-        # Success output
-        result = {
-            "shop_id": shop_id,
-            "name": name,
-            "domain": domain,
-            "owner_email": owner_email,
-            "owner_id": user_id,
-            "template": template,
-            "onboarding_step": 1,
-            "status": "DRAFT"
-        }
-        
         if as_json:
-            typer.echo(json.dumps(result, indent=2))
+            typer.echo(json.dumps(data, indent=2))
         else:
             console.print("\n[bold green]🎉 Shop created successfully! 🎉[/bold green]")
             console.print(Panel.fit(
                 f"[bold]Shop ID:[/bold] {shop_id}\n"
-                f"[bold]Name:[/bold] {name}\n"
-                f"[bold]Domain:[/bold] {domain}\n"
-                f"[bold]Admin Email:[/bold] {owner_email}",
+                f"[bold]Name:[/bold] {data.get('shopName', name)}\n"
+                f"[bold]Domain:[/bold] {data.get('domain', domain)}\n"
+                f"[bold]Admin Email:[/bold] {data.get('email', owner_email)}",
                 title="Shop Details"
             ))
-    
+            
+    except ApiClientError as e:
+        audit_logger = AuditLogger()
+        audit_logger.log_operation(
+            AuditEventType.SHOP_CREATED,
+            action=f"Failed to create shop: {name}",
+            error=str(e),
+            status="failed"
+        )
+        print_error(f"API Error: {e}")
+        typer.Exit(1)
     except Exception as e:
         # Log failure to audit trail
         audit_logger = AuditLogger()
@@ -175,3 +156,4 @@ def create(
         )
         print_error(f"Shop creation failed: {e}")
         typer.Exit(1)
+

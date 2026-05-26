@@ -18,6 +18,9 @@ import {
   LogOut,
   Zap
 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+
 
 const SIDEBAR_ITEMS = [
   { icon: <LayoutDashboard size={20} />, label: "Dashboard", href: "" },
@@ -37,8 +40,20 @@ export default function DashboardLayout({
   params: Promise<{ shopId: string }>;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const { shopId } = React.use(params); // Next.js 16 dynamic params are promises
+  const { shopId } = React.use(params);
+
+  const handleSignOut = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/");
+        },
+      },
+    });
+  };
+
 
   return (
     <div className="flex min-h-screen bg-[#030014] text-slate-200">
@@ -89,10 +104,13 @@ export default function DashboardLayout({
              {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
              {!isCollapsed && <span className="text-xs uppercase tracking-widest font-bold">Collapse</span>}
            </button>
-           <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-all">
+            <button 
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-all"
+            >
               <LogOut size={20} />
               {!isCollapsed && <span className="text-sm font-medium">Log out</span>}
-           </button>
+            </button>
         </div>
       </aside>
 
@@ -107,15 +125,20 @@ export default function DashboardLayout({
             <h2 className="text-lg font-bold text-white">Shop Overview</h2>
             <div className="h-4 w-px bg-white/10 hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-500 bg-white/5 px-3 py-1 rounded-full border border-white/5">
-              <Globe size={12} /> {shopId}.localhost:5201
+              <Globe size={12} /> {shopId}.localhost:3002
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-             <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">
+             <button 
+               onClick={handleSignOut}
+               title="Sign Out"
+               className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs hover:bg-indigo-500/20 transition-all active:scale-95"
+             >
                 JD
-             </div>
+             </button>
           </div>
+
         </header>
 
         <div className="p-8">

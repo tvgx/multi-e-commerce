@@ -17,6 +17,8 @@ export const ResponseCodes = {
   USER_NOT_VALIDATED: '9995',
   USER_EXISTED: '9996',
   CODE_VERIFY_INCORRECT: '9993', // Thường dùng cho sai Pass hoặc OTP
+  PASSWORD_NOT_CORRECT: '9993', // Synonym cho dễ đọc
+  USER_INFO_NOT_MATCH: '1019',
   CHANGE_USERNAME_REQUIRES_30_DAYS: '1017',
   CHANGE_USERNAME_SAME_OTHER: '1018',
 

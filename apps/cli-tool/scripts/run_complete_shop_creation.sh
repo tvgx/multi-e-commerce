@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Config
 SHOP_NAME=${1:-"Test Fashion Shop"}
-SHOP_DOMAIN=${2:-"test.localhost:5201"}
+SHOP_DOMAIN=${2:-"test.localhost:3002"}
 OWNER_EMAIL=${3:-"testowner@example.com"}
 TEMPLATE=${4:-"fashion"}
 API_BASE=${5:-"http://localhost:3000"}

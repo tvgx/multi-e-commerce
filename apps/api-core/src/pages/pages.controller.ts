@@ -5,56 +5,43 @@ import {
   Put,
   Body,
   Param,
-  HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { PagesService } from './pages.service';
 import { CreatePageDto, UpdatePageDto } from './dto/pages-zod.dto';
-import { Session } from '@thallesp/nestjs-better-auth';
-import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CustomException } from '../common/exceptions/custom.exception';
-import { ResponseCodes } from '../common/constants/response-codes.constant';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('pages')
+@UseGuards(BetterAuthGuard)
 export class PagesController {
   constructor(private readonly pagesService: PagesService) {}
 
+  @Public()
   @Get()
   async getAllPages(@Query('shopId') shopId?: string) {
     return this.pagesService.getAllPagesByShop(shopId);
   }
 
+  @Public()
   @Get(':slug')
   async getPage(@Param('slug') slug: string, @Query('shopId') shopId?: string) {
     return this.pagesService.getPageBySlug(slug, shopId);
   }
 
   @Post()
-  async createPage(
-    @Session() session: UserSession,
-    @Body() dto: CreatePageDto,
-  ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.pagesService.createPage(session.user.id, dto);
+  async createPage(@CurrentUser() user: any, @Body() dto: CreatePageDto) {
+    return this.pagesService.createPage(user.id, dto);
   }
 
   @Put(':id')
   async updatePage(
-    @Session() session: UserSession,
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body() dto: UpdatePageDto,
   ) {
-    if (!session)
-      throw new CustomException(
-        ResponseCodes.TOKEN_INVALID,
-        'invalid token',
-        HttpStatus.UNAUTHORIZED,
-      );
-    return this.pagesService.updatePage(session.user.id, id, dto);
+    return this.pagesService.updatePage(user.id, id, dto);
   }
 }

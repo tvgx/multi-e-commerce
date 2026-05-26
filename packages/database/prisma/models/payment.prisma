@@ -13,6 +13,7 @@ model PaymentMethod {
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   payments    Payment[]
 
+  @@unique([shopId, type])
   @@map("payment_methods")
 }
 

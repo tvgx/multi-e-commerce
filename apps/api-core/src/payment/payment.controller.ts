@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   Param,
   HttpStatus,
@@ -22,6 +23,25 @@ export class PaymentController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Get(':paymentId')
+  async getPayment(
+    @Param('paymentId') paymentId: string,
+  ): Promise<BaseResponseDto<any>> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        order: true,
+        paymentMethod: true,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ${paymentId} not found`);
+    }
+
+    return BaseResponseDto.success(payment);
+  }
+
   @Post(':method/intent')
   async createIntent(
     @Param('method') method: string,
@@ -40,17 +60,11 @@ export class PaymentController {
     return BaseResponseDto.success(intent);
   }
 
-  /**
-   * Confirm Online Banking QR payment
-   * POST /api/payments/:paymentId/confirm
-   */
   @Post(':paymentId/confirm')
   async confirmPayment(
     @Param('paymentId') paymentId: string,
     @Body() dto: ConfirmPaymentDto,
   ): Promise<BaseResponseDto<any>> {
-    // Find payment
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { order: true },
@@ -60,19 +74,17 @@ export class PaymentController {
       throw new NotFoundException(`Payment ${paymentId} not found`);
     }
 
-    // Verify payment is in correct state for confirmation
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    if (!['checkout', 'awaiting_confirmation'].includes(payment.state)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (
+      !['checkout', 'awaiting_confirmation', 'pending'].includes(payment.state)
+    ) {
       throw new BadRequestException(
-        `Payment cannot be confirmed in state: ${payment.state}. Expected: checkout or awaiting_confirmation`,
+        `Payment cannot be confirmed in state: ${payment.state}.`,
       );
     }
 
-    // Update payment state based on action
     const newState =
       dto.action === PaymentConfirmationAction.ACCEPT ? 'completed' : 'failed';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     await this.prisma.payment.update({
       where: { id: paymentId },
       data: {
@@ -80,21 +92,15 @@ export class PaymentController {
       },
     });
 
-    // If accepted, update order payment state
     if (dto.action === PaymentConfirmationAction.ACCEPT) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      const paymentOrderId = payment.orderId;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       await this.prisma.order.update({
-        where: { id: paymentOrderId },
+        where: { id: payment.orderId },
         data: {
           paymentState: 'paid',
         },
       });
     }
 
-    // Refetch payment with order details
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const finalPayment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { order: true },

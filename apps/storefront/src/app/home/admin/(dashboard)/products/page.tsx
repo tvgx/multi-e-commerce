@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Filter, MoreHorizontal, Image as ImageIcon, X, Loader2, AlertCircle } from "lucide-react";
 import { useBuilderStore } from "@/store/builder-store";
+import { ImageUploaderButton } from "@ecommerce/ui-registry/src/components/ui/image-uploader-button";
 
 export default function ProductsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -16,7 +17,8 @@ export default function ProductsPage() {
         price: "",
         stock: "",
         slug: "",
-        sku: ""
+        sku: "",
+        images: [] as string[]
     });
 
     const fetchProducts = async () => {
@@ -57,7 +59,7 @@ export default function ProductsPage() {
                 basePrice: Number(newProduct.price),
                 inStock: Number(newProduct.stock) || 0,
                 weight: 0.5,
-                images: ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80"]
+                images: newProduct.images.length > 0 ? newProduct.images : ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&q=80"]
             };
 
             const res = await fetch(`${getApiUrl()}/api/products`, {
@@ -69,7 +71,7 @@ export default function ProductsPage() {
             const data = await res.json();
             if (res.ok && data.code === '1000' || data.success) {
                 setIsAddModalOpen(false);
-                setNewProduct({ name: "", price: "", stock: "", slug: "", sku: "" });
+                setNewProduct({ name: "", price: "", stock: "", slug: "", sku: "", images: [] });
                 fetchProducts();
             } else {
                 setError(data.message || 'Failed to create product (Authentication required?)');
@@ -171,11 +173,32 @@ export default function ProductsPage() {
                             )}
                             <div className="grid grid-cols-3 gap-6">
                                 <div className="col-span-1 space-y-2">
-                                    <label className="text-sm border-2 border-dashed border-zinc-200 rounded-xl h-32 flex flex-col items-center justify-center text-zinc-500 hover:border-emerald-500 hover:text-emerald-500 transition-colors cursor-pointer bg-zinc-50 hover:bg-emerald-50/50">
-                                        <ImageIcon className="w-6 h-6 mb-2" />
-                                        <span className="text-xs font-medium">Upload Image (Mocked)</span>
-                                        <input type="file" className="hidden" />
-                                    </label>
+                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Product Images</label>
+                                    <ImageUploaderButton
+                                        uploadType="product"
+                                        multiple={true}
+                                        maxFiles={5}
+                                        onUploadSuccess={(urls) => {
+                                            setNewProduct(prev => ({ ...prev, images: [...(prev.images || []), ...urls] }));
+                                        }}
+                                    />
+                                    {newProduct.images && newProduct.images.length > 0 && (
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            {newProduct.images.map((url: string, i: number) => (
+                                                <div key={i} className="relative aspect-square">
+                                                    <img src={url} alt={`Preview ${i}`} className="w-full h-full object-cover rounded-md border" />
+                                                    <button 
+                                                        onClick={() => {
+                                                            setNewProduct(p => ({ ...p, images: p.images.filter((_, index) => index !== i) }));
+                                                        }}
+                                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-span-2 space-y-4">
                                     <div>

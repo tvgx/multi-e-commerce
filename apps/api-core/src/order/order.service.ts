@@ -15,35 +15,36 @@ export class OrderService {
 
   async createOrder(dto: CreateOrderDto): Promise<BaseResponseDto<any>> {
     try {
-      // 1. Transaction to ensure atomicity
-      return await this.prisma.$transaction(async (tx: any) => {
-        // 0. Find or create Customer
-        let customer = await tx.customer.findUnique({
-          where: {
-            shopId_email: {
-              shopId: dto.shopId,
-              email: dto.customerEmail,
-            },
-          },
-        });
-
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: {
-              shopId: dto.shopId,
-              email: dto.customerEmail,
-              name: dto.customerName,
+      // 1. Transaction to ensure atomicity for order creation and stock decrement
+      const { order, customer, paymentMethod } = await this.prisma.$transaction(
+        async (tx: any) => {
+          // 0. Find or create Customer
+          let customer = await tx.customer.findUnique({
+            where: {
+              shopId_email: {
+                shopId: dto.shopId,
+                email: dto.customerEmail,
+              },
             },
           });
-        }
 
-        let totalAmount = 0;
-        const lineItemsData = [];
+          if (!customer) {
+            customer = await tx.customer.create({
+              data: {
+                shopId: dto.shopId,
+                email: dto.customerEmail,
+                name: dto.customerName,
+              },
+            });
+          }
 
-        for (const item of dto.items) {
-          // Get Product and its Master Variant
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
+          let totalAmount = 0;
+          const lineItemsData = [];
+
+          // Fix N+1: Fetch all products at once
+          const productIds = dto.items.map((item) => item.productId);
+          const products = await tx.product.findMany({
+            where: { id: { in: productIds }, shopId: dto.shopId },
             include: {
               variants: {
                 where: { isMaster: true },
@@ -56,119 +57,134 @@ export class OrderService {
             },
           });
 
-          if (!product || product.shopId !== dto.shopId) {
-            throw new CustomException(
-              ResponseCodes.PRODUCT_NOT_EXISTED,
-              'Product is not existed',
-              HttpStatus.NOT_FOUND,
-            );
-          }
-
-          const masterVariant = product.variants[0];
-          if (!masterVariant) {
-            throw new CustomException(
-              ResponseCodes.PRODUCT_NOT_EXISTED,
-              'Master variant not found',
-              HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-          }
-
-          const totalStock = masterVariant.stockItems.reduce(
-            (acc: any, si: any) => acc + si.countOnHand,
-            0,
+          const productMap = new Map<string, any>(
+            products.map((p: any) => [p.id, p]),
           );
-          if (totalStock < item.quantity) {
-            throw new CustomException(
-              ResponseCodes.PRODUCT_SOLD,
-              'The product has been sold or is out of stock.',
-              HttpStatus.BAD_REQUEST,
-            );
+
+          for (const item of dto.items) {
+            const product = productMap.get(item.productId);
+
+            if (!product) {
+              throw new CustomException(
+                ResponseCodes.PRODUCT_NOT_EXISTED,
+                `Product ${item.productId} not found in this shop`,
+                HttpStatus.NOT_FOUND,
+              );
+            }
+
+            const masterVariant = product.variants[0];
+            if (!masterVariant) {
+              throw new CustomException(
+                ResponseCodes.PRODUCT_NOT_EXISTED,
+                'Master variant not found',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              );
+            }
+
+            // Atomic Stock Update with condition
+            const defaultStockItem =
+              masterVariant.stockItems.find(
+                (si: any) => si.stockLocation.isDefault,
+              ) || masterVariant.stockItems[0];
+
+            try {
+              await tx.stockItem.update({
+                where: {
+                  id: defaultStockItem.id,
+                  countOnHand: { gte: item.quantity }, // Ensure sufficient stock atomically
+                },
+                data: { countOnHand: { decrement: item.quantity } },
+              });
+            } catch (e) {
+              throw new CustomException(
+                ResponseCodes.PRODUCT_SOLD,
+                `Product ${product.name} is out of stock or insufficient.`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }
+
+            const priceAtBuy = masterVariant.price;
+            totalAmount += priceAtBuy * item.quantity;
+
+            lineItemsData.push({
+              variantId: masterVariant.id,
+              quantity: item.quantity,
+              price: priceAtBuy,
+            });
           }
 
-          // Reduce stock (simple: take from default location or first location)
-          const defaultStockItem =
-            masterVariant.stockItems.find(
-              (si: any) => si.stockLocation.isDefault,
-            ) || masterVariant.stockItems[0];
-
-          await tx.stockItem.update({
-            where: { id: defaultStockItem.id },
-            data: { countOnHand: { decrement: item.quantity } },
-          });
-
-          const priceAtBuy = masterVariant.price;
-          totalAmount += priceAtBuy * item.quantity;
-
-          lineItemsData.push({
-            variantId: masterVariant.id,
-            quantity: item.quantity,
-            price: priceAtBuy,
-          });
-        }
-
-        // 2. Create Order
-        const order = await tx.order.create({
-          data: {
-            number: `R${Date.now()}`, // Generate a public order number
-            shopId: dto.shopId,
-            customerId: customer.id,
-            totalAmount,
-            itemTotal: totalAmount,
-            state: 'confirm', // cart, address, delivery, payment, confirm, complete, canceled
-            lineItems: {
-              create: lineItemsData,
-            },
-          },
-          include: { lineItems: true },
-        });
-
-        // 3. Process Payment
-        let paymentMethod = await tx.paymentMethod.findFirst({
-          where: { shopId: dto.shopId, type: dto.paymentProvider },
-        });
-        if (!paymentMethod) {
-          paymentMethod = await tx.paymentMethod.create({
+          // 2. Create Order (Initially in 'confirm' or 'pending' state)
+          const order = await tx.order.create({
             data: {
+              number: `R${Date.now()}`,
               shopId: dto.shopId,
-              name: dto.paymentProvider,
-              type: dto.paymentProvider,
-              active: true,
+              customerId: customer.id,
+              totalAmount,
+              itemTotal: totalAmount,
+              state: 'confirm',
+              lineItems: {
+                create: lineItemsData,
+              },
             },
+            include: { lineItems: true },
           });
-        }
 
-        const paymentIntent = await this.paymentService.processPayment(
-          dto.paymentProvider,
-          totalAmount,
-          'VND',
-          order.id,
-        );
+          // 3. Prepare Payment Method
+          let paymentMethod = await tx.paymentMethod.findFirst({
+            where: { shopId: dto.shopId, type: dto.paymentProvider },
+          });
+          if (!paymentMethod) {
+            paymentMethod = await tx.paymentMethod.create({
+              data: {
+                shopId: dto.shopId,
+                name: dto.paymentProvider,
+                type: dto.paymentProvider,
+                active: true,
+              },
+            });
+          }
 
-        await tx.payment.create({
+          return { order, customer, paymentMethod };
+        },
+        {
+          timeout: 10000, // 10s timeout for safety
+        },
+      );
+
+      // 4. Process Payment (OUTSIDE Transaction to avoid connection pooling issues)
+      const paymentIntent = await this.paymentService.processPayment(
+        dto.paymentProvider,
+        order.totalAmount,
+        'VND',
+        order.id,
+      );
+
+      // 5. Update results in a second transaction
+      const finalOrder = await this.prisma.$transaction(async (tx: any) => {
+        const payment = await tx.payment.create({
           data: {
             orderId: order.id,
             paymentMethodId: paymentMethod.id,
-            amount: totalAmount,
+            amount: order.totalAmount,
             state:
               paymentIntent.status === 'SUCCEEDED' ? 'completed' : 'processing',
             responseCode: paymentIntent.transactionId,
           },
         });
 
-        if (paymentIntent.status === 'SUCCEEDED') {
-          await tx.order.update({
-            where: { id: order.id },
-            data: { paymentState: 'paid' },
-          });
-        }
-
-        // Refetch order with payments
-        const finalOrder = await tx.order.findUnique({
+        return tx.order.update({
           where: { id: order.id },
+          data: {
+            paymentState:
+              paymentIntent.status === 'SUCCEEDED' ? 'paid' : 'balance_due',
+          },
           include: { lineItems: true, payments: true },
         });
+      });
 
-        return BaseResponseDto.success(finalOrder);
+      return BaseResponseDto.success({
+        ...finalOrder,
+        paymentIntent,
       });
     } catch (error) {
       if (error instanceof CustomException) throw error;
@@ -219,14 +235,23 @@ export class OrderService {
     return BaseResponseDto.success(orders);
   }
 
-  async getOrdersByShop(shopId: string): Promise<BaseResponseDto<any>> {
+  async getOrdersByShop(
+    shopId: string,
+    limit: number = 20,
+    offset: number = 0,
+  ): Promise<BaseResponseDto<any>> {
     const orders = await this.prisma.order.findMany({
       where: { shopId },
       include: {
-        lineItems: { include: { variant: { include: { product: true } } } },
+        lineItems: {
+          include: { variant: { include: { product: true } } },
+          take: 10, // Limit nested items for listing
+        },
         customer: true,
         payments: true,
       },
+      take: limit,
+      skip: offset,
       orderBy: { createdAt: 'desc' },
     });
     return BaseResponseDto.success(orders);

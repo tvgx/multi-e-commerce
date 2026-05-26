@@ -26,9 +26,9 @@ const MODEL_FILES = [
   'inventory.prisma',
   'order.prisma',
   'payment.prisma',
-  'geography-tax.prisma',
   'promotion.prisma',
   'content.prisma',
+  'media.prisma',
 ];
 
 /**

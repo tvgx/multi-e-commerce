@@ -33,7 +33,46 @@ services:
     volumes:
       - mongodata:/data/db
 
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/shop-public || true;
+      /usr/bin/mc mb myminio/shop-private || true;
+      /usr/bin/mc anonymous set public myminio/shop-public;
+      exit 0;
+      "
+
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    ports:
+      - "8080:8080"
+    environment:
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: "http://minio:9000"
+      AWS_ACCESS_KEY_ID: "minioadmin"
+      AWS_SECRET_ACCESS_KEY: "minioadmin"
+      IMGPROXY_S3_REGION: "us-east-1"
+      IMGPROXY_S3_USE_SSL: "false"
+      IMGPROXY_BASE_URL: "http://minio:9000"
+
 volumes:
   pgdata_shard1:
   pgdata_shard2:
   mongodata:
+  miniodata:

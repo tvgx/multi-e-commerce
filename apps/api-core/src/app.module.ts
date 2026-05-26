@@ -22,25 +22,35 @@ import { ShippingModule } from './shipping/shipping.module';
 import { TaxModule } from './tax/tax.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
-
-import { auth } from './auth.config';
-import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
+import * as path from 'path';
+import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
     DatabaseModule,
     CommonModule,
-    MongooseModule.forRoot(
-      process.env.MONGO_DB_ATLAS || 'mongodb://localhost:27017/ecommerce',
-      {
-        maxPoolSize: 10,
-        family: 4,
-      },
-    ),
-    BetterAuthModule.forRoot({
-      auth,
+    ConfigModule.forRoot({
+      envFilePath: path.resolve(__dirname, '../../../.env'),
+      isGlobal: true,
     }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri:
+          configService.get<string>('MONGO_DB_ATLAS') ||
+          'mongodb://localhost:27017/ecommerce',
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        retryWrites: true,
+        retryReads: true,
+      }),
+    }),
+    DatabaseModule,
+    CommonModule,
     AuthModule,
+    StorefrontAuthModule,
     ShopModule,
     ProductModule,
     CustomerModule,
@@ -56,6 +66,7 @@ import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
     PagesModule,
     ShippingModule,
     TaxModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

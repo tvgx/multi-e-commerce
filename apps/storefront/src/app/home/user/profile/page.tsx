@@ -1,18 +1,24 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import { User, Package, Heart, Settings } from 'lucide-react';
+import { AvatarCropperUploader } from '@ecommerce/ui-registry/src/components/ui/avatar-cropper-uploader';
 
 export default function Profile() {
+    const [avatarUrl, setAvatarUrl] = useState('');
+
     return (
         <div className="container mx-auto px-4 py-12 max-w-5xl">
             <div className="flex flex-col md:flex-row gap-8">
 
                 {/* Sidebar */}
                 <div className="w-full md:w-64 space-y-2">
-                    <div className="flex items-center space-x-4 mb-8">
-                        <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-xl">
-                            JD
-                        </div>
-                        <div>
+                    <div className="mb-8">
+                        <AvatarCropperUploader 
+                            currentAvatar={avatarUrl}
+                            onUploadSuccess={(url) => setAvatarUrl(url)}
+                        />
+                        <div className="mt-4">
                             <h2 className="text-lg font-semibold">John Doe</h2>
                             <p className="text-sm text-muted-foreground">john.doe@example.com</p>
                         </div>

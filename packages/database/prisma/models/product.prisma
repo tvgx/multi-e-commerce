@@ -10,11 +10,7 @@ model Product {
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId    String?
-  taxCategoryId String?
-  brand         String?
-
   shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  taxCategory   TaxCategory? @relation(fields: [taxCategoryId], references: [id])
   variants      Variant[]
   optionTypes   ProductOptionType[]
   collections   ProductCollection[]
@@ -39,7 +35,6 @@ model Variant {
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
   lineItems   LineItem[]
-  inventoryUnits InventoryUnit[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

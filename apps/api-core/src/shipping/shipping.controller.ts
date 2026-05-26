@@ -1,23 +1,18 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  UseGuards,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Query } from '@nestjs/common';
 import { ShippingService } from './shipping.service';
-import { Session } from '@thallesp/nestjs-better-auth';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @Controller('shipping')
+@UseGuards(BetterAuthGuard)
 export class ShippingController {
   constructor(private readonly shippingService: ShippingService) {}
 
+  @Public()
   @Get()
   async getSettings(
-    @Session() session: any,
     @Query('shopId') shopId?: string,
   ): Promise<BaseResponseDto<any>> {
     return this.shippingService.getShippingSettings(shopId);
@@ -25,9 +20,9 @@ export class ShippingController {
 
   @Put()
   async updateSettings(
-    @Session() session: any,
+    @CurrentUser() user: any,
     @Body() body: any,
   ): Promise<BaseResponseDto<any>> {
-    return this.shippingService.updateShippingSettings(session.user.id, body);
+    return this.shippingService.updateShippingSettings(user.id, body);
   }
 }

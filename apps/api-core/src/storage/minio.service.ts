@@ -23,14 +23,20 @@ import {
   DeleteObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
+  PutBucketCorsCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { v4 as uuidv4 } from 'uuid';
 
 const LAYOUT_BUCKET = 'shop-layouts';
+const PUBLIC_BUCKET = 'shop-public';
+const PRIVATE_BUCKET = 'shop-private';
 
 @Injectable()
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
   private client: S3Client;
+  private isAvailable = false;
 
   constructor() {
     this.client = new S3Client({
@@ -45,11 +51,27 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.ensureBucketExists(LAYOUT_BUCKET).catch((err) => {
+    try {
+      await Promise.all([
+        this.ensureBucketExists(LAYOUT_BUCKET),
+        this.ensureBucketExists(PUBLIC_BUCKET, true),
+        this.ensureBucketExists(PRIVATE_BUCKET, false),
+      ]);
+
+      // Cấu hình CORS để cho phép upload từ trình duyệt
+      await this.ensureCorsConfig(PUBLIC_BUCKET);
+      await this.ensureCorsConfig(PRIVATE_BUCKET);
+
+      this.isAvailable = true;
+    } catch (err) {
+      this.isAvailable = false;
       this.logger.warn(
-        `[MinIO] Failed to connect or create bucket. MinIO features will be disabled locally. Error: ${err.message || err}`,
+        '[MinIO] Unavailable at startup; object storage features may be disabled.',
       );
-    });
+      if (err instanceof Error) {
+        this.logger.warn(err.message);
+      }
+    }
   }
 
   // ─────────────────────────────────────────
@@ -61,6 +83,13 @@ export class MinioService implements OnModuleInit {
    * File size is tiny (< 10KB per shop) so this is very cheap.
    */
   async saveLayout(shopId: string, layout: object): Promise<void> {
+    if (!this.isAvailable) {
+      this.logger.warn(
+        `[MinIO] Skipping saveLayout for shopId=${shopId} because storage is unavailable.`,
+      );
+      return;
+    }
+
     const objectKey = `${shopId}.json`;
     const content = JSON.stringify(layout);
     const buffer = Buffer.from(content, 'utf-8');
@@ -82,6 +111,10 @@ export class MinioService implements OnModuleInit {
    * Returns null if the object does not exist yet.
    */
   async getLayout<T = unknown>(shopId: string): Promise<T | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+
     const objectKey = `${shopId}.json`;
 
     try {
@@ -123,6 +156,13 @@ export class MinioService implements OnModuleInit {
    * Deletes the layout object for a shop (e.g. when a shop is deleted).
    */
   async deleteLayout(shopId: string): Promise<void> {
+    if (!this.isAvailable) {
+      this.logger.warn(
+        `[MinIO] Skipping deleteLayout for shopId=${shopId} because storage is unavailable.`,
+      );
+      return;
+    }
+
     await this.client.send(
       new DeleteObjectCommand({
         Bucket: LAYOUT_BUCKET,
@@ -136,13 +176,164 @@ export class MinioService implements OnModuleInit {
   // Internal helpers
   // ─────────────────────────────────────────
 
-  private async ensureBucketExists(bucket: string): Promise<void> {
+  private async ensureBucketExists(
+    bucket: string,
+    isPublic = false,
+  ): Promise<void> {
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: bucket }));
       this.logger.log(`[MinIO] Bucket ready: ${bucket}`);
+      if (isPublic) {
+        await this.setBucketPolicyPublic(bucket);
+      }
     } catch {
       await this.client.send(new CreateBucketCommand({ Bucket: bucket }));
       this.logger.log(`[MinIO] Created bucket: ${bucket}`);
+      if (isPublic) {
+        await this.setBucketPolicyPublic(bucket);
+      }
+    }
+  }
+
+  private async setBucketPolicyPublic(bucket: string): Promise<void> {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${bucket}/*`],
+        },
+      ],
+    };
+    try {
+      const { PutBucketPolicyCommand } = await import('@aws-sdk/client-s3');
+      await this.client.send(
+        new PutBucketPolicyCommand({
+          Bucket: bucket,
+          Policy: JSON.stringify(policy),
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `[MinIO] Could not set public policy for bucket ${bucket}: ${error}`,
+      );
+    }
+  }
+
+  private async ensureCorsConfig(bucket: string): Promise<void> {
+    const corsRules = {
+      CORSRules: [
+        {
+          AllowedHeaders: ['*'],
+          AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
+          AllowedOrigins: ['*'], // Trong thực tế nên giới hạn domain của admin/storefront
+          ExposeHeaders: ['ETag'],
+          MaxAgeSeconds: 3000,
+        },
+      ],
+    };
+
+    try {
+      await this.client.send(
+        new PutBucketCorsCommand({
+          Bucket: bucket,
+          CORSConfiguration: corsRules,
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `[MinIO] Could not set CORS policy for bucket ${bucket}: ${error}`,
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // Media Upload (Images)
+  // ─────────────────────────────────────────
+
+  /**
+   * Tạo Presigned URL để Frontend upload trực tiếp lên MinIO.
+   */
+  async getUploadPresignedUrl(
+    shopId: string,
+    fileName: string,
+    contentType: string,
+    isPublic = true,
+  ): Promise<{ uploadUrl: string; fileUrl: string; key: string }> {
+    if (!this.isAvailable) {
+      throw new Error('Storage is currently unavailable');
+    }
+
+    const bucket = isPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
+    const fileExtension = fileName.split('.').pop() || 'bin';
+    const uniqueId = uuidv4();
+    const objectKey = `${shopId}/${uniqueId}.${fileExtension}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: objectKey,
+      ContentType: contentType,
+    });
+
+    // URL hết hạn sau 15 phút
+    const uploadUrl = await getSignedUrl(this.client, command, {
+      expiresIn: 900,
+    });
+
+    const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
+    const port = process.env.MINIO_PORT ?? '9000';
+    const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+
+    // Nếu là public bucket, trả về URL truy cập trực tiếp
+    const fileUrl = isPublic
+      ? `${protocol}://${endpoint}:${port}/${bucket}/${objectKey}`
+      : `private://${bucket}/${objectKey}`; // Private key để Backend xử lý sau
+
+    return { uploadUrl, fileUrl, key: objectKey };
+  }
+
+  /**
+   * Uploads and optimizes an image to WebP format (Legacy/Server-side).
+   */
+  async uploadMedia(
+    shopId: string,
+    fileBuffer: Buffer,
+    originalName: string,
+  ): Promise<string> {
+    if (!this.isAvailable) {
+      throw new Error('Storage is currently unavailable');
+    }
+
+    try {
+      const sharp = (await import('sharp')).default;
+      const optimizedBuffer = await sharp(fileBuffer)
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      const timestamp = Date.now();
+      const cleanName = originalName
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .substring(0, 20);
+      const objectKey = `${shopId}/${timestamp}-${cleanName}.webp`;
+
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: PUBLIC_BUCKET,
+          Key: objectKey,
+          Body: optimizedBuffer,
+          ContentType: 'image/webp',
+        }),
+      );
+
+      const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
+      const port = process.env.MINIO_PORT ?? '9000';
+      const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+      return `${protocol}://${endpoint}:${port}/${PUBLIC_BUCKET}/${objectKey}`;
+    } catch (error) {
+      this.logger.error(`[MinIO] uploadMedia failed`, error);
+      throw error;
     }
   }
 }
