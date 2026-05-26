@@ -148,8 +148,8 @@ export function AvatarCropperUploader({
         <div className="flex flex-col gap-4 items-center bg-gray-50 p-4 rounded-lg border">
           <ReactCrop
             crop={crop}
-            onChange={(_, percentCrop) => setCrop(percentCrop)}
-            onComplete={(c) => setCompletedCrop(c)}
+            onChange={(c: Crop, percentCrop: Crop) => setCrop(percentCrop)}
+            onComplete={(c: PixelCrop) => setCompletedCrop(c)}
             aspect={1}
             circularCrop
           >

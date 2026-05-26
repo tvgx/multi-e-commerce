@@ -7,7 +7,6 @@ import {
   ProductLayout,
   ProductLayoutSchema,
 } from './schemas/product-layout.schema';
-import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
@@ -20,4 +19,4 @@ import { DatabaseModule } from '../database/database.module';
   providers: [ProductService],
   exports: [ProductService],
 })
-export class ProductModule {}
+export class ProductModule { }

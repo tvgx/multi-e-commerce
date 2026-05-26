@@ -25,6 +25,7 @@ import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as path from 'path';
 import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
 import { StorageModule } from './storage/storage.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -47,8 +48,6 @@ import { StorageModule } from './storage/storage.module';
         retryReads: true,
       }),
     }),
-    DatabaseModule,
-    CommonModule,
     AuthModule,
     StorefrontAuthModule,
     ShopModule,
