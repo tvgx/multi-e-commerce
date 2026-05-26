@@ -33,7 +33,7 @@ async function main() {
   console.log('\n[MongoDB] Đang kết nối tới Atlas...');
   if (!MONGODB_URI) throw new Error('Không tìm thấy MONGODB_URI trong file .env');
   
-  await mongoose.connect(MONGODB_URI);
+  await mongoose.connect(MONGODB_URI, { family: 4 });
   console.log('[MongoDB] ✅ Kết nối thành công!');
 
   // 2. Clear dữ liệu cũ (Tùy chọn)

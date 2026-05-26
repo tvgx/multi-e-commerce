@@ -111,7 +111,7 @@ async function main() {
     if (!process.env.MONGO_DB_ATLAS) {
         throw new Error("MONGO_DB_ATLAS is missing in process.env");
     }
-    await mongoose.connect(process.env.MONGO_DB_ATLAS);
+    await mongoose.connect(process.env.MONGO_DB_ATLAS, { family: 4 });
     console.log("✅ MongoDB Connected");
 
     // 2. Ensure MinIO Bucket
