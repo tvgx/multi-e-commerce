@@ -24,9 +24,9 @@
     "verify:stop": "bash scripts/verify-stop.sh",
     "tunnel:up": "bash scripts/setup-cloudflare-tunnel.sh",
     "prisma:build": "cd packages/database && npm run schema:build",
-    "prisma:generate": "cd packages/database && npm run schema:build && npx prisma generate",
-    "prisma:migrate": "cd packages/database && npm run schema:build && npx prisma migrate dev",
-    "prisma:studio": "cd packages/database && npm run schema:build && npx prisma studio"
+    "prisma:generate": "npm run prisma:build && npx prisma generate --schema=packages/database/prisma/schema.prisma",
+    "prisma:migrate": "npm run prisma:build && npx prisma migrate dev --schema=packages/database/prisma/schema.prisma",
+    "prisma:studio": "npm run prisma:build && npx prisma studio --schema=packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

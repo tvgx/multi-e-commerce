@@ -21,19 +21,20 @@ export class StorageQuotaService {
     let usage = await this.cacheService.get<any>(cacheKey);
 
     if (!usage) {
-      usage = await this.prisma.storageUsage.findUnique({
-        where: { shopId },
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+          storageUsedBytes: true,
+          storageTotalLimit: true,
+        },
       });
-      if (usage) {
+      if (shop) {
+        usage = {
+          usedBytes: shop.storageUsedBytes.toString(),
+          totalLimit: shop.storageTotalLimit.toString(),
+        };
         // Cache for 5 minutes
-        await this.cacheService.set(
-          cacheKey,
-          {
-            usedBytes: usage.usedBytes.toString(),
-            totalLimit: usage.totalLimit.toString(),
-          },
-          300000,
-        );
+        await this.cacheService.set(cacheKey, usage, 300000);
       }
     }
 
@@ -51,27 +52,25 @@ export class StorageQuotaService {
    * Cập nhật dung lượng đã sử dụng sau khi upload thành công
    */
   async recordUpload(shopId: string, bytesUsed: number): Promise<void> {
-    const usage = await this.prisma.storageUsage.upsert({
-      where: { shopId },
-      create: {
-        shopId,
-        usedBytes: BigInt(bytesUsed),
-        chunkCount: Math.ceil(bytesUsed / Number(this.CHUNK_SIZE)),
+    const shop = await this.prisma.shop.update({
+      where: { id: shopId },
+      data: {
+        storageUsedBytes: { increment: BigInt(bytesUsed) },
       },
-      update: {
-        usedBytes: { increment: BigInt(bytesUsed) },
+      select: {
+        storageUsedBytes: true,
       },
     });
 
     // Recalculate chunks
-    const currentTotal = usage.usedBytes;
+    const currentTotal = shop.storageUsedBytes;
     const newChunkCount = Math.ceil(
       Number(currentTotal) / Number(this.CHUNK_SIZE),
     );
 
-    await this.prisma.storageUsage.update({
-      where: { shopId },
-      data: { chunkCount: newChunkCount },
+    await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { storageChunkCount: newChunkCount },
     });
 
     await this.cacheService.del(`storage-quota:${shopId}`);
@@ -81,20 +80,23 @@ export class StorageQuotaService {
    * Trừ dung lượng khi xóa file
    */
   async recordDeletion(shopId: string, bytesRemoved: number): Promise<void> {
-    const usage = await this.prisma.storageUsage.findUnique({
-      where: { shopId },
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        storageUsedBytes: true,
+      },
     });
 
-    if (!usage) return;
+    if (!shop) return;
 
-    let newUsed = usage.usedBytes - BigInt(bytesRemoved);
+    let newUsed = shop.storageUsedBytes - BigInt(bytesRemoved);
     if (newUsed < BigInt(0)) newUsed = BigInt(0);
 
-    await this.prisma.storageUsage.update({
-      where: { shopId },
+    await this.prisma.shop.update({
+      where: { id: shopId },
       data: {
-        usedBytes: newUsed,
-        chunkCount: Math.ceil(Number(newUsed) / Number(this.CHUNK_SIZE)),
+        storageUsedBytes: newUsed,
+        storageChunkCount: Math.ceil(Number(newUsed) / Number(this.CHUNK_SIZE)),
       },
     });
 

@@ -12,14 +12,17 @@ model Shop {
   onboardingStep   Int       @default(1)
   onboardingStatus Json?     @default("{}")
   domainVerified   Boolean   @default(false)
-  bankAccount      Json?     @default("{}") // { bankName, accountNumber, accountHolder }
+  bankAccount      ShopBankAccount?
 
-  // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
-  mapAddress        String? // Tọa độ hoặc địa chỉ map
-  licenseImageUrl   String? // Ảnh giấy phép kinh doanh
-  licenseIssuedDate DateTime?
-  licenseIssuedBy   String? // Nơi cấp
-  licenseExpiryDate DateTime?
+  // Thông tin định danh doanh nghiệp
+  businessLicenseNumber     String? // Mã số thẻ kinh doanh
+  businessLicenseIssuedDate DateTime? // Ngày cấp
+
+  // Thông tin lưu trữ (tích hợp từ StorageUsage)
+  storageUsedBytes   BigInt    @default(0)
+  storageTotalLimit  BigInt    @default(1073741824) // Default 1GB
+  storageChunkCount  Int       @default(0)
+  storageLastUpdated DateTime  @default(now()) @updatedAt
 
   currency         String    @default("VND")
   productsPerPage Int @default(30)
@@ -38,9 +41,22 @@ model Shop {
   shopPages      ShopPage[]
 
   media              Media[]
-  storageUsage       StorageUsage?
 
   @@map("shops")
+}
+
+model ShopBankAccount {
+  id            String   @id @default(uuid())
+  shopId        String   @unique
+  bankName      String
+  accountNumber String
+  accountHolder String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("shop_bank_accounts")
 }
 
 model Customer {

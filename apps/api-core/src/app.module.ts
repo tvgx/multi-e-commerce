@@ -20,6 +20,7 @@ import { NavigationModule } from './navigation/navigation.module';
 import { PagesModule } from './pages/pages.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { TaxModule } from './tax/tax.module';
+import { PromotionModule } from './promotion/promotion.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as path from 'path';
@@ -66,6 +67,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     ShippingModule,
     TaxModule,
     StorageModule,
+    PromotionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,23 +13,12 @@ model Promotion {
   startsAt    DateTime?
   expiresAt   DateTime?
   isActive    Boolean  @default(false)
+  discountType  String   @default("PERCENTAGE") // PERCENTAGE | FIXED_AMOUNT
+  discountValue Float    @default(0)
+  createdAt     DateTime @default(now())
 
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  couponCodes CouponCode[]
 
   @@index([shopId])
   @@map("promotions")
-}
-
-model CouponCode {
-  id          String   @id @default(uuid())
-  promotionId String
-  code        String   @unique // Unique code per user/issue
-  usageLimit  Int      @default(1)
-  usedCount   Int      @default(0)
-
-  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-
-  @@index([promotionId])
-  @@map("coupon_codes")
 }

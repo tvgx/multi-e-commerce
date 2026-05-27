@@ -114,14 +114,17 @@ model Shop {
   onboardingStep   Int       @default(1)
   onboardingStatus Json?     @default("{}")
   domainVerified   Boolean   @default(false)
-  bankAccount      Json?     @default("{}") // { bankName, accountNumber, accountHolder }
+  bankAccount      ShopBankAccount?
 
-  // Thông tin định danh doanh nghiệp (Có thể tách ra bảng riêng BusinessLicense nếu phức tạp)
-  mapAddress        String? // Tọa độ hoặc địa chỉ map
-  licenseImageUrl   String? // Ảnh giấy phép kinh doanh
-  licenseIssuedDate DateTime?
-  licenseIssuedBy   String? // Nơi cấp
-  licenseExpiryDate DateTime?
+  // Thông tin định danh doanh nghiệp
+  businessLicenseNumber     String? // Mã số thẻ kinh doanh
+  businessLicenseIssuedDate DateTime? // Ngày cấp
+
+  // Thông tin lưu trữ (tích hợp từ StorageUsage)
+  storageUsedBytes   BigInt    @default(0)
+  storageTotalLimit  BigInt    @default(1073741824) // Default 1GB
+  storageChunkCount  Int       @default(0)
+  storageLastUpdated DateTime  @default(now()) @updatedAt
 
   currency         String    @default("VND")
   productsPerPage Int @default(30)
@@ -140,9 +143,22 @@ model Shop {
   shopPages      ShopPage[]
 
   media              Media[]
-  storageUsage       StorageUsage?
 
   @@map("shops")
+}
+
+model ShopBankAccount {
+  id            String   @id @default(uuid())
+  shopId        String   @unique
+  bankName      String
+  accountNumber String
+  accountHolder String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("shop_bank_accounts")
 }
 
 model Customer {
@@ -454,25 +470,14 @@ model Promotion {
   startsAt    DateTime?
   expiresAt   DateTime?
   isActive    Boolean  @default(false)
+  discountType  String   @default("PERCENTAGE") // PERCENTAGE | FIXED_AMOUNT
+  discountValue Float    @default(0)
+  createdAt     DateTime @default(now())
 
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  couponCodes CouponCode[]
 
   @@index([shopId])
   @@map("promotions")
-}
-
-model CouponCode {
-  id          String   @id @default(uuid())
-  promotionId String
-  code        String   @unique // Unique code per user/issue
-  usageLimit  Int      @default(1)
-  usedCount   Int      @default(0)
-
-  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-
-  @@index([promotionId])
-  @@map("coupon_codes")
 }
 
 // ==========================================
@@ -574,16 +579,3 @@ model Media {
   @@map("media")
 }
 
-model StorageUsage {
-  id            String   @id @default(uuid())
-  shopId        String   @unique
-  usedBytes     BigInt   @default(0)
-  totalLimit    BigInt   @default(1073741824) // Default 1GB
-  chunkCount    Int      @default(0)         // Number of 16MB chunks used
-  lastUpdated   DateTime @default(now())
-
-  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  @@index([shopId])
-  @@map("storage_usage")
-}

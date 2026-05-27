@@ -1,16 +1,19 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { PaymentService } from '../payment/payment.service';
+import { PromotionService } from '../promotion/promotion.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
+    @Inject(forwardRef(() => PromotionService))
+    private readonly promotionService: PromotionService,
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<BaseResponseDto<any>> {
@@ -38,7 +41,7 @@ export class OrderService {
             });
           }
 
-          let totalAmount = 0;
+          let itemTotal = 0;
           const lineItemsData = [];
 
           // Fix N+1: Fetch all products at once
@@ -104,12 +107,36 @@ export class OrderService {
             }
 
             const priceAtBuy = masterVariant.price;
-            totalAmount += priceAtBuy * item.quantity;
+            itemTotal += priceAtBuy * item.quantity;
 
             lineItemsData.push({
               variantId: masterVariant.id,
               quantity: item.quantity,
               price: priceAtBuy,
+            });
+          }
+
+          let promoTotal = 0;
+          let finalTotal = itemTotal;
+          let promotionId = null;
+
+          if (dto.promoCode) {
+            const promoResult = await this.promotionService.validatePromotion(
+              dto.shopId,
+              dto.promoCode,
+              itemTotal,
+              tx,
+            );
+            promoTotal = promoResult.discountAmount;
+            finalTotal = itemTotal - promoTotal;
+            promotionId = promoResult.promotionId;
+
+            // Increment used count atomically inside the transaction
+            await tx.promotion.update({
+              where: { id: promotionId },
+              data: {
+                usedCount: { increment: 1 },
+              },
             });
           }
 
@@ -119,8 +146,9 @@ export class OrderService {
               number: `R${Date.now()}`,
               shopId: dto.shopId,
               customerId: customer.id,
-              totalAmount,
-              itemTotal: totalAmount,
+              totalAmount: finalTotal,
+              itemTotal: itemTotal,
+              promoTotal: promoTotal,
               state: 'confirm',
               lineItems: {
                 create: lineItemsData,
