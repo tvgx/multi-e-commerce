@@ -30,6 +30,8 @@ import { StorageModule } from './storage/storage.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InventoryModule } from './inventory/inventory.module';
 
+import { TemplatesModule } from './modules/templates/templates.module';
+
 @Module({
   imports: [
     DatabaseModule,
@@ -72,6 +74,7 @@ import { InventoryModule } from './inventory/inventory.module';
     PromotionModule,
     OptionTypeModule,
     InventoryModule,
+    TemplatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

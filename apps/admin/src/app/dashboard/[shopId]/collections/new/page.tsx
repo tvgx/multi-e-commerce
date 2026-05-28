@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, use, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
+import { apiClient } from "@/lib/api-client";
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const router = useRouter();
   const { createCollection } = useCollections(shopId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -35,13 +39,32 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
     });
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      await createCollection(formData);
+      let finalImageUrl = formData.imageUrl;
+
+      if (selectedFile) {
+        const form = new FormData();
+        form.append("file", selectedFile);
+        const res = await apiClient.post<{ data: { url: string } }>("/storage/upload?type=collection", form, { shopId });
+        if (res.data?.data?.url) {
+          finalImageUrl = res.data.data.url;
+        }
+      }
+
+      await createCollection({ ...formData, imageUrl: finalImageUrl });
       router.push(`/dashboard/${shopId}/collections`);
     } catch (err: any) {
       setError(err.message || "Failed to create category");
@@ -140,15 +163,31 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                 onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all mb-4"
               />
-              
-              {formData.imageUrl ? (
-                <div className="aspect-video rounded-xl border border-white/10 overflow-hidden bg-black/40">
-                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              {previewUrl || formData.imageUrl ? (
+                <div 
+                  className="aspect-video rounded-xl border border-white/10 overflow-hidden bg-black/40 cursor-pointer relative group"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                    <ImageIcon className="w-8 h-8 mb-2" />
+                    <span className="text-sm font-medium">Click to change image</span>
+                  </div>
                 </div>
               ) : (
-                <div className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500 bg-black/20">
+                <div 
+                  className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500 bg-black/20 cursor-pointer hover:border-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/5 transition-all"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                  <span className="text-sm">Image preview will appear here</span>
+                  <span className="text-sm font-medium">Click to upload an image</span>
                 </div>
               )}
             </div>

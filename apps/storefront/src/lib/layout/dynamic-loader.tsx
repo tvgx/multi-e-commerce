@@ -37,7 +37,7 @@ const ComponentRegistry: Record<string, React.ComponentType<any>> = {
     ProductHighlight: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/products/ProductHighlight').then(m => m.ProductHighlight)),
     ProductHotspot: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/products/ProductHotspot').then(m => m.ProductHotspot)),
     RecommendedProducts: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/products/RecommendedProducts').then(m => m.RecommendedProducts)),
-    // Note: AllProductsGrid is mocked below since it hasn't been implemented in the components library yet.
+    // Note: AllProductsGrid is a placeholder below since it hasn't been implemented in the components library yet.
     AllProductsGrid: dynamic(() => Promise.resolve(() => <div className="p-10 border bg-gray-50 text-center">All Products Grid Placeholder</div>)),
 
     // Storytelling

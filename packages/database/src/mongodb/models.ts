@@ -85,10 +85,35 @@ const ProductLayoutSchema: Schema = new Schema({
 
 ProductLayoutSchema.index({ productId: 1 }, { unique: true });
 
+// ------------------------------------------
+// 3. Master Template Catalog (Metadata for UI)
+// ------------------------------------------
+
+export interface IMasterTemplateCatalog extends Document {
+    templateKey: string;
+    templateType: string;
+    industry: string;
+    displayName: string;
+    description: string;
+    icon: string;
+    isCustom: boolean;
+}
+
+const MasterTemplateCatalogSchema: Schema = new Schema({
+    templateKey: { type: String, required: true, unique: true, index: true },
+    templateType: { type: String, required: true },
+    industry: { type: String, required: true },
+    displayName: { type: String, required: true },
+    description: { type: String, required: true },
+    icon: { type: String, required: true },
+    isCustom: { type: Boolean, default: false },
+}, { timestamps: true, collection: 'master_template_catalog' });
+
 // Exports
 export const GlobalLayout = mongoose.models.GlobalLayout || mongoose.model<IGlobalLayout>('GlobalLayout', GlobalLayoutSchema);
 export const PageLayout = mongoose.models.PageLayout || mongoose.model<IPageLayout>('PageLayout', PageLayoutSchema);
 export const ProductLayout = mongoose.models.ProductLayout || mongoose.model<IProductLayout>('ProductLayout', ProductLayoutSchema);
+export const MasterTemplateCatalog = mongoose.models.MasterTemplateCatalog || mongoose.model<IMasterTemplateCatalog>('MasterTemplateCatalog', MasterTemplateCatalogSchema);
 
 /**
  * @deprecated Use ProductLayout instead. Kept for backward compatibility during migration.

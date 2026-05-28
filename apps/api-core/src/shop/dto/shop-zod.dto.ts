@@ -28,6 +28,7 @@ export const CreateShopSchema = z.object({
   domain: z.string().optional(),
   productsPerPage: z.number().int().positive().optional().default(30),
   templateType: TemplateTypeEnum.optional().default('standard'),
+  templateKey: z.string().optional(),
 });
 
 export const UpdateShopSchema = z.object({

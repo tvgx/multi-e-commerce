@@ -1,81 +1,75 @@
 "use client"
 
 import React from "react";
-import { useBuilderStore, Section } from "../../store/builder-store";
-import { Hero, FeaturedCollection, AnnouncementBar } from "../../registry";
-import { ComponentType } from "../../store/builder-store";
-
-// Mapping between string 'type' and the actual React Component from UI Registry
-const COMPONENT_REGISTRY: Record<ComponentType, React.ComponentType<any>> = {
-    Hero,
-    FeaturedCollection,
-    AnnouncementBar,
-};
-
-// Default props defining the fallback layout if user hasn't overridden them
-const DEFAULT_PROPS: Record<string, Record<string, unknown>> = {
-    Hero: {
-        title: "Welcome to Duck Store",
-        subtitle: "Built with our No-Code platform.",
-        ctaText: "Shop Now",
-        ctaLink: "#",
-    },
-    FeaturedCollection: {
-        title: "Featured Items",
-        description: "Handpicked selections.",
-        products: [
-            { id: "p1", name: "Sample Item", price: 19.99, slug: "sample", imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=60" }
-        ]
-    },
-    AnnouncementBar: {
-        text: "Free shipping on orders over $100!",
-    }
-};
+import { useBuilderStore } from "../../store/builder-store";
+import { UIComponentRef } from "@ecommerce/schema";
+import { registry } from "../../registry";
 
 export function CanvasRenderer() {
-    const { sections, activeSectionId, setActiveSection } = useBuilderStore();
+    const { globalComponents, pages, activePage, activeComponentId, setActiveComponent } = useBuilderStore();
+
+    // Separate Header and Footer from globalComponents
+    const headerComponent = globalComponents.find(c => c.componentId === 'Header') || { id: 'header-placeholder', componentId: 'Header', props: {} };
+    const footerComponent = globalComponents.find(c => c.componentId === 'Footer') || { id: 'footer-placeholder', componentId: 'Footer', props: {} };
+
+    const pageComponents = pages[activePage] || [];
 
     return (
-        <div className="w-full min-h-[500px] pb-32 flex flex-col items-center">
-            {sections.length === 0 ? (
-                <div className="w-full h-full flex items-center justify-center p-12 text-zinc-400 border border-dashed border-zinc-200 rounded-lg">
-                    No sections added yet. Drag or click &quot;Add Section&quot; from the sidebar.
-                </div>
-            ) : (
-                sections.map((section) => (
-                    <CanvasBlock
-                        key={section.id}
-                        section={section}
-                        isActive={activeSectionId === section.id}
-                        onClick={() => setActiveSection(section.id)}
-                    />
-                ))
-            )}
+        <div className="w-full min-h-[500px] flex flex-col items-center bg-white overflow-hidden shadow-2xl relative border-t-8 border-indigo-500">
+            {/* Locked Header */}
+            <CanvasBlock
+                component={headerComponent as UIComponentRef}
+                isActive={activeComponentId === headerComponent.id}
+                onClick={() => setActiveComponent(headerComponent.id)}
+                isLocked={true}
+            />
+
+            {/* Page Content Area */}
+            <div className="w-full flex-1 flex flex-col min-h-[300px]">
+                {pageComponents.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center p-12 text-zinc-400 border border-dashed border-zinc-200 bg-zinc-50 m-4 rounded-lg">
+                        Trang này chưa có block nào. Chọn "Add Section" từ menu bên phải.
+                    </div>
+                ) : (
+                    pageComponents.map((section) => (
+                        <CanvasBlock
+                            key={section.id}
+                            component={section}
+                            isActive={activeComponentId === section.id}
+                            onClick={() => setActiveComponent(section.id)}
+                        />
+                    ))
+                )}
+            </div>
+
+            {/* Locked Footer */}
+            <CanvasBlock
+                component={footerComponent as UIComponentRef}
+                isActive={activeComponentId === footerComponent.id}
+                onClick={() => setActiveComponent(footerComponent.id)}
+                isLocked={true}
+            />
         </div>
     );
 }
 
 // Inner component to handle styling of "Active" vs "Inactive" states in Builder Mode
 function CanvasBlock({
-    section,
+    component,
     isActive,
-    onClick
+    onClick,
+    isLocked = false
 }: {
-    section: Section;
+    component: UIComponentRef;
     isActive: boolean;
     onClick: () => void;
+    isLocked?: boolean;
 }) {
-    const Component = COMPONENT_REGISTRY[section.type];
+    const Component = registry[component.componentId];
 
     if (!Component) {
-        return <div className="p-4 bg-red-50 text-red-500">Unknown component: {section.type}</div>;
+        return <div className="p-4 bg-red-50 text-red-500 w-full text-center">Unknown component: {component.componentId}</div>;
     }
-
-    // Core logic: Merge the static Default Props with User's Override Props
-    const mergedProps = {
-        ...DEFAULT_PROPS[section.type],
-        ...(section.props || {})  // Only override if user modified
-    };
 
     return (
         <div
@@ -89,14 +83,21 @@ function CanvasBlock({
         >
             {/* Visual Indicator of Active/Edit mode */}
             {isActive && (
-                <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 z-20 rounded-bl-lg pointer-events-none shadow-sm">
-                    Editing {section.type}
+                <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 z-20 rounded-bl-lg pointer-events-none shadow-sm flex items-center gap-1">
+                    {isLocked ? "🔒 CỐ ĐỊNH" : `CHỈNH SỬA: ${component.componentId}`}
                 </div>
+            )}
+            
+            {/* Hover indicator for locked elements */}
+            {!isActive && isLocked && (
+                 <div className="absolute top-0 right-0 bg-slate-800 text-white text-[10px] uppercase font-bold px-2 py-1 z-20 rounded-bl-lg pointer-events-none shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                 🔒 CỐ ĐỊNH
+             </div>
             )}
 
             {/* To allow clicks inside the canvas to select the component without triggering links, we wrapper it */}
             <div className="pointer-events-none">
-                <Component {...mergedProps} />
+                <Component {...(component.props || {})} />
             </div>
         </div>
     );

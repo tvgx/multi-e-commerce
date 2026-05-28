@@ -19,7 +19,7 @@ class ApiClient {
     
     // Default headers
     const headers = new Headers(options.headers || {});
-    if (!headers.has("Content-Type")) {
+    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
       headers.set("Content-Type", "application/json");
     }
 
@@ -51,7 +51,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
-      body: JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body),
     });
   }
 
@@ -59,7 +59,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: "PUT",
-      body: JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body),
     });
   }
 

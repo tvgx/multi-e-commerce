@@ -20,7 +20,7 @@ export default async function CustomPage({ params }: Props) {
 
   // A custom page is essentially a collection of sections
   // We wrap it in a Layout-like object to use LayoutRenderer
-  const mockPageLayout = {
+  const pageLayout = {
     components: page.sections || []
   };
 
@@ -33,7 +33,7 @@ export default async function CustomPage({ params }: Props) {
         </div>
       )}
 
-      <LayoutRenderer pageLayout={mockPageLayout} />
+      <LayoutRenderer pageLayout={pageLayout} />
     </div>
   );
 }

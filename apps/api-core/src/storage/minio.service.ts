@@ -242,9 +242,15 @@ export class MinioService implements OnModuleInit {
           CORSConfiguration: corsRules,
         }),
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'NotImplemented') {
+        this.logger.debug(
+          `[MinIO] Bucket CORS configuration is not supported via S3 API (expected for MinIO). Configure via MINIO_API_CORS_ALLOW_ORIGIN env var instead.`
+        );
+        return;
+      }
       this.logger.warn(
-        `[MinIO] Could not set CORS policy for bucket ${bucket}: ${error}`,
+        `[MinIO] Could not set CORS policy for bucket ${bucket}: ${error.message || error}`,
       );
     }
   }

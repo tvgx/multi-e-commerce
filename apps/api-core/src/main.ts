@@ -8,6 +8,10 @@ import { OWNER_AUTH, CUSTOMER_AUTH } from './modules/auth/auth.constants';
 import type { OwnerAuth } from './modules/auth/owner-auth.config';
 import type { CustomerAuth } from './modules/auth/customer-auth.config';
 
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

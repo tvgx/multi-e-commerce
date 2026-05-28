@@ -2,20 +2,20 @@
 
 import React, { useState } from "react";
 import { Plus, X, LayoutTemplate, ImageIcon, Megaphone } from "lucide-react";
-import { useBuilderStore, ComponentType } from "../../store/builder-store";
+import { useBuilderStore } from "../../store/builder-store";
 
-const ADDABLE_SECTIONS: { type: ComponentType, icon: React.ComponentType<any>, label: string, desc: string }[] = [
-    { type: "Hero", icon: ImageIcon, label: "Image Banner", desc: "Large hero block with text and CTA." },
-    { type: "FeaturedCollection", icon: LayoutTemplate, label: "Featured Collection", desc: "Grid of handpicked products." },
-    { type: "AnnouncementBar", icon: Megaphone, label: "Announcement Bar", desc: "Thin strip for top-level notices." },
+const ADDABLE_SECTIONS: { componentId: string, icon: React.ComponentType<any>, label: string, desc: string }[] = [
+    { componentId: "Hero", icon: ImageIcon, label: "Image Banner", desc: "Large hero block with text and CTA." },
+    { componentId: "FeaturedCollection", icon: LayoutTemplate, label: "Featured Collection", desc: "Grid of handpicked products." },
+    { componentId: "AnnouncementBar", icon: Megaphone, label: "Announcement Bar", desc: "Thin strip for top-level notices." },
 ];
 
 export function AddSectionDropdown() {
     const [isOpen, setIsOpen] = useState(false);
-    const { addSection } = useBuilderStore();
+    const { addPageSection, activePage } = useBuilderStore();
 
-    const handleAdd = (type: ComponentType) => {
-        addSection(type);
+    const handleAdd = (componentId: string) => {
+        addPageSection(activePage, componentId);
         setIsOpen(false);
     };
 
@@ -32,8 +32,8 @@ export function AddSectionDropdown() {
                     <div className="space-y-1 max-h-[300px] overflow-y-auto">
                         {ADDABLE_SECTIONS.map((sec) => (
                             <button
-                                key={sec.type}
-                                onClick={() => handleAdd(sec.type)}
+                                key={sec.componentId}
+                                onClick={() => handleAdd(sec.componentId)}
                                 className="w-full text-left p-2 hover:bg-zinc-800 rounded-md group transition-colors flex gap-3 items-start"
                             >
                                 <div className="mt-0.5 bg-zinc-800 group-hover:bg-zinc-700 p-1.5 rounded text-zinc-400 group-hover:text-emerald-400 transition-colors">

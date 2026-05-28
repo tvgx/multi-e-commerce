@@ -1,13 +1,21 @@
 "use client"
 
 import React from "react";
-import { useBuilderStore, ComponentType } from "../../store/builder-store";
+import { useBuilderStore } from "../../store/builder-store";
 import { Settings, Image as ImageIcon, Link, AlignLeft } from "lucide-react";
 
 export function PropertiesEditor() {
-    const { sections, activeSectionId, updateSectionProps, setActiveSection } = useBuilderStore();
+    const { 
+        globalComponents, 
+        pages, 
+        activePage, 
+        activeComponentId, 
+        setActiveComponent, 
+        updateGlobalComponent, 
+        updatePageSection 
+    } = useBuilderStore();
 
-    if (!activeSectionId) {
+    if (!activeComponentId) {
         return (
             <div className="p-8 text-center text-zinc-500 flex flex-col items-center justify-center h-full">
                 <Settings className="h-8 w-8 mb-3 opacity-50" />
@@ -16,21 +24,28 @@ export function PropertiesEditor() {
         );
     }
 
-    const activeSection = sections.find(s => s.id === activeSectionId);
-    if (!activeSection) return null;
+    const activeGlobal = globalComponents.find(c => c.id === activeComponentId);
+    const activePageSection = (pages[activePage] || []).find(c => c.id === activeComponentId);
+    const activeComponent = activeGlobal || activePageSection;
+
+    if (!activeComponent) return null;
 
     const handlePropChange = (key: string, value: unknown) => {
-        updateSectionProps(activeSectionId, { [key]: value });
+        if (activeGlobal) {
+            updateGlobalComponent(activeComponentId, { [key]: value });
+        } else if (activePageSection) {
+            updatePageSection(activePage, activeComponentId, { [key]: value });
+        }
     };
 
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-zinc-900 z-10">
                 <h3 className="font-semibold text-white flex items-center gap-2">
-                    Editing {activeSection.type}
+                    Editing {activeComponent.componentId}
                 </h3>
                 <button
-                    onClick={() => setActiveSection(null)}
+                    onClick={() => setActiveComponent(null)}
                     className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 bg-zinc-800 rounded"
                 >
                     Done
@@ -38,19 +53,47 @@ export function PropertiesEditor() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 space-y-6">
-                {renderEditorFields(activeSection.type, activeSection.props || {}, handlePropChange)}
+                {renderEditorFields(activeComponent.componentId, activeComponent.props || {}, handlePropChange)}
             </div>
         </div>
     );
 }
 
 function renderEditorFields(
-    type: ComponentType,
+    componentId: string,
     currentProps: Record<string, unknown>,
     onChange: (key: string, val: unknown) => void
 ) {
     // We mock the schema of what is editable for each component type
-    switch (type) {
+    switch (componentId) {
+        case 'Header':
+            return (
+                <>
+                    <InputField
+                        label="Logo Text"
+                        value={(currentProps.logoText as string) || "My Store"}
+                        onChange={(v) => onChange('logoText', v)}
+                        icon={<TypeIcon />}
+                    />
+                    <ImageUploadField
+                        label="Logo Image"
+                        value={(currentProps.logoImage as string) || ""}
+                        onChange={(v) => onChange('logoImage', v)}
+                        icon={<ImageIcon className="w-4 h-4" />}
+                    />
+                </>
+            );
+        case 'Footer':
+            return (
+                <>
+                    <TextAreaField
+                        label="About Us Text"
+                        value={(currentProps.aboutText as string) || "We sell the best products in the world."}
+                        onChange={(v) => onChange('aboutText', v)}
+                        icon={<AlignLeft className="w-4 h-4" />}
+                    />
+                </>
+            );
         case 'Hero':
             return (
                 <>
@@ -77,23 +120,42 @@ function renderEditorFields(
                         onChange={(v) => onChange('ctaLink', v)}
                         icon={<Link className="w-4 h-4" />}
                     />
-                    <InputField
-                        label="Background Image URL"
+                    <ImageUploadField
+                        label="Background Image"
                         value={(currentProps.backgroundImageUrl as string) || ""}
                         onChange={(v) => onChange('backgroundImageUrl', v)}
                         icon={<ImageIcon className="w-4 h-4" />}
-                        placeholder="https://..."
+                    />
+                    <ColorPickerField
+                        label="Background Color"
+                        value={(currentProps.backgroundColor as string) || "#ffffff"}
+                        onChange={(v) => onChange('backgroundColor', v)}
+                        icon={<Settings className="w-4 h-4" />}
                     />
                 </>
             );
         case 'AnnouncementBar':
             return (
-                <InputField
-                    label="Announcement Text"
-                    value={(currentProps.text as string) || "Free shipping on orders over $100!"}
-                    onChange={(v) => onChange('text', v)}
-                    icon={<TypeIcon />}
-                />
+                <>
+                    <InputField
+                        label="Announcement Text"
+                        value={(currentProps.text as string) || "Free shipping on orders over $100!"}
+                        onChange={(v) => onChange('text', v)}
+                        icon={<TypeIcon />}
+                    />
+                    <ColorPickerField
+                        label="Background Color"
+                        value={(currentProps.backgroundColor as string) || "#000000"}
+                        onChange={(v) => onChange('backgroundColor', v)}
+                        icon={<Settings className="w-4 h-4" />}
+                    />
+                    <ColorPickerField
+                        label="Text Color"
+                        value={(currentProps.textColor as string) || "#ffffff"}
+                        onChange={(v) => onChange('textColor', v)}
+                        icon={<TypeIcon />}
+                    />
+                </>
             );
         case 'FeaturedCollection':
             return (
@@ -161,6 +223,80 @@ function TextAreaField({ label, value, onChange, icon }: FieldProps) {
                 rows={3}
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-shadow resize-none"
             />
+        </div>
+    );
+}
+
+function ColorPickerField({ label, value, onChange, icon }: FieldProps) {
+    return (
+        <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                {icon} {label}
+            </label>
+            <div className="flex gap-3 items-center">
+                <input
+                    type="color"
+                    value={value || '#000000'}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-8 h-8 rounded border-none outline-none cursor-pointer p-0 bg-transparent"
+                />
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="flex-1 bg-zinc-950 border border-zinc-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+            </div>
+        </div>
+    );
+}
+
+function ImageUploadField({ label, value, onChange, icon }: FieldProps) {
+    // A mock image upload field that uses FileReader to get a local data URL 
+    // or allows manual URL input.
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        // Use FileReader for instant preview instead of actual upload to keep it simple in UI package
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                onChange(event.target.result as string);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    return (
+        <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                {icon} {label}
+            </label>
+            {value && (
+                <div className="mb-2 relative rounded-md overflow-hidden border border-zinc-700 bg-zinc-900 group">
+                    <img src={value} alt="Preview" className="w-full h-32 object-cover" />
+                    <button 
+                        onClick={() => onChange('')}
+                        className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <label className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs px-3 py-2 rounded-md border border-zinc-700 cursor-pointer flex items-center justify-center transition-colors">
+                    Upload
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                </label>
+            </div>
         </div>
     );
 }

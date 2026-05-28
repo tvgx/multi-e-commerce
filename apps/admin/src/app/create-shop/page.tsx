@@ -1,29 +1,48 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 
-const TEMPLATES = [
-  { id: "MASTER_FASHION", name: "Thời trang", desc: "Layout thời trang, phụ kiện.", icon: "👗" },
-  { id: "MASTER_HOME_APPLIANCES", name: "Điện tử", desc: "Tối ưu hiển thị đồ công nghệ.", icon: "💻" },
-  { id: "MASTER_MOM_AND_BABY", name: "Mẹ và Bé", desc: "Màu sắc tươi sáng, an toàn.", icon: "👶" },
-  { id: "MASTER_SPORTS", name: "Thể thao", desc: "Thiết kế năng động, mạnh mẽ.", icon: "🏅" },
-  { id: "MASTER_PACKAGED_FOOD", name: "Đồ ăn đóng gói", desc: "Hiển thị thực phẩm, siêu thị.", icon: "🍪" },
-  { id: "CUSTOM_DESIGN", name: "Tự thiết kế", desc: "Tự do trải nghiệm kéo thả layout.", icon: "🎨" },
-];
-
 export default function CreateShopPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [formData, setFormData] = useState({
     shopName: "",
     domain: "",
     templateId: "MASTER_FASHION",
   });
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await apiClient.get<any>("/api/templates");
+        if (res.data && res.data.length > 0) {
+          setTemplates(res.data);
+        } else {
+          // Fallback if empty
+          setTemplates([
+            { id: "MASTER_FASHION", displayName: "Thời trang", description: "Layout thời trang, phụ kiện.", icon: "👗", isCustom: false, templateType: "visual" },
+            { id: "CUSTOM_DESIGN", displayName: "Tự thiết kế", description: "Tự do trải nghiệm kéo thả layout.", icon: "🎨", isCustom: true, templateType: "standard" },
+          ]);
+        }
+      } catch (err) {
+        // Fallback on error
+        setTemplates([
+          { id: "MASTER_FASHION", displayName: "Thời trang", description: "Layout thời trang, phụ kiện.", icon: "👗", isCustom: false, templateType: "visual" },
+          { id: "CUSTOM_DESIGN", displayName: "Tự thiết kế", description: "Tự do trải nghiệm kéo thả layout.", icon: "🎨", isCustom: true, templateType: "standard" },
+        ]);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 4));
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
@@ -31,11 +50,14 @@ export default function CreateShopPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      const selectedTemplate = templates.find(t => t.id === formData.templateId) || templates[0];
+      
       // 1. Create the shop metadata
       const res = await apiClient.post<any>("/api/shops", {
         name: formData.shopName,
         domain: formData.domain,
-        templateType: formData.templateId === "CUSTOM_DESIGN" ? "standard" : formData.templateId.toLowerCase().replace('master_', ''),
+        templateType: selectedTemplate.templateType,
+        templateKey: formData.templateId,
         productsPerPage: 30,
       });
 
@@ -183,27 +205,31 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {TEMPLATES.map((tmpl) => (
-                    <div
-                      key={tmpl.id}
-                      onClick={() => setFormData({ ...formData, templateId: tmpl.id })}
-                      className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${formData.templateId === tmpl.id
-                        ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
-                        : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
-                        }`}
-                    >
-                      <div className="text-3xl">{tmpl.icon}</div>
-                      <div>
-                        <h4 className="text-white font-bold mb-1 group-hover:text-indigo-300 transition-colors">{tmpl.name}</h4>
-                        <p className="text-slate-400 text-sm">{tmpl.desc}</p>
-                      </div>
-                      <div className="ml-auto flex items-center justify-center pt-2">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${formData.templateId === tmpl.id ? 'border-indigo-400' : 'border-slate-700 group-hover:border-slate-500'}`}>
-                          {formData.templateId === tmpl.id && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
+                  {loadingTemplates ? (
+                    <div className="flex justify-center p-5"><Loader2 className="w-6 h-6 animate-spin text-indigo-500" /></div>
+                  ) : (
+                    templates.map((tmpl: any) => (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => setFormData({ ...formData, templateId: tmpl.id })}
+                        className={`cursor-pointer group flex items-start gap-4 p-5 rounded-2xl border transition-all ${formData.templateId === tmpl.id
+                          ? "bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500"
+                          : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5"
+                          }`}
+                      >
+                        <div className="text-3xl">{tmpl.icon}</div>
+                        <div>
+                          <h4 className="text-white font-bold mb-1 group-hover:text-indigo-300 transition-colors">{tmpl.displayName}</h4>
+                          <p className="text-slate-400 text-sm">{tmpl.description}</p>
+                        </div>
+                        <div className="ml-auto flex items-center justify-center pt-2">
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${formData.templateId === tmpl.id ? 'border-indigo-400' : 'border-slate-700 group-hover:border-slate-500'}`}>
+                            {formData.templateId === tmpl.id && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="mt-10 flex justify-between items-center">

@@ -42,7 +42,7 @@ export class StorageController {
     },
   ) {
     const { fileName, contentType, isPublic = true, size } = body;
-    const shopId = req.user?.shopId || 'default-shop';
+    const shopId = (req.headers['x-shop-id'] as string) || req.user?.shopId || 'default-shop';
 
     if (size) {
       await this.storageQuotaService.checkQuota(shopId, size);
@@ -76,7 +76,7 @@ export class StorageController {
       alt?: string;
     },
   ) {
-    const shopId = req.user?.shopId || 'default-shop';
+    const shopId = (req.headers['x-shop-id'] as string) || req.user?.shopId || 'default-shop';
     await this.storageQuotaService.recordUpload(shopId, body.size);
 
     const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
@@ -127,7 +127,7 @@ export class StorageController {
       throw new BadRequestException('File is required');
     }
 
-    let shopId = req.user?.shopId || 'default-shop';
+    let shopId = (req.headers['x-shop-id'] as string) || req.user?.shopId || 'default-shop';
 
     // Check quota
     await this.storageQuotaService.checkQuota(shopId, file.size);
@@ -183,7 +183,7 @@ export class StorageController {
       throw new BadRequestException('Files are required');
     }
 
-    let shopId = req.user?.shopId || 'default-shop';
+    let shopId = (req.headers['x-shop-id'] as string) || req.user?.shopId || 'default-shop';
 
     const totalSize = files.reduce((acc, f) => acc + f.size, 0);
     await this.storageQuotaService.checkQuota(shopId, totalSize);
@@ -219,7 +219,7 @@ export class StorageController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    const shopId = req.user?.shopId || 'default-shop';
+    const shopId = (req.headers['x-shop-id'] as string) || req.user?.shopId || 'default-shop';
     return this.mediaService.getMediaList(
       shopId,
       limit ? Number(limit) : 20,
