@@ -25,17 +25,7 @@ export class ShopController {
   constructor(
     @Inject(ShopService)
     private readonly shopService: ShopService,
-  ) {
-    this.registerTenant = this.registerTenant.bind(this);
-    this.createShop = this.createShop.bind(this);
-    this.getMyShops = this.getMyShops.bind(this);
-    this.resolveShop = this.resolveShop.bind(this);
-    this.getShopSettings = this.getShopSettings.bind(this);
-    this.updateShop = this.updateShop.bind(this);
-    this.getOnboarding = this.getOnboarding.bind(this);
-    this.completeOnboardingStep = this.completeOnboardingStep.bind(this);
-    this.getSystemAllShops = this.getSystemAllShops.bind(this);
-  }
+  ) {}
 
   // UC-01: Tenant Registration (New spec-compliant endpoint)
   @Public()

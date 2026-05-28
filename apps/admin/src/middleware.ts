@@ -11,10 +11,15 @@ import type { NextRequest } from 'next/server';
  * xem cookie session có hợp lệ không (owner session).
  */
 
-// Các routes không cần xác thực
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
 // Routes chỉ có thể truy cập khi CHƯA đăng nhập (redirect về dashboard nếu đã login)
-const AUTH_ONLY_ROUTES = ['/login', '/register'];
+// Bao gồm cả '/' — Onboarding/Landing page:
+//   - Chưa login → hiển thị Onboarding
+//   - Đã login   → redirect về /dashboard
+const AUTH_ONLY_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+
+// Routes hoàn toàn public, không cần kiểm tra session (static assets, v.v.)
+// Lưu ý: '/' KHÔNG có ở đây — nó cần verify để biết có redirect dashboard hay không
+const FULLY_PUBLIC_ROUTES: string[] = [];
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -22,7 +27,9 @@ const API_URL =
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  // Các route hoàn toàn public không cần check gì cả
+  const isFullyPublic = FULLY_PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  if (isFullyPublic) return NextResponse.next();
 
   // Lấy cookie từ request để forward tới api-core
   const cookieHeader = request.headers.get('cookie') || '';
@@ -41,13 +48,22 @@ export async function middleware(request: NextRequest) {
     isAuthenticated = false;
   }
 
-  // Nếu đã login và đang truy cập auth-only routes → redirect về dashboard
-  if (isAuthenticated && AUTH_ONLY_ROUTES.some((r) => pathname.startsWith(r))) {
+  const isAuthOnlyRoute = AUTH_ONLY_ROUTES.some(
+    (route) => pathname === route || (route !== '/' && pathname.startsWith(route)),
+  );
+
+  // Đã login + đang ở auth-only route (/, /login, /register...) → vào dashboard
+  if (isAuthenticated && isAuthOnlyRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Nếu chưa login và truy cập route cần bảo vệ → redirect về /login
-  if (!isAuthenticated && !isPublicRoute) {
+  // Chưa login + đang ở auth-only route (/, /login, /register...) → để qua (xem onboarding/login)
+  if (!isAuthenticated && isAuthOnlyRoute) {
+    return NextResponse.next();
+  }
+
+  // Chưa login + đang truy cập route cần bảo vệ → redirect về /login
+  if (!isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);

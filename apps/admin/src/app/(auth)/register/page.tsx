@@ -61,7 +61,7 @@ export default function RegisterPage() {
         {/* Form Card */}
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-          
+
           <div className="relative z-10">
             <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
             <p className="text-slate-400 mb-8 text-sm">Join OmniCommerce and start your 60-second journey.</p>

@@ -1,0 +1,4 @@
+# Symlink to root .env — do not commit
+.env
+dist/
+node_modules/

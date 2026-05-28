@@ -36,7 +36,7 @@ spec:
               service:
                 name: api-core
                 port:
-                  number: 3001
+                  number: 3000
     - host: admin.ecommerce.local
       http:
         paths:
@@ -46,7 +46,7 @@ spec:
               service:
                 name: admin
                 port:
-                  number: 3000
+                  number: 3001
     - host: ecommerce.local
       http:
         paths:

@@ -30,14 +30,15 @@ export class BetterAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    
     // Bỏ qua nếu endpoint được đánh dấu @Public()
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
+    
     if (isPublic) return true;
-
-    const request = context.switchToHttp().getRequest<Request>();
 
     // Xác định loại auth cần kiểm tra
     // Ưu tiên header 'x-auth-type', fallback kiểm tra cả hai
