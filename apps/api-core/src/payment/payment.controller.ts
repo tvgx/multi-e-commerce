@@ -7,6 +7,7 @@ import {
   HttpStatus,
   BadRequestException,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { PrismaService } from '../database/prisma.service';
@@ -15,6 +16,8 @@ import {
   ConfirmPaymentDto,
   PaymentConfirmationAction,
 } from './payment-confirm.dto';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 
 @Controller('api/payments')
 export class PaymentController {
@@ -116,4 +119,23 @@ export class PaymentController {
       statusCode: HttpStatus.OK,
     });
   }
+
+  @Post(':paymentId/void')
+  @UseGuards(BetterAuthGuard)
+  async voidPayment(
+    @CurrentUser() user: any,
+    @Param('paymentId') paymentId: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.paymentService.voidPayment(user.id, paymentId);
+  }
+
+  @Post(':paymentId/refund')
+  @UseGuards(BetterAuthGuard)
+  async refundPayment(
+    @CurrentUser() user: any,
+    @Param('paymentId') paymentId: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.paymentService.refundPayment(user.id, paymentId);
+  }
 }
+

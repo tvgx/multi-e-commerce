@@ -4,9 +4,10 @@ import { PagesController } from './pages.controller';
 import { DatabaseModule } from '../database/database.module';
 import { CommonModule } from '../common/common.module';
 import { LayoutModule } from '../layout/layout.module';
+import { SystemCacheModule } from '../system/cache/cache.module';
 
 @Module({
-  imports: [DatabaseModule, CommonModule, LayoutModule],
+  imports: [DatabaseModule, CommonModule, LayoutModule, SystemCacheModule],
   controllers: [PagesController],
   providers: [PagesService],
   exports: [PagesService],

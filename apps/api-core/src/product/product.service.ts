@@ -105,7 +105,6 @@ export class ProductService {
             status: 'PUBLISHED',
             variants: {
               create: variantsToCreate.map((vData: any, i: number) => ({
-                shopId: shopId,
                 sku: vData.sku,
                 price: vData.price,
                 weight: vData.weight,
@@ -119,9 +118,39 @@ export class ProductService {
               })),
             },
           },
+          include: {
+            variants: true,
+          },
         });
 
-        // 3.5 Attach collections
+        // 3.4 Attach OptionTypes
+        if (dto.optionTypeIds && dto.optionTypeIds.length > 0) {
+          await tx.productOptionType.createMany({
+            data: dto.optionTypeIds.map((otId: string) => ({
+              productId: p.id,
+              optionTypeId: otId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        // 3.5 Attach VariantOptionValues
+        if (dto.variants && dto.variants.length > 0) {
+          for (const vCreated of p.variants) {
+            const vData = dto.variants.find((vd: any) => vd.sku === vCreated.sku);
+            if (vData && vData.optionValueIds && vData.optionValueIds.length > 0) {
+              await tx.variantOptionValue.createMany({
+                data: vData.optionValueIds.map((ovId: string) => ({
+                  variantId: vCreated.id,
+                  optionValueId: ovId,
+                })),
+                skipDuplicates: true,
+              });
+            }
+          }
+        }
+
+        // 3.6 Attach collections
         if (dto.collectionIds && dto.collectionIds.length > 0) {
           await tx.productCollection.createMany({
             data: dto.collectionIds.map((colId: string) => ({
@@ -135,13 +164,44 @@ export class ProductService {
         return p;
       });
 
-      // 4. Create in MongoDB
+      // 4. Resolve and build enriched variants data for MongoDB ProductLayout
+      const allOptionValueIds: string[] = [];
+      if (dto.variants) {
+        dto.variants.forEach((v: any) => {
+          if (v.optionValueIds) {
+            allOptionValueIds.push(...v.optionValueIds);
+          }
+        });
+      }
+
+      const optionValues = allOptionValueIds.length > 0
+        ? await this.prisma.optionValue.findMany({
+            where: { id: { in: allOptionValueIds } },
+            include: { optionType: true },
+          })
+        : [];
+
+      const valueMap = new Map<string, any>(
+        optionValues.map((ov: any) => [ov.id, ov]),
+      );
+
       const variantsDataForMongo = dto.variants
-        ? dto.variants.map((v: any) => ({
-          sku: v.sku,
-          attributes: v.attributes || {},
-          image: v.image || '',
-        }))
+        ? dto.variants.map((v: any) => {
+            const attributes = { ...(v.attributes || {}) };
+            if (v.optionValueIds) {
+              v.optionValueIds.forEach((ovId: string) => {
+                const ov = valueMap.get(ovId);
+                if (ov) {
+                  attributes[ov.optionType.name] = ov.presentation;
+                }
+              });
+            }
+            return {
+              sku: v.sku,
+              attributes,
+              image: v.image || '',
+            };
+          })
         : [];
 
       const layout = new this.productLayoutModel({
@@ -150,6 +210,14 @@ export class ProductService {
         attributes: dto.attributes || {},
         imageUrls: dto.images || [],
         variantsData: variantsDataForMongo,
+        descriptionHtml: dto.descriptionHtml || '',
+        videoUrls: dto.videoUrls || [],
+        seoData: dto.seoData || {
+          metaTitle: '',
+          metaDescription: '',
+          keywords: [],
+        },
+        customLandingPageLayout: dto.customLandingPageLayout || null,
       });
       await layout.save();
 
@@ -172,6 +240,7 @@ export class ProductService {
       categoryId?: string;
       minPrice?: number;
       maxPrice?: number;
+      isStorefront?: boolean;
     },
   ): Promise<BaseResponseDto<object[]>> {
     const currentShopId = this.tenantService.getTenantId();
@@ -189,7 +258,13 @@ export class ProductService {
     const cached = await this.cacheService.get<object[]>(cacheKey);
     if (cached) return BaseResponseDto.success(cached);
 
-    const whereClause: any = { shopId: targetShopId };
+    const isStorefront = filters?.isStorefront !== false;
+    const whereClause: any = {
+      shopId: targetShopId,
+      ...(isStorefront
+        ? { status: 'PUBLISHED' }
+        : { NOT: { status: 'ARCHIVED' } }),
+    };
 
     if (filters?.search) {
       whereClause.name = { contains: filters.search, mode: 'insensitive' };
@@ -270,17 +345,29 @@ export class ProductService {
         collections: {
           include: { collection: true },
         },
+        optionTypes: {
+          include: {
+            optionType: {
+              include: { optionValues: true },
+            },
+          },
+        },
         variants: {
           include: {
             stockItems: {
               include: { stockLocation: true },
+            },
+            optionValues: {
+              include: {
+                optionValue: true,
+              },
             },
           },
         },
       },
     });
 
-    if (!productPostgres) {
+    if (!productPostgres || productPostgres.status === 'ARCHIVED') {
       throw new CustomException(
         ResponseCodes.PRODUCT_NOT_EXISTED,
         'Product is not existed',
@@ -290,12 +377,21 @@ export class ProductService {
 
     // Tenant isolation check
     const currentShopId = this.tenantService.getTenantId();
-    if (currentShopId && productPostgres.shopId !== currentShopId) {
-      throw new CustomException(
-        ResponseCodes.NOT_ACCESS,
-        'Not access.',
-        HttpStatus.FORBIDDEN,
-      );
+    if (currentShopId) {
+      if (productPostgres.shopId !== currentShopId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      if (productPostgres.status !== 'PUBLISHED') {
+        throw new CustomException(
+          ResponseCodes.PRODUCT_NOT_EXISTED,
+          'Product is not published',
+          HttpStatus.NOT_FOUND,
+        );
+      }
     }
 
     const layoutDoc = await this.productLayoutModel
@@ -416,10 +512,19 @@ export class ProductService {
       return p;
     });
 
-    if (dto.attributes) {
+    const mongoUpdate: any = {};
+    if (dto.attributes !== undefined) mongoUpdate.attributes = dto.attributes;
+    if (dto.descriptionHtml !== undefined)
+      mongoUpdate.descriptionHtml = dto.descriptionHtml;
+    if (dto.videoUrls !== undefined) mongoUpdate.videoUrls = dto.videoUrls;
+    if (dto.seoData !== undefined) mongoUpdate.seoData = dto.seoData;
+    if (dto.customLandingPageLayout !== undefined)
+      mongoUpdate.customLandingPageLayout = dto.customLandingPageLayout;
+ 
+    if (Object.keys(mongoUpdate).length > 0) {
       await this.productLayoutModel.updateOne(
         { productId },
-        { $set: { attributes: dto.attributes } },
+        { $set: mongoUpdate },
       );
     }
 
@@ -430,5 +535,122 @@ export class ProductService {
     // For listing, it will expire in 5 mins anyway.
 
     return BaseResponseDto.success(updatedPostgres);
+  }
+
+  async deleteProduct(
+    ownerId: string,
+    productId: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        include: { shop: true },
+      });
+
+      if (!product) {
+        throw new CustomException(
+          ResponseCodes.PRODUCT_NOT_EXISTED,
+          'Product is not existed',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (product.shop.ownerId !== ownerId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // 1. Soft Delete in PostgreSQL
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { status: 'ARCHIVED' },
+      });
+
+      // 2. Delete from MongoDB ProductLayout
+      await this.productLayoutModel.deleteOne({ productId });
+
+      // 3. Invalidate caches
+      await this.cacheService.del(`product:${productId}`);
+      await this.cacheService.del(`products:${product.shopId}:*`);
+
+      return BaseResponseDto.success({ deleted: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new InternalServerErrorException('Failed to delete product');
+    }
+  }
+
+  async updateProductStatus(
+    ownerId: string,
+    productId: string,
+    status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        include: { shop: true, variants: true },
+      });
+
+      if (!product) {
+        throw new CustomException(
+          ResponseCodes.PRODUCT_NOT_EXISTED,
+          'Product is not existed',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (product.shop.ownerId !== ownerId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // 1. Update in PostgreSQL
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { status },
+      });
+
+      // 2. Update MongoDB Layout based on status
+      if (status === 'ARCHIVED') {
+        await this.productLayoutModel.deleteOne({ productId });
+      } else {
+        const existingLayout = await this.productLayoutModel.findOne({
+          productId,
+        });
+        if (!existingLayout) {
+          const masterVariant =
+            product.variants.find((v: any) => v.isMaster) ||
+            product.variants[0];
+          await this.productLayoutModel.create({
+            productId,
+            shopId: product.shopId,
+            attributes: {},
+            imageUrls: [],
+            variantsData: masterVariant
+              ? [{ sku: masterVariant.sku, attributes: {}, image: '' }]
+              : [],
+            descriptionHtml: '',
+            videoUrls: [],
+            seoData: { metaTitle: '', metaDescription: '', keywords: [] },
+            customLandingPageLayout: null,
+          });
+        }
+      }
+
+      // 3. Invalidate caches
+      await this.cacheService.del(`product:${productId}`);
+      await this.cacheService.del(`products:${product.shopId}:*`);
+
+      return BaseResponseDto.success({ status });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new InternalServerErrorException('Failed to update product status');
+    }
   }
 }

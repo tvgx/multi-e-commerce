@@ -44,4 +44,8 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   promoCode?: string;
+
+  @IsString()
+  @IsOptional()
+  shippingMethodId?: string;
 }

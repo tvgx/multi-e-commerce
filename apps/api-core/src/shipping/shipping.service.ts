@@ -28,6 +28,25 @@ export class ShippingService {
     });
   }
 
+  async calculateShipping(
+    totalWeightKg: number,
+    methodId: string,
+    shopId: string,
+  ): Promise<number> {
+    const settings = await this.getShippingSettings(shopId);
+    const method =
+      settings.data.methods.find((m: any) => m.id === methodId) ||
+      settings.data.methods[0];
+    const basePrice = method?.price || 30000;
+
+    let weightSurcharge = 0;
+    if (totalWeightKg > 1) {
+      weightSurcharge = Math.ceil(totalWeightKg - 1) * 5000;
+    }
+
+    return basePrice + weightSurcharge;
+  }
+
   async updateShippingSettings(
     ownerId: string,
     data: any,

@@ -23,6 +23,28 @@ export class TaxService {
     });
   }
 
+  async calculateTax(
+    itemTotal: number,
+    shopId: string,
+  ): Promise<{ taxTotal: number; taxIncluded: boolean; rate: number }> {
+    const settings = await this.getTaxSettings(shopId);
+    const rate = settings.data.rates[0]?.rate || 10;
+    const taxIncluded = settings.data.taxIncluded;
+
+    let taxTotal = 0;
+    if (taxIncluded) {
+      taxTotal = itemTotal - itemTotal / (1 + rate / 100);
+    } else {
+      taxTotal = itemTotal * (rate / 100);
+    }
+
+    return {
+      taxTotal: Math.round(taxTotal * 100) / 100, // round to 2 decimal places
+      taxIncluded,
+      rate,
+    };
+  }
+
   async updateTaxSettings(
     ownerId: string,
     data: any,

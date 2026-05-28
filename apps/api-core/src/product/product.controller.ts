@@ -3,13 +3,21 @@ import {
   Get,
   Post,
   Put,
+  Delete,
+  Patch,
   Body,
   Param,
   Query,
   UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { CreateProductDto, UpdateProductDto } from './dto/product-zod.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  UpdateProductStatusDto,
+} from './dto/product-zod.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
@@ -37,6 +45,7 @@ export class ProductController {
     @Query('categoryId') categoryId?: string,
     @Query('minPrice') minPrice?: number,
     @Query('maxPrice') maxPrice?: number,
+    @Query('isStorefront') isStorefront?: string,
   ): Promise<BaseResponseDto<object[]>> {
     return this.productService.getProductsByShop(
       shopId,
@@ -46,6 +55,7 @@ export class ProductController {
         categoryId,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        isStorefront: isStorefront !== 'false',
       },
     );
   }
@@ -66,4 +76,22 @@ export class ProductController {
   ): Promise<BaseResponseDto<object>> {
     return this.productService.updateProduct(user.id, id, dto);
   }
+
+  @Delete(':id')
+  async deleteProduct(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ): Promise<BaseResponseDto<any>> {
+    return this.productService.deleteProduct(user.id, id);
+  }
+
+  @Patch(':id/status')
+  async updateProductStatus(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductStatusDto,
+  ): Promise<BaseResponseDto<any>> {
+    return this.productService.updateProductStatus(user.id, id, dto.status);
+  }
 }
+

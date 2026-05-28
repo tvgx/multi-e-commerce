@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -43,5 +44,13 @@ export class PagesController {
     @Body() dto: UpdatePageDto,
   ) {
     return this.pagesService.updatePage(user.id, id, dto);
+  }
+
+  @Delete(':id')
+  async deletePage(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.pagesService.deletePage(user.id, id);
   }
 }

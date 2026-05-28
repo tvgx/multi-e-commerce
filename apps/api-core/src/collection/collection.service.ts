@@ -2,6 +2,7 @@ import {
   Injectable,
   HttpStatus,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from '../common/services/tenant.service';
@@ -13,12 +14,15 @@ import {
   UpdateCollectionDto,
   AddProductsToCollectionDto,
 } from './dto/collection-zod.dto';
+import { SystemCacheService } from '../system/cache/cache.service';
 
 @Injectable()
 export class CollectionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
+    @Inject(SystemCacheService)
+    private readonly cacheService: SystemCacheService,
   ) {}
 
   async createCollection(
@@ -303,6 +307,54 @@ export class CollectionService {
       throw new InternalServerErrorException(
         'Failed to remove product from collection',
       );
+    }
+  }
+
+  async deleteCollection(
+    ownerId: string,
+    collectionId: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const collection = await this.prisma.collection.findUnique({
+        where: { id: collectionId },
+        include: { shop: true },
+      });
+
+      if (!collection) {
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Collection not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (collection.shop.ownerId !== ownerId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Delete intermediate relationships
+        await tx.productCollection.deleteMany({
+          where: { collectionId },
+        });
+
+        // 2. Delete main collection
+        await tx.collection.delete({
+          where: { id: collectionId },
+        });
+      });
+
+      // Invalidate cache
+      await this.cacheService.del(`products:${collection.shopId}:*`);
+
+      return BaseResponseDto.success({ deleted: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new InternalServerErrorException('Failed to delete collection');
     }
   }
 }

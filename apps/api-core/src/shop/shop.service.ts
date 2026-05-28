@@ -386,6 +386,7 @@ export class ShopService {
   ): Promise<BaseResponseDto<any>> {
     const shop = await (this.prisma as any).shop.findUnique({
       where: { id: shopId },
+      include: { bankAccount: true },
     });
     if (!shop) throw new NotFoundException('Shop not found');
 
@@ -547,16 +548,43 @@ export class ShopService {
         );
       }
 
-      const normalizedDomain = dto.domain?.trim().toLowerCase();
+      const { bankAccount, ...shopData } = dto;
+      const normalizedDomain = shopData.domain?.trim().toLowerCase();
 
       const updated = await this.prisma.shop.update({
         where: { id: targetId },
         data: {
-          ...dto,
-          ...(dto.domain !== undefined
+          ...shopData,
+          ...(shopData.domain !== undefined
             ? { domain: normalizedDomain || null }
             : {}),
+          ...(shopData.businessLicenseIssuedDate !== undefined
+            ? {
+                businessLicenseIssuedDate: shopData.businessLicenseIssuedDate
+                  ? new Date(shopData.businessLicenseIssuedDate)
+                  : null,
+              }
+            : {}),
+          ...(bankAccount
+            ? {
+                bankAccount: {
+                  upsert: {
+                    create: {
+                      bankName: bankAccount.bankName || '',
+                      accountNumber: bankAccount.accountNumber || '',
+                      accountHolder: bankAccount.accountHolder || '',
+                    },
+                    update: {
+                      bankName: bankAccount.bankName,
+                      accountNumber: bankAccount.accountNumber,
+                      accountHolder: bankAccount.accountHolder,
+                    },
+                  },
+                },
+              }
+            : {}),
         },
+        include: { bankAccount: true },
       });
 
       // Invalidate caches
@@ -600,6 +628,7 @@ export class ShopService {
         owner: {
           select: { fullName: true, email: true },
         },
+        bankAccount: true,
       },
     });
 

@@ -2,6 +2,7 @@ import {
   Injectable,
   HttpStatus,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from '../common/services/tenant.service';
@@ -12,12 +13,15 @@ import {
   CreateNavigationDto,
   UpdateNavigationDto,
 } from './dto/navigation-zod.dto';
+import { SystemCacheService } from '../system/cache/cache.service';
 
 @Injectable()
 export class NavigationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
+    @Inject(SystemCacheService)
+    private readonly cacheService: SystemCacheService,
   ) {}
 
   async createMenu(
@@ -146,5 +150,47 @@ export class NavigationService {
     });
 
     return BaseResponseDto.success(menus);
+  }
+
+  async deleteNavigationMenu(
+    ownerId: string,
+    menuId: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const menu = await this.prisma.navigationMenu.findUnique({
+        where: { id: menuId },
+        include: { shop: true },
+      });
+
+      if (!menu) {
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Menu not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (menu.shop.ownerId !== ownerId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      await this.prisma.navigationMenu.delete({
+        where: { id: menuId },
+      });
+
+      // Invalidate layout / navigation caches for this shop
+      await this.cacheService.del(`layout:global:${menu.shopId}`);
+
+      return BaseResponseDto.success({ deleted: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new InternalServerErrorException(
+        'Failed to delete navigation menu',
+      );
+    }
   }
 }

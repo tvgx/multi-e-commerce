@@ -301,16 +301,24 @@ export class MinioService implements OnModuleInit {
     shopId: string,
     fileBuffer: Buffer,
     originalName: string,
-  ): Promise<string> {
+  ): Promise<{
+    url: string;
+    key: string;
+    bucket: string;
+    mimeType: string;
+    size: number;
+    width?: number;
+    height?: number;
+  }> {
     if (!this.isAvailable) {
       throw new Error('Storage is currently unavailable');
     }
 
     try {
       const sharp = (await import('sharp')).default;
-      const optimizedBuffer = await sharp(fileBuffer)
-        .webp({ quality: 80 })
-        .toBuffer();
+      const optimized = sharp(fileBuffer).webp({ quality: 80 });
+      const metadata = await optimized.metadata();
+      const optimizedBuffer = await optimized.toBuffer();
 
       const timestamp = Date.now();
       const cleanName = originalName
@@ -330,10 +338,40 @@ export class MinioService implements OnModuleInit {
       const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
       const port = process.env.MINIO_PORT ?? '9000';
       const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
-      return `${protocol}://${endpoint}:${port}/${PUBLIC_BUCKET}/${objectKey}`;
+      const url = `${protocol}://${endpoint}:${port}/${PUBLIC_BUCKET}/${objectKey}`;
+
+      return {
+        url,
+        key: objectKey,
+        bucket: PUBLIC_BUCKET,
+        mimeType: 'image/webp',
+        size: optimizedBuffer.length,
+        width: metadata.width,
+        height: metadata.height,
+      };
     } catch (error) {
       this.logger.error(`[MinIO] uploadMedia failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Xóa một tệp tin vật lý khỏi MinIO/S3.
+   */
+  async deleteObject(bucket: string, key: string): Promise<void> {
+    if (!this.isAvailable) {
+      this.logger.warn(
+        `[MinIO] Skipping deleteObject for key=${key} because storage is unavailable.`,
+      );
+      return;
+    }
+
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+    this.logger.log(`[MinIO] Deleted object → ${bucket}/${key}`);
   }
 }

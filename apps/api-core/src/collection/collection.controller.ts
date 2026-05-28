@@ -86,4 +86,12 @@ export class CollectionController {
       productId,
     );
   }
+
+  @Delete(':id')
+  async deleteCollection(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.collectionService.deleteCollection(user.id, id);
+  }
 }

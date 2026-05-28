@@ -191,4 +191,179 @@ export class LayoutService {
     await this.cacheService.set(cacheKey, shop.id, 3600000); // 1 hour cache for mapping
     return this.getGlobalLayout(shop.id);
   }
+
+  async saveGlobalLayoutDraft(
+    ownerId: string,
+    shopId: string,
+    tenantDelta: ShopGlobalLayout,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      await this.checkAuth(ownerId, shopId);
+
+      await GlobalLayout.updateOne(
+        { shopId },
+        { $set: { draftData: tenantDelta } },
+        { upsert: true },
+      );
+
+      return BaseResponseDto.success({ saved: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to save global layout draft.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async publishGlobalLayoutDraft(
+    ownerId: string,
+    shopId: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      await this.checkAuth(ownerId, shopId);
+
+      const layout = await GlobalLayout.findOne({ shopId });
+      if (!layout || !layout.draftData || Object.keys(layout.draftData).length === 0) {
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'No draft data to publish.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await GlobalLayout.updateOne(
+        { shopId },
+        { $set: { publishedData: layout.draftData, lastPublishedAt: new Date() } },
+      );
+
+      // Invalidate Redis cache
+      await this.cacheService.del(`layout:global:${shopId}`);
+
+      return BaseResponseDto.success({ published: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to publish global layout draft.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getGlobalLayoutDraft(shopId: string): Promise<BaseResponseDto<any>> {
+    const layout = await GlobalLayout.findOne({ shopId });
+    if (!layout) {
+      return BaseResponseDto.success(null);
+    }
+
+    const masterTemplate: ShopGlobalLayout = {
+      isMaster: true,
+      templateType: 'standard',
+      globalComponents: [],
+      theme: {},
+    };
+
+    const draft = layout.draftData && Object.keys(layout.draftData).length > 0
+      ? layout.draftData
+      : layout.publishedData;
+
+    const merged = mergeGlobalLayouts(masterTemplate, draft);
+    return BaseResponseDto.success(merged);
+  }
+
+  async savePageLayoutDraft(
+    ownerId: string,
+    shopId: string,
+    pageType: PageType,
+    tenantDelta: ShopPageLayout,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      await this.checkAuth(ownerId, shopId);
+
+      await PageLayout.updateOne(
+        { shopId, pageType, slug: tenantDelta.slug || null },
+        { $set: { draftData: tenantDelta } },
+        { upsert: true },
+      );
+
+      return BaseResponseDto.success({ saved: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to save page layout draft.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async publishPageLayoutDraft(
+    ownerId: string,
+    shopId: string,
+    pageType: PageType,
+    slug?: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      await this.checkAuth(ownerId, shopId);
+
+      const query: any = { shopId, pageType };
+      if (slug) query.slug = slug;
+
+      const layout = await PageLayout.findOne(query);
+      if (!layout || !layout.draftData || Object.keys(layout.draftData).length === 0) {
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'No draft data to publish.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await PageLayout.updateOne(
+        query,
+        { $set: { publishedData: layout.draftData, lastPublishedAt: new Date() } },
+      );
+
+      // Invalidate Redis cache for page layout
+      const cacheKey = `layout:page:${shopId}:${pageType}${slug ? ':' + slug : ''}`;
+      await this.cacheService.del(cacheKey);
+
+      return BaseResponseDto.success({ published: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to publish page layout draft.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getPageLayoutDraft(
+    shopId: string,
+    pageType: PageType,
+    slug?: string,
+  ): Promise<BaseResponseDto<any>> {
+    const query: any = { shopId, pageType };
+    if (slug) query.slug = slug;
+
+    const layout = await PageLayout.findOne(query);
+    if (!layout) {
+      return BaseResponseDto.success(null);
+    }
+
+    const masterTemplate: ShopPageLayout = {
+      isMaster: true,
+      pageType,
+      components: [],
+    };
+
+    const draft = layout.draftData && Object.keys(layout.draftData).length > 0
+      ? layout.draftData
+      : layout.publishedData;
+
+    const merged = mergePageLayouts(masterTemplate, draft);
+    return BaseResponseDto.success(merged);
+  }
 }

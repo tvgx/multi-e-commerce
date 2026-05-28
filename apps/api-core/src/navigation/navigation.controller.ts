@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -49,5 +50,13 @@ export class NavigationController {
     @Body() dto: UpdateNavigationDto,
   ) {
     return this.navigationService.updateMenu(user.id, id, dto);
+  }
+
+  @Delete(':id')
+  async deleteMenu(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.navigationService.deleteNavigationMenu(user.id, id);
   }
 }

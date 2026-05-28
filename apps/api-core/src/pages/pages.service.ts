@@ -12,6 +12,7 @@ import { ResponseCodes } from '../common/constants/response-codes.constant';
 import { CreatePageDto, UpdatePageDto } from './dto/pages-zod.dto';
 import { LayoutService } from '../layout/layout.service';
 import { PageLayout } from '@ecommerce/database';
+import { SystemCacheService } from '../system/cache/cache.service';
 
 @Injectable()
 export class PagesService {
@@ -19,6 +20,7 @@ export class PagesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(TenantService) private readonly tenantService: TenantService,
     @Inject(LayoutService) private readonly layoutService: LayoutService,
+    @Inject(SystemCacheService) private readonly cacheService: SystemCacheService,
   ) {}
 
   async createPage(
@@ -189,5 +191,54 @@ export class PagesService {
     });
 
     return BaseResponseDto.success(pages);
+  }
+
+  async deletePage(
+    ownerId: string,
+    pageId: string,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const page = await this.prisma.shopPage.findUnique({
+        where: { id: pageId },
+        include: { shop: true },
+      });
+
+      if (!page) {
+        throw new CustomException(
+          ResponseCodes.NO_DATA_END_OF_LIST,
+          'Page not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (page.shop.ownerId !== ownerId) {
+        throw new CustomException(
+          ResponseCodes.NOT_ACCESS,
+          'Not access.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // Delete Postgres ShopPage (Registry)
+      await this.prisma.shopPage.delete({
+        where: { id: pageId },
+      });
+
+      // Delete MongoDB PageLayout
+      await PageLayout.deleteOne({
+        shopId: page.shopId,
+        pageType: 'custom_page',
+        slug: page.slug,
+      });
+
+      // Invalidate layout cache in Redis
+      const cacheKey = `layout:page:${page.shopId}:custom_page:${page.slug}`;
+      await this.cacheService.del(cacheKey);
+
+      return BaseResponseDto.success({ deleted: true });
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new InternalServerErrorException('Failed to delete shop page');
+    }
   }
 }

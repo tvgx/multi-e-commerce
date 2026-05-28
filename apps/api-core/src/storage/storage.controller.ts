@@ -1,7 +1,10 @@
 import {
   Controller,
   Post,
+  Get,
+  Delete,
   Body,
+  Param,
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
@@ -9,17 +12,21 @@ import {
   UseGuards,
   Req,
   Query,
+  Inject,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { MinioService } from './minio.service';
 import { StorageQuotaService } from './storage-quota.service';
+import { MediaService } from './media.service';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { BaseResponseDto } from '../common/dto/base-response.dto';
 
 @Controller('storage')
 export class StorageController {
   constructor(
     private readonly minioService: MinioService,
     private readonly storageQuotaService: StorageQuotaService,
+    @Inject(MediaService) private readonly mediaService: MediaService,
   ) {}
 
   @Post('presigned-url')
@@ -58,15 +65,37 @@ export class StorageController {
   @UseGuards(BetterAuthGuard)
   async confirmUpload(
     @Req() req: any,
-    @Body() body: { key: string; size: number; bucket: string },
+    @Body()
+    body: {
+      key: string;
+      size: number;
+      bucket: string;
+      mimeType?: string;
+      width?: number;
+      height?: number;
+      alt?: string;
+    },
   ) {
     const shopId = req.user?.shopId || 'default-shop';
     await this.storageQuotaService.recordUpload(shopId, body.size);
 
-    return {
-      success: true,
-      message: 'Upload confirmed and quota updated',
-    };
+    const endpoint = process.env.MINIO_ENDPOINT ?? 'localhost';
+    const port = process.env.MINIO_PORT ?? '9000';
+    const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+    const url = `${protocol}://${endpoint}:${port}/${body.bucket}/${body.key}`;
+
+    const media = await this.mediaService.createMediaRecord(shopId, {
+      url,
+      key: body.key,
+      bucket: body.bucket,
+      mimeType: body.mimeType || 'image/webp',
+      size: body.size,
+      width: body.width,
+      height: body.height,
+      alt: body.alt,
+    });
+
+    return BaseResponseDto.success(media);
   }
 
   @Post('upload')
@@ -109,20 +138,19 @@ export class StorageController {
       shopId = `${shopId}/customers/${userId}`;
     }
 
-    const url = await this.minioService.uploadMedia(
+    const uploadResult = await this.minioService.uploadMedia(
       shopId,
       file.buffer,
       file.originalname,
     );
 
-    // Record usage
-    await this.storageQuotaService.recordUpload(shopId, file.size);
+    // Record optimized physical storage usage
+    await this.storageQuotaService.recordUpload(shopId, uploadResult.size);
 
-    return {
-      success: true,
-      url,
-      message: 'File uploaded successfully',
-    };
+    // Save metadata registry in DB
+    const media = await this.mediaService.createMediaRecord(shopId, uploadResult);
+
+    return BaseResponseDto.success(media);
   }
 
   @Post('upload/batch')
@@ -169,15 +197,42 @@ export class StorageController {
       this.minioService.uploadMedia(shopId, file.buffer, file.originalname),
     );
 
-    const urls = await Promise.all(uploadPromises);
+    const uploadResults = await Promise.all(uploadPromises);
 
-    // Record total usage
-    await this.storageQuotaService.recordUpload(shopId, totalSize);
+    // Record total optimized physical size
+    const totalOptimizedSize = uploadResults.reduce((acc, r) => acc + r.size, 0);
+    await this.storageQuotaService.recordUpload(shopId, totalOptimizedSize);
 
-    return {
-      success: true,
-      urls,
-      message: `${files.length} files uploaded successfully`,
-    };
+    // Save all metadata registries to DB
+    const mediaPromises = uploadResults.map((result) =>
+      this.mediaService.createMediaRecord(shopId, result),
+    );
+    const mediaList = await Promise.all(mediaPromises);
+
+    return BaseResponseDto.success(mediaList);
+  }
+
+  @Get('media')
+  @UseGuards(BetterAuthGuard)
+  async getMediaList(
+    @Req() req: any,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ) {
+    const shopId = req.user?.shopId || 'default-shop';
+    return this.mediaService.getMediaList(
+      shopId,
+      limit ? Number(limit) : 20,
+      offset ? Number(offset) : 0,
+    );
+  }
+
+  @Delete('media/:id')
+  @UseGuards(BetterAuthGuard)
+  async deleteMedia(
+    @Req() req: any,
+    @Param('id') id: string,
+  ) {
+    return this.mediaService.deleteMedia(req.user?.id, id);
   }
 }

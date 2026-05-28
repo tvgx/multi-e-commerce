@@ -44,6 +44,8 @@ export const UpdateShopSchema = z.object({
       branch: z.string().optional(),
     })
     .optional(),
+  businessLicenseNumber: z.string().optional(),
+  businessLicenseIssuedDate: z.string().datetime().optional(),
 });
 
 export class RegisterTenantDto extends createZodDto(RegisterTenantSchema) {}

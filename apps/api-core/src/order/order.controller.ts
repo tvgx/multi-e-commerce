@@ -1,7 +1,9 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
+import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
+import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 
 @Controller('api/orders')
 export class OrderController {
@@ -25,18 +27,22 @@ export class OrderController {
     return this.orderService.getOrdersByCustomerEmail(shopId, email);
   }
 
+  @UseGuards(BetterAuthGuard)
   @Get('shop/:shopId')
   async getOrdersByShop(
+    @CurrentUser() user: any,
     @Param('shopId') shopId: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.orderService.getOrdersByShop(shopId);
+    return this.orderService.getOrdersByShop(shopId, 20, 0, user.id);
   }
 
+  @UseGuards(BetterAuthGuard)
   @Post(':id/state')
   async updateOrderState(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body('state') state: string,
   ): Promise<BaseResponseDto<any>> {
-    return this.orderService.updateOrderState(id, state);
+    return this.orderService.updateOrderState(id, state, user.id);
   }
 }

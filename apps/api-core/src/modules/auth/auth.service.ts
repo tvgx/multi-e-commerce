@@ -8,6 +8,7 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import type { OwnerAuth } from './owner-auth.config';
 import type { CustomerAuth } from './customer-auth.config';
 import { OWNER_AUTH, CUSTOMER_AUTH } from './auth.constants';
+import { UpdateUserProfileDto } from './dto/auth-update.dto';
 
 @Injectable()
 export class AuthService {
@@ -92,6 +93,48 @@ export class AuthService {
       throw new CustomException(
         ResponseCodes.EXCEPTION_ERROR,
         'Exception error.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: UpdateUserProfileDto,
+  ): Promise<BaseResponseDto<any>> {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+        throw new CustomException(
+          ResponseCodes.TOKEN_INVALID,
+          'invalid token',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          fullName: dto.fullName,
+          identityNumber: dto.identityNumber,
+          gender: dto.gender,
+          ...(dto.dateOfBirth !== undefined
+            ? {
+                dateOfBirth: dto.dateOfBirth
+                  ? new Date(dto.dateOfBirth)
+                  : null,
+              }
+            : {}),
+        },
+      });
+
+      return BaseResponseDto.success(updated);
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Failed to update profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

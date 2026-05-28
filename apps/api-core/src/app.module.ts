@@ -21,12 +21,14 @@ import { PagesModule } from './pages/pages.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { TaxModule } from './tax/tax.module';
 import { PromotionModule } from './promotion/promotion.module';
+import { OptionTypeModule } from './option-type/option-type.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as path from 'path';
 import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
 import { StorageModule } from './storage/storage.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     TaxModule,
     StorageModule,
     PromotionModule,
+    OptionTypeModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

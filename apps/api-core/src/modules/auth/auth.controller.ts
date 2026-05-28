@@ -5,6 +5,8 @@ import {
   Body,
   UseGuards,
   HttpStatus,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { BetterAuthGuard } from './guards/better-auth.guard';
@@ -13,6 +15,7 @@ import { Public } from './decorators/public.decorator';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { ResponseCodes } from '../../common/constants/response-codes.constant';
 import { CustomException } from '../../common/exceptions/custom.exception';
+import { UpdateUserProfileDto } from './dto/auth-update.dto';
 
 @Controller('api/auth')
 @UseGuards(BetterAuthGuard) // Áp dụng guard cho toàn bộ controller
@@ -72,5 +75,22 @@ export class AuthController {
   @Get('health')
   async health(): Promise<BaseResponseDto<any>> {
     return BaseResponseDto.success({ status: 'ok', service: 'auth' });
+  }
+
+  /**
+   * PUT /api/auth/profile
+   * Cập nhật thông tin cá nhân của Owner.
+   * Yêu cầu header: 'x-auth-type: owner'
+   */
+  @Put('profile')
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateUserProfileDto,
+    @Req() req: any,
+  ): Promise<BaseResponseDto<any>> {
+    if (req.authType !== 'owner') {
+      throw new ForbiddenException('Only owners can update their profiles');
+    }
+    return this.authService.updateProfile(user.id, dto);
   }
 }
