@@ -9,11 +9,16 @@ interface BuilderStoreState extends BuilderState {
     activePage: string;
     deviceMode: DeviceMode;
     isLoading: boolean;
+    
+    // New Editor State
+    isEditorOpen: boolean;
+    pendingProps: Record<string, unknown> | null;
+    defaultImages: string[];
 
     // Actions
     setTheme: (themePatch: Record<string, any>) => void;
     updateGlobalComponent: (id: string, props: Record<string, any>) => void;
-    addPageSection: (pageType: string, componentId: string) => void;
+    addPageSection: (pageType: string, componentId: string, insertIndex?: number) => void;
     removePageSection: (pageType: string, id: string) => void;
     updatePageSection: (pageType: string, id: string, newProps: Record<string, any>) => void;
     reorderPageSections: (pageType: string, startIndex: number, endIndex: number) => void;
@@ -21,6 +26,14 @@ interface BuilderStoreState extends BuilderState {
     setActiveComponent: (id: string | null) => void;
     setActivePage: (page: string) => void;
     setDeviceMode: (mode: DeviceMode) => void;
+
+    // Editor Actions
+    openSectionEditor: (id: string) => void;
+    closeSectionEditor: () => void;
+    setPendingProp: (key: string, value: unknown) => void;
+    commitPendingProps: () => void;
+    discardPendingProps: () => void;
+    fetchDefaultImages: () => Promise<void>;
 
     // API
     loadTemplate: (shopId: string, token?: string) => Promise<void>;
@@ -37,6 +50,10 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     deviceMode: 'desktop',
     isLoading: false,
 
+    isEditorOpen: false,
+    pendingProps: null,
+    defaultImages: [],
+
     setTheme: (themePatch) => set((state) => ({
         theme: { ...state.theme, ...themePatch }
     })),
@@ -47,14 +64,30 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         )
     })),
 
-    addPageSection: (pageType, componentId) => set((state) => {
+    addPageSection: (pageType, componentId, insertIndex) => set((state) => {
         const pages = { ...state.pages };
         if (!pages[pageType]) pages[pageType] = [];
         
-        pages[pageType] = [
-            ...pages[pageType],
-            { id: uuidv4(), componentId, props: {}, order: pages[pageType].length }
-        ];
+        // Inject default background images if available
+        const imgs = state.defaultImages;
+        let props: any = {};
+        if (imgs && imgs.length > 0) {
+            props.backgroundImageUrl = imgs[Math.floor(Math.random() * imgs.length)];
+            props.images = [imgs[0], imgs[1], imgs[2], imgs[3]]; // In case component expects array
+        }
+
+        const newNode = { id: uuidv4(), componentId, props, order: 0 };
+        
+        if (insertIndex !== undefined && insertIndex >= 0 && insertIndex <= pages[pageType].length) {
+             const newArray = [...pages[pageType]];
+             newArray.splice(insertIndex, 0, newNode);
+             // Reorder
+             newArray.forEach((c, index) => c.order = index);
+             pages[pageType] = newArray;
+        } else {
+             newNode.order = pages[pageType].length;
+             pages[pageType] = [...pages[pageType], newNode];
+        }
 
         return { pages, activeComponentId: null };
     }),
@@ -67,7 +100,8 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         
         return { 
             pages, 
-            activeComponentId: state.activeComponentId === id ? null : state.activeComponentId 
+            activeComponentId: state.activeComponentId === id ? null : state.activeComponentId,
+            isEditorOpen: state.activeComponentId === id ? false : state.isEditorOpen
         };
     }),
 
@@ -100,6 +134,68 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     setActiveComponent: (id) => set({ activeComponentId: id }),
     setActivePage: (page) => set({ activePage: page }),
     setDeviceMode: (mode) => set({ deviceMode: mode }),
+
+    openSectionEditor: (id) => {
+        const state = get();
+        // find the component to get initial props
+        const comp = state.globalComponents.find(c => c.id === id) || 
+                     (state.pages[state.activePage] || []).find(c => c.id === id);
+        
+        set({ 
+            activeComponentId: id, 
+            isEditorOpen: true,
+            pendingProps: comp ? { ...comp.props } : {}
+        });
+    },
+
+    closeSectionEditor: () => set({ 
+        isEditorOpen: false, 
+        activeComponentId: null, 
+        pendingProps: null 
+    }),
+
+    setPendingProp: (key, value) => set((state) => ({
+        pendingProps: state.pendingProps ? { ...state.pendingProps, [key]: value } : { [key]: value }
+    })),
+
+    commitPendingProps: () => set((state) => {
+        if (!state.activeComponentId || !state.pendingProps) return state;
+
+        // Try global first
+        const isGlobal = state.globalComponents.some(c => c.id === state.activeComponentId);
+        if (isGlobal) {
+            return {
+                globalComponents: state.globalComponents.map(c => 
+                    c.id === state.activeComponentId ? { ...c, props: { ...c.props, ...state.pendingProps! } } : c
+                ),
+                pendingProps: null,
+                isEditorOpen: false
+            };
+        }
+
+        // Try pages
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+        pages[state.activePage] = activePageList.map(c => 
+            c.id === state.activeComponentId ? { ...c, props: { ...c.props, ...state.pendingProps! } } : c
+        );
+
+        return { pages, pendingProps: null, isEditorOpen: false };
+    }),
+
+    discardPendingProps: () => set({ pendingProps: null, isEditorOpen: false, activeComponentId: null }),
+
+    fetchDefaultImages: async () => {
+        if (get().defaultImages.length > 0) return;
+        const MINIO_BASE_URL = 'http://localhost:9000/assets'; // Assuming 'assets' bucket
+        const urls = [
+            `${MINIO_BASE_URL}/default-1.jpg`,
+            `${MINIO_BASE_URL}/default-2.jpg`,
+            `${MINIO_BASE_URL}/default-3.jpg`,
+            `${MINIO_BASE_URL}/default-4.jpg`,
+        ];
+        set({ defaultImages: urls });
+    },
 
     loadTemplate: async (shopId: string, token?: string) => {
         set({ isLoading: true });
