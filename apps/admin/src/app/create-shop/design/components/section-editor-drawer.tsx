@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { X, Type, Image as ImageIcon, Settings, Check } from "lucide-react";
+import React, { useState } from "react";
+import { X, Type, Image as ImageIcon, Settings, Check, Loader2 } from "lucide-react";
 import { useBuilderStore } from "@ecommerce/ui-registry/src/store/builder-store";
 
 const GOOGLE_FONTS = [
@@ -10,6 +10,7 @@ const GOOGLE_FONTS = [
 ];
 
 export function SectionEditorDrawer() {
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const { 
     isEditorOpen, 
     activeComponentId, 
@@ -122,23 +123,48 @@ export function SectionEditorDrawer() {
                   className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow"
                   placeholder="https://..."
                 />
-                <label className="shrink-0 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors">
-                  Upload
+                <label className={`shrink-0 flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}>
+                  {isUploadingImage ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải...</>
+                  ) : (
+                    <>Upload</>
+                  )}
                   <input 
                     type="file" 
                     className="hidden" 
-                    accept="image/*"
-                    onChange={(e) => {
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isUploadingImage}
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        // In a real app, upload to MinIO here. For now, use FileReader for preview.
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          if (event.target?.result) {
-                            setPendingProp("backgroundImageUrl", event.target.result);
-                          }
-                        };
-                        reader.readAsDataURL(file);
+                      if (!file) return;
+                      setIsUploadingImage(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                        const res = await fetch(`/api/storage/upload?type=banner`, {
+                          method: 'POST',
+                          body: formData,
+                        });
+                        if (!res.ok) {
+                          const errBody = await res.json().catch(() => ({}));
+                          throw new Error(errBody.message || `Upload failed (${res.status})`);
+                        }
+                        // BaseResponseDto: { code: "1000", message: "OK", data: { url, key, ... } }
+                        const data = await res.json();
+                        if (data.code === '1000' && data.data?.url) {
+                          setPendingProp('backgroundImageUrl', data.data.url);
+                        } else {
+                          throw new Error(data.message || 'Upload failed: no URL');
+                        }
+                      } catch (err) {
+                        alert('Upload thất bại: ' + (err instanceof Error ? err.message : String(err)));
+                      } finally {
+                        setIsUploadingImage(false);
+                        // Reset file input
+                        e.target.value = '';
                       }
                     }}
                   />

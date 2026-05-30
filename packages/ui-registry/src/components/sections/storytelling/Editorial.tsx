@@ -14,7 +14,7 @@ export function Editorial() {
                 </p>
 
                 <div className="mt-16 flex justify-center">
-                    <img src="https://images.unsplash.com/photo-1558522194-e0e64396b797?auto=format&fit=crop&q=80" alt="Process" className="rounded-2xl shadow-xl max-w-2xl w-full" />
+                    <img src="http://localhost:9000/assets/default-1.png" alt="Process" className="rounded-2xl shadow-xl max-w-2xl w-full" />
                 </div>
             </div>
         </section>

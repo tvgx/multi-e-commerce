@@ -5,7 +5,7 @@ export function LayeredSlideshow() {
         <section className="relative w-full h-[80vh] bg-slate-100 overflow-hidden flex items-center justify-center">
             {/* Background Image Layer */}
             <div className="absolute top-10 right-10 w-[60%] h-[80%] bg-slate-200 z-0 rounded-2xl overflow-hidden shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80" alt="Fashion" className="w-full h-full object-cover" />
+                <img src="http://localhost:9000/assets/default-3.png" alt="Fashion" className="w-full h-full object-cover" />
             </div>
 
             {/* Foreground Text Layer */}

@@ -15,7 +15,7 @@ export function CollectionListsCarousel() {
                 {[1, 2, 3, 4, 5].map((i) => (
                     <a href="#" key={i} className="min-w-[280px] md:min-w-[350px] snap-center group">
                         <div className="w-full h-[400px] rounded-2xl overflow-hidden mb-4 relative">
-                            <img src={`https://images.unsplash.com/photo-${1500000000000 + i}?auto=format&fit=crop&q=80`} alt="Collection" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={`http://localhost:9000/assets/default-2.png`} alt="Collection" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Collection {i}</h3>
                         <p className="text-slate-500">Explore Items &rarr;</p>

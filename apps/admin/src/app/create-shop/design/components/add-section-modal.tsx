@@ -122,7 +122,7 @@ export function AddSectionModal({ onClose, insertIndex }: { onClose: () => void,
                       const Component = registry[hoveredSection];
                       if (!Component) return <div className="p-20 text-center text-red-500">Component not found in registry</div>;
                       // Provide some dummy props for better preview
-                      return <Component title="Preview Title" subtitle="This is a live preview of the section." ctaText="Click Me" backgroundImageUrl="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80" />;
+                      return <Component title="Preview Title" subtitle="This is a live preview of the section." ctaText="Click Me" backgroundImageUrl="http://localhost:9000/assets/default-1.png" />;
                     })()}
                  </div>
                </div>

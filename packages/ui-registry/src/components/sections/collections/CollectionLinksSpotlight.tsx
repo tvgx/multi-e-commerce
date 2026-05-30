@@ -23,7 +23,7 @@ export function CollectionLinksSpotlight() {
 
                 <div className="flex-1 w-full h-[600px] rounded-[2rem] overflow-hidden relative group">
                     <img
-                        src="https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?auto=format&fit=crop&q=80"
+                        src="http://localhost:9000/assets/default-3.png"
                         alt="Spotlight Collection"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />

@@ -132,22 +132,24 @@ export class StorageController {
     // Check quota
     await this.storageQuotaService.checkQuota(shopId, file.size);
 
+    let minioPath = shopId;
+
     // Nếu upload type là avatar của customer
     if (uploadType === 'avatar') {
       const userId = req.user?.id || 'unknown-user';
-      shopId = `${shopId}/customers/${userId}`;
+      minioPath = `${shopId}/customers/${userId}`;
     }
 
     const uploadResult = await this.minioService.uploadMedia(
-      shopId,
+      minioPath,
       file.buffer,
       file.originalname,
     );
 
-    // Record optimized physical storage usage
+    // Record optimized physical storage usage (must use original shopId for DB)
     await this.storageQuotaService.recordUpload(shopId, uploadResult.size);
 
-    // Save metadata registry in DB
+    // Save metadata registry in DB (must use original shopId for DB)
     const media = await this.mediaService.createMediaRecord(shopId, uploadResult);
 
     return BaseResponseDto.success(media);
@@ -188,22 +190,24 @@ export class StorageController {
     const totalSize = files.reduce((acc, f) => acc + f.size, 0);
     await this.storageQuotaService.checkQuota(shopId, totalSize);
 
+    let minioPath = shopId;
+
     if (uploadType === 'avatar') {
       const userId = req.user?.id || 'unknown-user';
-      shopId = `${shopId}/customers/${userId}`;
+      minioPath = `${shopId}/customers/${userId}`;
     }
 
     const uploadPromises = files.map((file) =>
-      this.minioService.uploadMedia(shopId, file.buffer, file.originalname),
+      this.minioService.uploadMedia(minioPath, file.buffer, file.originalname),
     );
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // Record total optimized physical size
+    // Record total optimized physical size (must use original shopId for DB)
     const totalOptimizedSize = uploadResults.reduce((acc, r) => acc + r.size, 0);
     await this.storageQuotaService.recordUpload(shopId, totalOptimizedSize);
 
-    // Save all metadata registries to DB
+    // Save all metadata registries to DB (must use original shopId for DB)
     const mediaPromises = uploadResults.map((result) =>
       this.mediaService.createMediaRecord(shopId, result),
     );

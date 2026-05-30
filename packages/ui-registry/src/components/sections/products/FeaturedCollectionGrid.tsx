@@ -13,7 +13,7 @@ export function FeaturedCollectionGrid() {
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                         <div key={i} className="group relative">
                             <div className="aspect-[4/5] bg-slate-100 rounded-2xl overflow-hidden mb-4 relative">
-                                <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 1500}?auto=format&fit=crop&q=80`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <img src={`http://localhost:9000/assets/default-2.png`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl hover:bg-emerald-500 transition-colors text-sm">Add to Cart</button>
                                 </div>

@@ -6,7 +6,7 @@ export function ImageWithText() {
             <div className="flex flex-col lg:flex-row min-h-[600px]">
                 {/* Image */}
                 <div className="w-full lg:w-1/2 relative h-[400px] lg:h-auto">
-                    <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80" alt="Autumn Style" className="absolute inset-0 w-full h-full object-cover" />
+                    <img src="http://localhost:9000/assets/default-4.png" alt="Autumn Style" className="absolute inset-0 w-full h-full object-cover" />
                 </div>
 
                 {/* Text Content */}

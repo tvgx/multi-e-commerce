@@ -20,7 +20,7 @@ export function FeaturedCollectionEditorial() {
                 {[1, 2, 3, 4].map((i) => (
                     <a href="#" key={i} className="group">
                         <div className="w-full aspect-[3/4] bg-slate-100 rounded-xl overflow-hidden mb-4 relative">
-                            <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 2000}?auto=format&fit=crop&q=80`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={`http://localhost:9000/assets/default-1.png`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Classic Denim {i}</h3>
                         <p className="text-slate-500 text-sm mt-1">${89 + i * 5}.00</p>

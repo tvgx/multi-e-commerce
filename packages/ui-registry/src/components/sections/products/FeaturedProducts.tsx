@@ -7,7 +7,7 @@ export function FeaturedProducts() {
                 <div className="lg:w-1/2 w-full">
                     <div className="aspect-square bg-slate-800 rounded-full overflow-hidden relative shadow-[0_0_50px_rgba(16,185,129,0.2)] p-4">
                         <div className="w-full h-full rounded-full overflow-hidden border border-slate-700">
-                            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80" alt="Featured Product" className="w-full h-full object-cover scale-110" />
+                            <img src="http://localhost:9000/assets/default-1.png" alt="Featured Product" className="w-full h-full object-cover scale-110" />
                         </div>
                         {/* Floating elements */}
                         <div className="absolute top-1/4 -left-4 bg-white text-slate-900 px-4 py-2 rounded-xl font-bold shadow-xl rotate-[-5deg]">★ Top Rated</div>

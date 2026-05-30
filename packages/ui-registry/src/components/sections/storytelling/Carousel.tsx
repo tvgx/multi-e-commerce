@@ -10,7 +10,7 @@ export function Carousel() {
             <div className="flex gap-4 px-4 overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                     <div key={i} className="min-w-[80vw] md:min-w-[40vw] lg:min-w-[30vw] aspect-[3/4] snap-center">
-                        <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 1234}?auto=format&fit=crop&q=80`} alt="Story" className="w-full h-full object-cover rounded-2xl" />
+                        <img src={`http://localhost:9000/assets/default-2.png`} alt="Story" className="w-full h-full object-cover rounded-2xl" />
                     </div>
                 ))}
             </div>

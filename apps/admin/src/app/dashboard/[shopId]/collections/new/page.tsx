@@ -58,9 +58,18 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
       if (selectedFile) {
         const form = new FormData();
         form.append("file", selectedFile);
-        const res = await apiClient.post<{ data: { url: string } }>("/storage/upload?type=collection", form, { shopId });
-        if (res.data?.data?.url) {
-          finalImageUrl = res.data.data.url;
+        // Dùng proxy route (/api/storage/upload) chạy server-side
+        // — tự forward cookie session, giải quyết cross-origin 401
+        const res = await fetch(`/api/storage/upload?type=collection`, {
+          method: 'POST',
+          headers: { 'x-shop-id': shopId },
+          body: form,
+        });
+        const resJson = await res.json();
+        if (resJson.code === '1000' && resJson.data?.url) {
+          finalImageUrl = resJson.data.url;
+        } else if (resJson.message) {
+          throw new Error(resJson.message);
         }
       }
 

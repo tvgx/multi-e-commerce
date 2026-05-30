@@ -200,8 +200,9 @@ export class MinioService implements OnModuleInit {
       Version: '2012-10-17',
       Statement: [
         {
+          Sid: 'PublicReadGetObject',
           Effect: 'Allow',
-          Principal: { AWS: ['*'] },
+          Principal: '*',
           Action: ['s3:GetObject'],
           Resource: [`arn:aws:s3:::${bucket}/*`],
         },
@@ -215,9 +216,11 @@ export class MinioService implements OnModuleInit {
           Policy: JSON.stringify(policy),
         }),
       );
-    } catch (error) {
+      this.logger.log(`[MinIO] ✅ Public read policy applied to bucket: ${bucket}`);
+    } catch (error: any) {
       this.logger.warn(
-        `[MinIO] Could not set public policy for bucket ${bucket}: ${error}`,
+        `[MinIO] ⚠️  Could not apply S3 bucket policy for '${bucket}' (code: ${error?.Code || error?.name}). ` +
+        `Run manually: docker exec docker-minio-1 mc anonymous set public local/${bucket}`,
       );
     }
   }

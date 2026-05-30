@@ -5,7 +5,7 @@ export function SlideshowFullFrame() {
         <section className="relative w-full h-screen min-h-[600px] flex items-center">
             <div className="absolute inset-0 z-0">
                 <img
-                    src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80"
+                    src="http://localhost:9000/assets/default-4.png"
                     alt="Full Frame Slideshow"
                     className="w-full h-full object-cover"
                 />

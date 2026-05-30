@@ -189,10 +189,10 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         if (get().defaultImages.length > 0) return;
         const MINIO_BASE_URL = 'http://localhost:9000/assets'; // Assuming 'assets' bucket
         const urls = [
-            `${MINIO_BASE_URL}/default-1.jpg`,
-            `${MINIO_BASE_URL}/default-2.jpg`,
-            `${MINIO_BASE_URL}/default-3.jpg`,
-            `${MINIO_BASE_URL}/default-4.jpg`,
+            `${MINIO_BASE_URL}/default-1.png`,
+            `${MINIO_BASE_URL}/default-2.png`,
+            `${MINIO_BASE_URL}/default-3.png`,
+            `${MINIO_BASE_URL}/default-4.png`,
         ];
         set({ defaultImages: urls });
     },

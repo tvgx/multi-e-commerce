@@ -111,32 +111,29 @@ export function AvatarCropperUploader({
       const formData = new FormData();
       formData.append('file', croppedFile);
 
-      const token =
-          typeof window !== 'undefined'
-            ? document.cookie
-                .split('; ')
-                .find((row) => row.startsWith('auth-token='))
-                ?.split('=')[1] || localStorage.getItem('token')
-            : null;
-
-      const response = await fetch(`http://localhost:3000/storage/upload?type=avatar`, {
+      // Dùng Next.js API Route proxy (/api/storage/upload) thay vì gọi thẳng NestJS
+      // Proxy chạy server-side, tự forward cookie session — giải quyết cross-origin cookie
+      const response = await fetch(`/api/storage/upload?type=avatar`, {
         method: 'POST',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Upload failed (${response.status})`);
+      }
       
+      // API trả về BaseResponseDto: { code: "1000", message: "OK", data: { url, key, ... } }
       const data = await response.json();
-      if (data.success) {
-        onUploadSuccess(data.url);
+      if (data.code === '1000' && data.data?.url) {
+        onUploadSuccess(data.data.url);
         setImgSrc(''); // Reset after success
+      } else {
+        throw new Error(data.message || 'Upload failed: no URL returned');
       }
     } catch (err) {
       console.error(err);
-      alert('Upload failed');
+      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsUploading(false);
     }

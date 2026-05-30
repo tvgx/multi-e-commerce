@@ -26,6 +26,12 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-type', 'x-shop-id', 'x-tenant-id', 'x-request-id'],
   });
 
+  // Global prefix /api cho tất cả NestJS controllers
+  // Exclude: Better Auth đã tự mount ở /api/auth/* nên không cần prefix thêm
+  app.setGlobalPrefix('api', {
+    exclude: ['/api/auth/owner/(.*)', '/api/auth/customer/(.*)'],
+  });
+
   // Lấy auth instances từ NestJS DI container (registered via factory providers)
   const ownerAuth = app.get<OwnerAuth>(OWNER_AUTH);
   const customerAuth = app.get<CustomerAuth>(CUSTOMER_AUTH);

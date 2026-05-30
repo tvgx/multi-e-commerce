@@ -6,7 +6,7 @@ export function SplitShowcase() {
             {/* Left Image Half */}
             <div className="relative h-full min-h-[400px]">
                 <img
-                    src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80"
+                    src="http://localhost:9000/assets/default-2.png"
                     alt="Fashion Model"
                     className="absolute inset-0 w-full h-full object-cover"
                 />

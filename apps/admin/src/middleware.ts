@@ -80,7 +80,8 @@ export const config = {
      * - _next/image (Next.js image optimization)
      * - favicon.ico, robots.txt, sitemap.xml
      * - Public assets
+     * - api/* (API routes tự xử lý auth — không đi qua middleware redirect)
      */
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.png$|.*\\.svg$|.*\\.jpg$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/|.*\\.png$|.*\\.svg$|.*\\.jpg$).*)',
   ],
 };

@@ -18,7 +18,7 @@ export function BlogPostCarousel() {
                 {[1, 2, 3, 4, 5].map((i) => (
                     <a href="#" key={i} className="min-w-[85vw] md:min-w-[500px] snap-center group">
                         <div className="w-full aspect-video bg-slate-100 rounded-2xl overflow-hidden mb-6 relative">
-                            <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 4000}?auto=format&fit=crop&q=80`} alt="Blog Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                            <img src={`http://localhost:9000/assets/default-4.png`} alt="Blog Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div className="flex gap-4 items-center mb-3">
                             <span className="text-emerald-600 font-bold uppercase tracking-widest text-xs">Style Guide</span>

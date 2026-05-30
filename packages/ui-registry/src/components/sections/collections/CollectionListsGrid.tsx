@@ -20,7 +20,7 @@ export function CollectionListsGrid() {
                         <a href="#" key={i} className="flex flex-col items-center group">
                             <div className="w-full aspect-square rounded-full overflow-hidden mb-4 bg-slate-100 p-2 border-2 border-transparent group-hover:border-emerald-500 transition-colors">
                                 <div className="w-full h-full rounded-full overflow-hidden bg-slate-200">
-                                    <img src={`https://images.unsplash.com/photo-${item.img}?auto=format&fit=crop&q=80`} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <img src={`http://localhost:9000/assets/default-3.png`} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                 </div>
                             </div>
                             <h3 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors text-center">{item.title}</h3>

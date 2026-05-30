@@ -35,35 +35,33 @@ export function ImageUploaderButton({
           formData.append(multiple ? 'files' : 'file', file);
         });
 
-        const token =
-          typeof window !== 'undefined'
-            ? document.cookie
-                .split('; ')
-                .find((row) => row.startsWith('auth-token='))
-                ?.split('=')[1] || localStorage.getItem('token')
-            : null;
-
+        // Dùng Next.js API Route proxy (/api/storage/upload) thay vì gọi thẳng
+        // NestJS — proxy chạy server-side nên forward được cookie session đúng cách
         const endpoint = multiple 
-          ? `http://localhost:3000/storage/upload/batch?type=${uploadType}`
-          : `http://localhost:3000/storage/upload?type=${uploadType}`;
+          ? `/api/storage/upload?type=${uploadType}&batch=true`
+          : `/api/storage/upload?type=${uploadType}`;
 
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error('Upload failed');
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.message || `Upload failed (${response.status})`);
         }
 
+        // API trả về BaseResponseDto: { code: "1000", message: "OK", data: MediaObject | MediaObject[] }
         const data = await response.json();
         
-        if (data.success) {
-          const urls = multiple ? data.urls : [data.url];
-          onUploadSuccess(urls);
+        if (data.code === '1000') {
+          // Single upload: data.data là MediaObject { url, key, ... }
+          // Batch upload:  data.data là MediaObject[]
+          const mediaData = data.data;
+          const urls: string[] = multiple
+            ? (Array.isArray(mediaData) ? mediaData.map((m: any) => m.url) : [mediaData?.url])
+            : [mediaData?.url];
+          onUploadSuccess(urls.filter(Boolean));
         } else {
           throw new Error(data.message || 'Upload failed');
         }

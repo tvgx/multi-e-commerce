@@ -18,7 +18,7 @@ export function BlogPostEditorial() {
                         </div>
                     </div>
                     <div className="w-full md:w-1/2 h-[400px] md:h-auto order-1 md:order-2">
-                        <img src="https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80" alt="Leathercraft" className="w-full h-full object-cover" />
+                        <img src="http://localhost:9000/assets/default-4.png" alt="Leathercraft" className="w-full h-full object-cover" />
                     </div>
                 </article>
             </div>

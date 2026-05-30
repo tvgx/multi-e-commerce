@@ -44,7 +44,7 @@ export function ProductHighlight() {
 
                     <div className="order-1 lg:order-2 relative">
                         <div className="aspect-[4/5] bg-slate-100 rounded-3xl overflow-hidden shadow-2xl z-10 relative">
-                            <img src="https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&q=80" alt="Leather Tote" className="w-full h-full object-cover" />
+                            <img src="http://localhost:9000/assets/default-2.png" alt="Leather Tote" className="w-full h-full object-cover" />
                         </div>
                         {/* Decorative background element */}
                         <div className="absolute -bottom-8 -right-8 w-full h-full border-2 border-emerald-500 rounded-3xl z-0"></div>

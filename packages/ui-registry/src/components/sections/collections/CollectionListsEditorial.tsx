@@ -23,7 +23,7 @@ export function CollectionListsEditorial() {
 
                 <div className="order-1 lg:order-2">
                     <div className="w-full aspect-[4/5] overflow-hidden rounded-t-full relative">
-                        <img src="https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&q=80" alt="Editorial" className="absolute inset-0 w-full h-full object-cover" />
+                        <img src="http://localhost:9000/assets/default-4.png" alt="Editorial" className="absolute inset-0 w-full h-full object-cover" />
                     </div>
                 </div>
             </div>

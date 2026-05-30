@@ -5,7 +5,7 @@ export function Hero({ title, subtitle, imageUrl }: { title?: string, subtitle?:
         <section className="relative w-full h-[600px] flex items-center justify-center bg-slate-900 text-white overflow-hidden">
             <div className="absolute inset-0 z-0">
                 <img
-                    src={imageUrl || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80"}
+                    src={imageUrl || "http://localhost:9000/assets/default-2.png"}
                     alt="Hero Background"
                     className="w-full h-full object-cover opacity-50"
                 />

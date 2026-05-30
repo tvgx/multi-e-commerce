@@ -7,7 +7,7 @@ export function SlideshowInset() {
                 {/* Images Container */}
                 <div className="absolute inset-0 flex">
                     <img
-                        src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80"
+                        src="http://localhost:9000/assets/default-1.png"
                         alt="Product Focus"
                         className="w-full h-full object-cover"
                     />

@@ -19,7 +19,7 @@ export function FeaturedCollectionCarousel() {
                     <div key={i} className="min-w-[70vw] md:min-w-[400px] snap-center group cursor-pointer">
                         <div className="w-full aspect-[4/5] bg-slate-200 rounded-2xl overflow-hidden mb-6 relative">
                             <span className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-xs font-bold text-slate-900 z-10 shadow-sm">New</span>
-                            <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 1000}?auto=format&fit=crop&q=80`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                            <img src={`http://localhost:9000/assets/default-4.png`} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                             {/* Quick Add Overlay */}
                             <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity translate-y-4 group-hover:translate-y-0 duration-300">
                                 <button className="w-full bg-white/90 backdrop-blur text-slate-900 font-bold py-3 rounded-xl hover:bg-slate-900 hover:text-white transition-colors shadow-lg">Quick Add</button>

@@ -13,7 +13,7 @@ export function BlogPostGrid() {
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <a href="#" key={i} className="group flex flex-col">
                             <div className="aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden mb-6 relative">
-                                <img src={`https://images.unsplash.com/photo-${1500000000000 + i * 5000}?auto=format&fit=crop&q=80`} alt="Blog Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <img src={`http://localhost:9000/assets/default-1.png`} alt="Blog Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold text-slate-900">Design</div>
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors leading-tight mb-3">Understanding the shift towards sustainable materials in 2024</h3>

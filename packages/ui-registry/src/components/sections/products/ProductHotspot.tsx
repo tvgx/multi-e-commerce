@@ -9,7 +9,7 @@ export function ProductHotspot() {
             </div>
 
             <div className="max-w-5xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1499939667766-4afceb292d05?auto=format&fit=crop&q=80" alt="Room Setup" className="w-full h-auto object-contain" />
+                <img src="http://localhost:9000/assets/default-3.png" alt="Room Setup" className="w-full h-auto object-contain" />
 
                 {/* Hotspot 1 */}
                 <div className="absolute top-[30%] left-[25%] group">
