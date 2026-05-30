@@ -9,7 +9,7 @@ import { StorefrontAuthService } from './storefront-auth.service';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { verifyJwt } from './jwt.utils';
 
-@Controller('api/storefront-auth')
+@Controller('storefront-auth')
 export class StorefrontAuthController {
   constructor(private readonly authService: StorefrontAuthService) {}
 

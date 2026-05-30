@@ -15,7 +15,7 @@ import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 import { Public } from '../modules/auth/decorators/public.decorator';
 
-@Controller('api/promotions')
+@Controller('promotions')
 @UseGuards(BetterAuthGuard)
 export class PromotionController {
   constructor(private readonly promotionService: PromotionService) {}

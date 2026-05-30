@@ -18,7 +18,7 @@ function resolveShopIdentifier(hostname: string): string | null {
   return host;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Auth Guard Logic

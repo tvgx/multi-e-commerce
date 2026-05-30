@@ -24,7 +24,7 @@ const FULLY_PUBLIC_ROUTES: string[] = [];
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Các route hoàn toàn public không cần check gì cả

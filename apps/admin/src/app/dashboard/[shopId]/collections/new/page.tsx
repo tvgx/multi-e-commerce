@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
 import { apiClient } from "@/lib/api-client";
+import { uploadFileToMinIO } from "@/lib/upload-minio";
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
@@ -56,21 +57,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
       let finalImageUrl = formData.imageUrl;
 
       if (selectedFile) {
-        const form = new FormData();
-        form.append("file", selectedFile);
-        // Dùng proxy route (/api/storage/upload) chạy server-side
-        // — tự forward cookie session, giải quyết cross-origin 401
-        const res = await fetch(`/api/storage/upload?type=collection`, {
-          method: 'POST',
-          headers: { 'x-shop-id': shopId },
-          body: form,
-        });
-        const resJson = await res.json();
-        if (resJson.code === '1000' && resJson.data?.url) {
-          finalImageUrl = resJson.data.url;
-        } else if (resJson.message) {
-          throw new Error(resJson.message);
-        }
+        finalImageUrl = await uploadFileToMinIO(selectedFile, 'collection', shopId);
       }
 
       await createCollection({ ...formData, imageUrl: finalImageUrl });

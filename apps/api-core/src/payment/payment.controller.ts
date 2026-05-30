@@ -19,7 +19,7 @@ import {
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 
-@Controller('api/payments')
+@Controller('payments')
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,

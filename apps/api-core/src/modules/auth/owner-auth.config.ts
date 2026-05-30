@@ -41,7 +41,8 @@ export function createOwnerAuth(prisma: PrismaService) {
       // Cho phép cookie được chia sẻ giữa các port khác nhau trên localhost
       // (admin:3001 proxy → api:3000). Trong production: set domain đúng subdomain.
       crossSubDomainCookies: {
-        enabled: process.env.NODE_ENV !== 'production',
+        // enabled: process.env.NODE_ENV !== 'production',
+        enabled: false,
         domain: 'localhost',
       },
     },

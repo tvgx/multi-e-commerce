@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Type, Image as ImageIcon, Settings, Check, Loader2 } from "lucide-react";
 import { useBuilderStore } from "@ecommerce/ui-registry/src/store/builder-store";
+import { uploadFileToMinIO } from "@/lib/upload-minio";
 
 const GOOGLE_FONTS = [
   "Inter", "Roboto", "Playfair Display", "Lora", "Montserrat", 
@@ -141,24 +142,8 @@ export function SectionEditorDrawer() {
                       if (!file) return;
                       setIsUploadingImage(true);
                       try {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-                        const res = await fetch(`/api/storage/upload?type=banner`, {
-                          method: 'POST',
-                          body: formData,
-                        });
-                        if (!res.ok) {
-                          const errBody = await res.json().catch(() => ({}));
-                          throw new Error(errBody.message || `Upload failed (${res.status})`);
-                        }
-                        // BaseResponseDto: { code: "1000", message: "OK", data: { url, key, ... } }
-                        const data = await res.json();
-                        if (data.code === '1000' && data.data?.url) {
-                          setPendingProp('backgroundImageUrl', data.data.url);
-                        } else {
-                          throw new Error(data.message || 'Upload failed: no URL');
-                        }
+                        const url = await uploadFileToMinIO(file, 'banner');
+                        setPendingProp('backgroundImageUrl', url);
                       } catch (err) {
                         alert('Upload thất bại: ' + (err instanceof Error ? err.message : String(err)));
                       } finally {

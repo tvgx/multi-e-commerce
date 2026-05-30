@@ -17,7 +17,7 @@ import { ResponseCodes } from '../../common/constants/response-codes.constant';
 import { CustomException } from '../../common/exceptions/custom.exception';
 import { UpdateUserProfileDto } from './dto/auth-update.dto';
 
-@Controller('api/auth')
+@Controller('auth')
 @UseGuards(BetterAuthGuard) // Áp dụng guard cho toàn bộ controller
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

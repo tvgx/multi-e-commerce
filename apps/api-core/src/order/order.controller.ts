@@ -5,7 +5,7 @@ import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 
-@Controller('api/orders')
+@Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 

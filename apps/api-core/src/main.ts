@@ -29,7 +29,7 @@ async function bootstrap() {
   // Global prefix /api cho tất cả NestJS controllers
   // Exclude: Better Auth đã tự mount ở /api/auth/* nên không cần prefix thêm
   app.setGlobalPrefix('api', {
-    exclude: ['/api/auth/owner/(.*)', '/api/auth/customer/(.*)'],
+    exclude: ['/api/auth/owner/*path', '/api/auth/customer/*path'],
   });
 
   // Lấy auth instances từ NestJS DI container (registered via factory providers)

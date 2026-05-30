@@ -20,7 +20,7 @@ import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 import { Public } from '../modules/auth/decorators/public.decorator';
 import type { PageType } from '@ecommerce/schema';
 
-@Controller('api')
+@Controller()
 @UseGuards(BetterAuthGuard)
 export class LayoutController {
   constructor(

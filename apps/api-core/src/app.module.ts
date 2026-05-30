@@ -23,7 +23,7 @@ import { TaxModule } from './tax/tax.module';
 import { PromotionModule } from './promotion/promotion.module';
 import { OptionTypeModule } from './option-type/option-type.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
-import { NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import * as path from 'path';
 import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
 import { StorageModule } from './storage/storage.module';
@@ -81,6 +81,6 @@ import { TemplatesModule } from './modules/templates/templates.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('*');
+    consumer.apply(TenantMiddleware).forRoutes({ path: '(.*)', method: RequestMethod.ALL });
   }
 }

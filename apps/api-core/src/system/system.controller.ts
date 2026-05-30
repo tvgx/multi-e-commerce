@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Inject } from '@nestjs/common';
 import { SystemService } from './system.service';
 
-@Controller('api/system')
+@Controller('system')
 export class SystemController {
   constructor(
     @Inject(SystemService)

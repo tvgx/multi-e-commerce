@@ -13,7 +13,7 @@ import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { BetterAuthGuard } from '../modules/auth/guards/better-auth.guard';
 import { CurrentUser } from '../modules/auth/decorators/current-user.decorator';
 
-@Controller('api/option-types')
+@Controller('option-types')
 @UseGuards(BetterAuthGuard)
 export class OptionTypeController {
   constructor(private readonly optionTypeService: OptionTypeService) {}
