@@ -97,7 +97,7 @@ function CanvasBlock({
 
             {/* To allow clicks inside the canvas to select the component without triggering links, we wrapper it */}
             <div className="pointer-events-none">
-                <Component {...(component.props || {})} />
+                <Component {...(component.props || {})} blocks={component.blocks || []} />
             </div>
         </div>
     );

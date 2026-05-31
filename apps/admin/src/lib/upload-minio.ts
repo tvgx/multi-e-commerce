@@ -16,22 +16,30 @@ export async function uploadFileToMinIO(
     { shopId }
   );
 
-  const { uploadUrl, key, fileUrl } = presignRes.data;
+  const { uploadUrl, key, fileUrl } = presignRes.data || {};
 
   if (!uploadUrl || !key) {
+    console.error('[MinIO] Không thể lấy Presigned URL. Response:', presignRes);
     throw new Error('Không thể lấy Presigned URL');
   }
 
   // 2. Upload trực tiếp (Direct Put)
-  const uploadRes = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type,
-    },
-  });
+  let uploadRes;
+  try {
+    uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+  } catch (err) {
+    console.error('[MinIO] Lỗi khi gọi upload fetch:', err);
+    throw err;
+  }
 
   if (!uploadRes.ok) {
+    console.error('[MinIO] Upload trực tiếp lên MinIO thất bại, status:', uploadRes.status, uploadRes.statusText);
     throw new Error('Upload trực tiếp lên MinIO thất bại');
   }
 

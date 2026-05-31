@@ -3,19 +3,35 @@ import { z } from 'zod';
 export const TemplateTypeEnum = z.enum(['standard', 'visual', 'technical', 'service']);
 export type TemplateType = z.infer<typeof TemplateTypeEnum>;
 
-export const UIComponentRefSchema = z.object({
+export interface UIComponentRef {
+    id: string;
+    componentId: string;
+    type?: 'section' | 'block';
+    props?: Record<string, any>;
+    isHidden?: boolean;
+    isLocked?: boolean;
+    order?: number;
+    blocks?: UIComponentRef[];
+    dataSource?: {
+        type?: 'collection' | 'products' | 'static';
+        id?: string;
+    };
+}
+
+export const UIComponentRefSchema: z.ZodType<UIComponentRef> = z.lazy(() => z.object({
     id: z.string().uuid().or(z.string()), // Unique instance ID for the canvas
     componentId: z.string().min(1, { message: 'Component ID is required' }), // e.g., 'HeroBanner'
+    type: z.enum(['section', 'block']).optional().default('section'),
     props: z.record(z.string(), z.any()).optional(),
     isHidden: z.boolean().optional(),
+    isLocked: z.boolean().optional(),
     order: z.number().int().nonnegative().optional().default(0),
+    blocks: z.array(UIComponentRefSchema).optional(),
     dataSource: z.object({
         type: z.enum(['collection', 'products', 'static']).optional(),
         id: z.string().optional(), // reference ID (e.g. collectionId)
     }).optional(),
-});
-
-export type UIComponentRef = z.infer<typeof UIComponentRefSchema>;
+}));
 
 export const PageTypeEnum = z.enum([
     'home',

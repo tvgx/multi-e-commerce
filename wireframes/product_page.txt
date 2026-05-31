@@ -1,0 +1,33 @@
+================================================================================
+                              HEADER AREA
+ [Logo]        [Search Product...]                   [Account] [Cart(2)]
+================================================================================
+ Home > Category > Product Name
+--------------------------------------------------------------------------------
+
+ +-----------------------+    [ Product Title: Premium Wireless Headphones ]
+ |                       |    
+ |                       |    ⭐⭐⭐⭐⭐ (128 reviews)
+ |                       |    
+ |      MAIN PRODUCT     |    Price: $199.99
+ |         IMAGE         |    
+ |                       |    Color:
+ |                       |    (o) Black   ( ) White   ( ) Blue
+ |                       |    
+ +-----------------------+    Quantity: [ - | 1 | + ]
+                              
+ [IMG1] [IMG2] [IMG3] [IMG4]  [ ADD TO CART ]  [ BUY IT NOW ]
+                              
+                              --------------------------------------------------
+                              Product Description:
+                              Experience crystal clear sound with our premium...
+                              - Active Noise Cancellation
+                              - 30-hour battery life
+                              - Bluetooth 5.0
+--------------------------------------------------------------------------------
+                           RELATED PRODUCTS
+ [Product 1]    [Product 2]    [Product 3]    [Product 4]
+ $99            $149           $199           $89
+================================================================================
+                                FOOTER
+================================================================================

@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from './common/exceptions/custom-exception.filter';
+import { ResponseLoggerInterceptor } from './common/interceptors/response-logger.interceptor';
 import { toNodeHandler } from 'better-auth/node';
 import { OWNER_AUTH, CUSTOMER_AUTH } from './modules/auth/auth.constants';
 import type { OwnerAuth } from './modules/auth/owner-auth.config';
@@ -13,7 +14,9 @@ import type { CustomerAuth } from './modules/auth/customer-auth.config';
 };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['warn', 'error', 'debug', 'fatal'],
+  });
 
   // Enable CORS cho admin và storefront
   app.enableCors({
@@ -45,6 +48,9 @@ async function bootstrap() {
 
   // Global Exception Filter
   app.useGlobalFilters(new CustomExceptionFilter());
+
+  // Global Interceptors
+  app.useGlobalInterceptors(new ResponseLoggerInterceptor());
 
   // Graceful shutdown
   app.enableShutdownHooks();

@@ -6,13 +6,11 @@ export type DeviceMode = 'desktop' | 'mobile';
 
 interface BuilderStoreState extends BuilderState {
     activeComponentId: string | null;
+    activeBlockId: string | null;
     activePage: string;
     deviceMode: DeviceMode;
     isLoading: boolean;
     
-    // New Editor State
-    isEditorOpen: boolean;
-    pendingProps: Record<string, unknown> | null;
     defaultImages: string[];
 
     // Actions
@@ -23,21 +21,50 @@ interface BuilderStoreState extends BuilderState {
     updatePageSection: (pageType: string, id: string, newProps: Record<string, any>) => void;
     reorderPageSections: (pageType: string, startIndex: number, endIndex: number) => void;
     
+    // Selection State
     setActiveComponent: (id: string | null) => void;
+    setActiveBlock: (id: string | null) => void;
     setActivePage: (page: string) => void;
     setDeviceMode: (mode: DeviceMode) => void;
 
-    // Editor Actions
-    openSectionEditor: (id: string) => void;
-    closeSectionEditor: () => void;
-    setPendingProp: (key: string, value: unknown) => void;
-    commitPendingProps: () => void;
-    discardPendingProps: () => void;
+    // Real-time properties editing
+    updateComponentProp: (id: string, propKey: string, value: any) => void;
+    updateBlockProp: (blockId: string, propKey: string, value: any) => void;
+    
+    // Block Management
+    addBlock: (parentId: string, blockComponentId: string) => void;
+    removeBlock: (blockId: string) => void;
+    toggleBlockVisibility: (blockId: string) => void;
+    reorderBlocks: (parentId: string, startIndex: number, endIndex: number) => void;
+
+    // Helpers
     fetchDefaultImages: () => Promise<void>;
 
     // API
     loadTemplate: (shopId: string, token?: string) => Promise<void>;
     saveTemplate: (shopId: string, token?: string) => Promise<void>;
+}
+
+// Recursive Helpers
+function mapRecursive(components: UIComponentRef[], targetId: string, updater: (c: UIComponentRef) => UIComponentRef): UIComponentRef[] {
+    return components.map(c => {
+        if (c.id === targetId) {
+            return updater(c);
+        }
+        if (c.blocks && c.blocks.length > 0) {
+            return { ...c, blocks: mapRecursive(c.blocks, targetId, updater) };
+        }
+        return c;
+    });
+}
+
+function filterRecursive(components: UIComponentRef[], targetId: string): UIComponentRef[] {
+    return components.filter(c => c.id !== targetId).map(c => {
+        if (c.blocks && c.blocks.length > 0) {
+            return { ...c, blocks: filterRecursive(c.blocks, targetId) };
+        }
+        return c;
+    });
 }
 
 export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
@@ -46,12 +73,11 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     theme: {},
     
     activeComponentId: null,
+    activeBlockId: null,
     activePage: 'home',
     deviceMode: 'desktop',
     isLoading: false,
 
-    isEditorOpen: false,
-    pendingProps: null,
     defaultImages: [],
 
     setTheme: (themePatch) => set((state) => ({
@@ -76,7 +102,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             props.images = [imgs[0], imgs[1], imgs[2], imgs[3]]; // In case component expects array
         }
 
-        const newNode = { id: uuidv4(), componentId, props, order: 0 };
+        const newNode: UIComponentRef = { id: uuidv4(), componentId, props, order: 0, type: 'section' };
         
         if (insertIndex !== undefined && insertIndex >= 0 && insertIndex <= pages[pageType].length) {
              const newArray = [...pages[pageType]];
@@ -89,7 +115,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
              pages[pageType] = [...pages[pageType], newNode];
         }
 
-        return { pages, activeComponentId: null };
+        return { pages, activeComponentId: newNode.id, activeBlockId: null };
     }),
 
     removePageSection: (pageType, id) => set((state) => {
@@ -101,7 +127,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         return { 
             pages, 
             activeComponentId: state.activeComponentId === id ? null : state.activeComponentId,
-            isEditorOpen: state.activeComponentId === id ? false : state.isEditorOpen
+            activeBlockId: state.activeComponentId === id ? null : state.activeBlockId
         };
     }),
 
@@ -131,59 +157,129 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         return { pages };
     }),
 
-    setActiveComponent: (id) => set({ activeComponentId: id }),
+    setActiveComponent: (id) => set({ activeComponentId: id, activeBlockId: null }),
+    setActiveBlock: (id) => set({ activeBlockId: id }),
     setActivePage: (page) => set({ activePage: page }),
     setDeviceMode: (mode) => set({ deviceMode: mode }),
 
-    openSectionEditor: (id) => {
-        const state = get();
-        // find the component to get initial props
-        const comp = state.globalComponents.find(c => c.id === id) || 
-                     (state.pages[state.activePage] || []).find(c => c.id === id);
-        
-        set({ 
-            activeComponentId: id, 
-            isEditorOpen: true,
-            pendingProps: comp ? { ...comp.props } : {}
-        });
-    },
-
-    closeSectionEditor: () => set({ 
-        isEditorOpen: false, 
-        activeComponentId: null, 
-        pendingProps: null 
-    }),
-
-    setPendingProp: (key, value) => set((state) => ({
-        pendingProps: state.pendingProps ? { ...state.pendingProps, [key]: value } : { [key]: value }
-    })),
-
-    commitPendingProps: () => set((state) => {
-        if (!state.activeComponentId || !state.pendingProps) return state;
-
-        // Try global first
-        const isGlobal = state.globalComponents.some(c => c.id === state.activeComponentId);
+    updateComponentProp: (id, propKey, value) => set((state) => {
+        // Find in global components
+        let isGlobal = state.globalComponents.some(c => c.id === id);
         if (isGlobal) {
             return {
                 globalComponents: state.globalComponents.map(c => 
-                    c.id === state.activeComponentId ? { ...c, props: { ...c.props, ...state.pendingProps! } } : c
-                ),
-                pendingProps: null,
-                isEditorOpen: false
+                    c.id === id ? { ...c, props: { ...c.props, [propKey]: value } } : c
+                )
             };
         }
 
-        // Try pages
+        // Find in pages
         const pages = { ...state.pages };
         const activePageList = pages[state.activePage] || [];
         pages[state.activePage] = activePageList.map(c => 
-            c.id === state.activeComponentId ? { ...c, props: { ...c.props, ...state.pendingProps! } } : c
+            c.id === id ? { ...c, props: { ...c.props, [propKey]: value } } : c
         );
 
-        return { pages, pendingProps: null, isEditorOpen: false };
+        return { pages };
     }),
 
-    discardPendingProps: () => set({ pendingProps: null, isEditorOpen: false, activeComponentId: null }),
+    updateBlockProp: (blockId, propKey, value) => set((state) => {
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+        
+        return {
+            globalComponents: mapRecursive(state.globalComponents, blockId, (c) => ({
+                ...c,
+                props: { ...c.props, [propKey]: value }
+            })),
+            pages: {
+                ...pages,
+                [state.activePage]: mapRecursive(activePageList, blockId, (c) => ({
+                    ...c,
+                    props: { ...c.props, [propKey]: value }
+                }))
+            }
+        };
+    }),
+
+    addBlock: (parentId, blockComponentId) => set((state) => {
+        const newBlock: UIComponentRef = {
+            id: uuidv4(),
+            componentId: blockComponentId,
+            type: 'block',
+            props: {},
+            order: 0
+        };
+
+        const updater = (c: UIComponentRef) => {
+            const currentBlocks = c.blocks || [];
+            newBlock.order = currentBlocks.length;
+            return { ...c, blocks: [...currentBlocks, newBlock] };
+        };
+
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+
+        return {
+            globalComponents: mapRecursive(state.globalComponents, parentId, updater),
+            pages: {
+                ...pages,
+                [state.activePage]: mapRecursive(activePageList, parentId, updater)
+            },
+            activeBlockId: newBlock.id
+        };
+    }),
+
+    removeBlock: (blockId) => set((state) => {
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+
+        return {
+            globalComponents: filterRecursive(state.globalComponents, blockId),
+            pages: {
+                ...pages,
+                [state.activePage]: filterRecursive(activePageList, blockId)
+            },
+            activeBlockId: state.activeBlockId === blockId ? null : state.activeBlockId
+        };
+    }),
+
+    toggleBlockVisibility: (blockId) => set((state) => {
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+        
+        const updater = (c: UIComponentRef) => ({ ...c, isHidden: !c.isHidden });
+
+        return {
+            globalComponents: mapRecursive(state.globalComponents, blockId, updater),
+            pages: {
+                ...pages,
+                [state.activePage]: mapRecursive(activePageList, blockId, updater)
+            }
+        };
+    }),
+
+    reorderBlocks: (parentId, startIndex, endIndex) => set((state) => {
+        const updater = (c: UIComponentRef) => {
+            if (!c.blocks) return c;
+            const newBlocks = Array.from(c.blocks);
+            const [removed] = newBlocks.splice(startIndex, 1);
+            newBlocks.splice(endIndex, 0, removed);
+            newBlocks.forEach((b, index) => b.order = index);
+            return { ...c, blocks: newBlocks };
+        };
+
+        const pages = { ...state.pages };
+        const activePageList = pages[state.activePage] || [];
+
+        return {
+            globalComponents: mapRecursive(state.globalComponents, parentId, updater),
+            pages: {
+                ...pages,
+                [state.activePage]: mapRecursive(activePageList, parentId, updater)
+            }
+        };
+    }),
 
     fetchDefaultImages: async () => {
         if (get().defaultImages.length > 0) return;
@@ -204,7 +300,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             // Fetch Global Layout
-            const globalRes = await fetch(`http://localhost:3000/api/layout/global/${shopId}`, { headers });
+            const globalRes = await fetch(`http://localhost:3000/api/layouts/${shopId}/global`, { headers });
             let globalData: any = null;
             if (globalRes.ok) {
                 const json = await globalRes.json();
@@ -212,16 +308,16 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             }
 
             // Fetch Page Layout (home)
-            const pageRes = await fetch(`http://localhost:3000/api/layout/page/${shopId}/home`, { headers });
+            const pageRes = await fetch(`http://localhost:3000/api/layouts/${shopId}/page/home`, { headers });
             let pageData: any = null;
             if (pageRes.ok) {
                 const json = await pageRes.json();
                 pageData = json.data;
             }
 
-            const defaultGlobalComponents = [
-                { id: 'global-header', componentId: 'Header', props: {} },
-                { id: 'global-footer', componentId: 'Footer', props: {} }
+            const defaultGlobalComponents: UIComponentRef[] = [
+                { id: 'global-header', componentId: 'Header', props: {}, type: 'section' },
+                { id: 'global-footer', componentId: 'Footer', props: {}, type: 'section' }
             ];
 
             set({
@@ -245,20 +341,23 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             // Save Global Layout (Theme + Global Components)
-            await fetch(`http://localhost:3000/api/layout/global/${shopId}`, {
-                method: 'PUT',
+            await fetch(`http://localhost:3000/api/layouts/publish/global`, {
+                method: 'POST',
                 headers,
                 body: JSON.stringify({
+                    shopId,
                     theme: state.theme,
                     globalComponents: state.globalComponents
                 })
             });
 
             // Save Page Layout (home)
-            await fetch(`http://localhost:3000/api/layout/page/${shopId}/home`, {
-                method: 'PUT',
+            await fetch(`http://localhost:3000/api/layouts/publish/page`, {
+                method: 'POST',
                 headers,
                 body: JSON.stringify({
+                    shopId,
+                    pageType: 'home',
                     components: state.pages['home'] || []
                 })
             });

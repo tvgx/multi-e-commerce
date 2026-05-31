@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
     super({
-      log: ['query', 'info', 'warn', 'error'],
+      log: ['info', 'warn', 'error'],
       // Note: Connection pooling is typically handled via the DATABASE_URL query parameter.
       // Ensuring the link between rule compliance and implementation.
     });

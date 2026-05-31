@@ -1,16 +1,11 @@
 "use client"
 
 import React from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { GripVertical, Image as ImageIcon, LayoutTemplate, Megaphone, Trash2, Lock } from "lucide-react";
+import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
+import { Lock } from "lucide-react";
 import { useBuilderStore } from "../../store/builder-store";
 import { AddSectionDropdown } from "./add-section-dropdown";
-
-const COMPONENT_ICONS: Record<string, React.ElementType> = {
-    Hero: ImageIcon,
-    FeaturedCollection: LayoutTemplate,
-    AnnouncementBar: Megaphone,
-};
+import { BlockTreeItem } from "./block-tree-item";
 
 export function SidebarSections() {
     const { 
@@ -31,7 +26,18 @@ export function SidebarSections() {
 
     const handleDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        reorderPageSections(activePage, result.source.index, result.destination.index);
+        const { source, destination, type } = result;
+        
+        if (source.droppableId === destination.droppableId) {
+            if (source.droppableId === "builder-sections") {
+                reorderPageSections(activePage, source.index, destination.index);
+            } else {
+                // Nested block reordering
+                // We assume store handles block reordering by parentId (which is the droppableId)
+                const { reorderBlocks } = useBuilderStore.getState();
+                reorderBlocks(source.droppableId, source.index, destination.index);
+            }
+        }
     };
 
     return (
@@ -63,60 +69,21 @@ export function SidebarSections() {
                 </div>
 
                 <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="builder-sections">
+                    <Droppable droppableId="builder-sections" type="section">
                         {(provided) => (
                             <div
                                 {...provided.droppableProps}
                                 ref={provided.innerRef}
                                 className="space-y-1 min-h-[50px] py-1"
                             >
-                                {sections.map((section, index) => {
-                                    const Icon = COMPONENT_ICONS[section.componentId] || LayoutTemplate;
-                                    const isActive = activeComponentId === section.id;
-
-                                    return (
-                                        <Draggable key={section.id} draggableId={section.id} index={index}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    onClick={() => setActiveComponent(section.id)}
-                                                    className={`flex items-center justify-between p-3 rounded-lg border group cursor-pointer transition-colors
-                                ${isActive
-                                                            ? "bg-zinc-800 border-emerald-500/50"
-                                                            : "bg-zinc-900 border-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-700"
-                                                        }
-                                ${snapshot.isDragging ? "shadow-xl ring-1 ring-emerald-500/30 rotate-1 z-50" : ""}
-                            `}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div
-                                                            {...provided.dragHandleProps}
-                                                            className="text-zinc-600 hover:text-white transition-colors p-1 -ml-1 rounded"
-                                                            onClick={(e) => e.stopPropagation()} // Prevent setting active when just dragging
-                                                        >
-                                                            <GripVertical className="h-4 w-4" />
-                                                        </div>
-                                                        <Icon className={`h-4 w-4 ${isActive ? "text-emerald-400" : "text-zinc-500"}`} />
-                                                        <span className={`text-sm font-medium ${isActive ? "text-white" : "text-zinc-300"}`}>
-                                                            {section.componentId}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); removePageSection(activePage, section.id); }}
-                                                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-zinc-700 rounded transition-colors"
-                                                            title="Remove section"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    );
-                                })}
+                                {sections.map((section, index) => (
+                                    <BlockTreeItem 
+                                        key={section.id} 
+                                        component={section} 
+                                        index={index} 
+                                        depth={0} 
+                                    />
+                                ))}
                                 {provided.placeholder}
                             </div>
                         )}

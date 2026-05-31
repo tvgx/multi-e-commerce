@@ -47,7 +47,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
         exception?.stack || String(exception),
       );
     } else if (!isNoise) {
-      this.logger.warn(
+      this.logger.error(
         `Http Exception (${status}): ${message} - ${req.method} ${req.url}`,
       );
     }

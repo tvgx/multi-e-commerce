@@ -52,6 +52,13 @@ export class StorageQuotaService {
    * Cập nhật dung lượng đã sử dụng sau khi upload thành công
    */
   async recordUpload(shopId: string, bytesUsed: number): Promise<void> {
+    const shopExists = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true },
+    });
+
+    if (!shopExists) return;
+
     const shop = await this.prisma.shop.update({
       where: { id: shopId },
       data: {

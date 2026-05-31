@@ -75,23 +75,12 @@ export function Canvas() {
     activePage, 
     activeComponentId,
     setActiveComponent,
-    removePageSection,
-    openSectionEditor,
-    pendingProps,
-    isEditorOpen
+    removePageSection
   } = useBuilderStore();
 
   const pageComponents = pages[activePage] || [];
   const headerComp = globalComponents.find(c => c.id === "global-header");
   const footerComp = globalComponents.find(c => c.id === "global-footer");
-
-  const getProps = (id: string, defaultProps: any) => {
-      // Return pendingProps if this is the active component and editor is open
-      if (isEditorOpen && activeComponentId === id && pendingProps) {
-          return pendingProps;
-      }
-      return defaultProps;
-  };
 
   return (
     <div 
@@ -106,7 +95,7 @@ export function Canvas() {
                   onClick={(e) => { e.stopPropagation(); setActiveComponent(headerComp.id); }}
               >
                   <div className="pointer-events-none w-full">
-                      {registry[headerComp.componentId] ? React.createElement(registry[headerComp.componentId], getProps(headerComp.id, headerComp.props)) : null}
+                      {registry[headerComp.componentId] ? React.createElement(registry[headerComp.componentId], { ...headerComp.props, blocks: headerComp.blocks || [] }) : null}
                   </div>
               </div>
           )}
@@ -124,11 +113,11 @@ export function Canvas() {
                   key={node.id}
                   id={node.id}
                   componentId={node.componentId}
-                  props={getProps(node.id, node.props)}
+                  props={node.props}
                   selected={activeComponentId === node.id}
                   onSelect={() => setActiveComponent(node.id)}
                   onRemove={() => removePageSection(activePage, node.id)}
-                  onEdit={() => openSectionEditor(node.id)}
+                  onEdit={() => setActiveComponent(node.id)}
                 />
               ))
             )}
@@ -141,7 +130,7 @@ export function Canvas() {
                   onClick={(e) => { e.stopPropagation(); setActiveComponent(footerComp.id); }}
               >
                   <div className="pointer-events-none w-full">
-                      {registry[footerComp.componentId] ? React.createElement(registry[footerComp.componentId], getProps(footerComp.id, footerComp.props)) : null}
+                      {registry[footerComp.componentId] ? React.createElement(registry[footerComp.componentId], { ...footerComp.props, blocks: footerComp.blocks || [] }) : null}
                   </div>
               </div>
           )}

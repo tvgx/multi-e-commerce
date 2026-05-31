@@ -5,7 +5,7 @@ import { Topbar } from "./components/topbar";
 import { Canvas } from "./components/canvas";
 import { Sidebar } from "./components/sidebar";
 import { BuilderProvider } from "./components/builder-provider";
-import { SectionEditorDrawer } from "./components/section-editor-drawer";
+import { PropertiesSidebar } from "./components/properties-sidebar";
 
 export default function DesignPage() {
   return (
@@ -20,8 +20,9 @@ export default function DesignPage() {
           
           <main className="flex-1 overflow-hidden relative">
             <Canvas />
-            <SectionEditorDrawer />
           </main>
+
+          <PropertiesSidebar />
         </div>
       </div>
     </BuilderProvider>

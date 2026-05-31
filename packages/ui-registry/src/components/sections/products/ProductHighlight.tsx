@@ -1,6 +1,19 @@
 import React from 'react';
+import { HeadingBlock } from '../../blocks/heading';
+import { ButtonBlock } from '../../blocks/button';
+import { cn } from '../../../lib/utils';
 
-export function ProductHighlight() {
+interface ProductHighlightProps {
+    productId?: string;
+    mediaLayout?: string;
+}
+
+export function ProductHighlight({
+    productId,
+    mediaLayout = 'right'
+}: ProductHighlightProps) {
+    const isRight = mediaLayout === 'right';
+
     return (
         <section className="w-full py-24 bg-white overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 md:px-12 relative">
@@ -9,9 +22,14 @@ export function ProductHighlight() {
                 </div>
 
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                    <div className="order-2 lg:order-1 space-y-8">
+                    <div className={cn("space-y-8", isRight ? "order-2 lg:order-1" : "order-2 lg:order-2")}>
                         <span className="text-emerald-500 font-bold tracking-widest uppercase">Spotlight</span>
-                        <h2 className="text-4xl md:text-6xl font-bold text-slate-900 leading-tight">Artisan Crafted<br />Leather Tote.</h2>
+                        <HeadingBlock 
+                            content="Artisan Crafted Leather Tote." 
+                            level="h2" 
+                            alignment="left"
+                            className="text-4xl md:text-6xl font-bold text-slate-900 leading-tight"
+                        />
                         <ul className="space-y-6">
                             <li className="flex gap-4">
                                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">✦</div>
@@ -36,13 +54,16 @@ export function ProductHighlight() {
                             </li>
                         </ul>
                         <div className="pt-6">
-                            <button className="bg-slate-900 text-white px-8 py-4 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-xl">
-                                Discover Details - $285
-                            </button>
+                            <ButtonBlock 
+                                label="Discover Details - $285"
+                                style="primary"
+                                size="lg"
+                                className="bg-slate-900 text-white rounded-xl shadow-xl hover:bg-emerald-600"
+                            />
                         </div>
                     </div>
 
-                    <div className="order-1 lg:order-2 relative">
+                    <div className={cn("relative", isRight ? "order-1 lg:order-2" : "order-1 lg:order-1")}>
                         <div className="aspect-[4/5] bg-slate-100 rounded-3xl overflow-hidden shadow-2xl z-10 relative">
                             <img src="http://localhost:9000/assets/default-2.png" alt="Leather Tote" className="w-full h-full object-cover" />
                         </div>
@@ -54,3 +75,12 @@ export function ProductHighlight() {
         </section>
     );
 }
+
+export const productHighlightSchema = {
+    name: 'Product Highlight',
+    category: 'Products',
+    settings: [
+        { id: 'productId', type: 'resource_picker', label: 'Sản phẩm nổi bật' },
+        { id: 'mediaLayout', type: 'segmented', label: 'Vị trí hình ảnh', options: ['left', 'right'] }
+    ]
+};

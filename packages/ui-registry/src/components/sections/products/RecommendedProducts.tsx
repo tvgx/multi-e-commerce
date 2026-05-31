@@ -1,10 +1,26 @@
 import React from 'react';
+import { HeadingBlock } from '../../blocks/heading';
 
-export function RecommendedProducts() {
+interface RecommendedProductsProps {
+    title?: string;
+    recommendationType?: string;
+}
+
+export function RecommendedProducts({
+    title = "You May Also Like",
+    recommendationType = "related"
+}: RecommendedProductsProps) {
     return (
         <section className="w-full py-16 border-t border-slate-200 bg-white">
             <div className="max-w-7xl mx-auto px-4 md:px-12">
-                <h2 className="text-2xl font-bold text-slate-900 mb-8 border-b border-slate-200 pb-4">You May Also Like</h2>
+                <div className="mb-8 border-b border-slate-200 pb-4">
+                    <HeadingBlock 
+                        content={title} 
+                        level="h2" 
+                        alignment="left"
+                        className="text-2xl font-bold text-slate-900 m-0 p-0"
+                    />
+                </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {[1, 2, 3, 4].map((i) => (
@@ -21,3 +37,17 @@ export function RecommendedProducts() {
         </section>
     );
 }
+
+export const recommendedProductsSchema = {
+    name: 'Recommended Products',
+    category: 'Products',
+    settings: [
+        { id: 'title', type: 'text', label: 'Tiêu đề' },
+        { 
+            id: 'recommendationType', 
+            type: 'select', 
+            label: 'Thuật toán gợi ý', 
+            options: ['related', 'bought_together', 'trending'] 
+        }
+    ]
+};

@@ -1,0 +1,149 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { Search, User, ShoppingCart, Menu } from 'lucide-react';
+import { AnnouncementBar } from './AnnouncementBar';
+
+export interface HeaderProps {
+    logoUrl?: string;
+    logoPosition?: 'left' | 'center';
+    backgroundColor?: string;
+    textColor?: string;
+    blocks?: {
+        id: string;
+        componentId: string;
+        props: any;
+    }[];
+}
+
+export const Header: React.FC<HeaderProps> = ({
+    logoUrl,
+    logoPosition = 'left',
+    backgroundColor = '#ffffff',
+    textColor = '#000000',
+    blocks = []
+}) => {
+    // Extract menu items from blocks
+    const navigation = blocks.length > 0 
+        ? blocks
+            .filter(b => b.componentId === 'HeaderMenuItem')
+            .map(b => ({
+                label: b.props?.label || 'Menu Item',
+                href: b.props?.link || '/'
+            }))
+        : [
+            { label: 'Home', href: '/' },
+            { label: 'Catalog', href: '/catalog' },
+            { label: 'Contact', href: '/contact' }
+          ];
+
+    return (
+        <div className="w-full relative z-50">
+            {/* Render Announcement Bar if it exists in blocks */}
+            {blocks.filter(b => b.componentId === 'AnnouncementBar').map((block, idx) => (
+                <div key={block.id || idx} className="relative group">
+                    <AnnouncementBar {...block.props} />
+                </div>
+            ))}
+            
+            <header 
+                className="sticky top-0 w-full border-b backdrop-blur"
+                style={{ backgroundColor, color: textColor }}
+            >
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className={`flex h-16 items-center ${logoPosition === 'center' ? 'justify-center relative' : 'justify-between'}`}>
+                    
+                    {/* Left section (Mobile menu or Left Logo + Nav) */}
+                    <div className={`flex items-center ${logoPosition === 'center' ? 'absolute left-0' : ''}`}>
+                        {/* Mobile menu */}
+                        <button className="mr-4 lg:hidden p-2 text-inherit opacity-80 hover:opacity-100">
+                            <span className="sr-only">Open menu</span>
+                            <Menu className="h-6 w-6" />
+                        </button>
+
+                        {logoPosition === 'left' && (
+                            <>
+                                <Link href="/" className="flex items-center space-x-2 mr-10">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
+                                    ) : (
+                                        <span className="font-bold text-xl tracking-tighter">STOREFRONT</span>
+                                    )}
+                                </Link>
+                                <nav className="hidden lg:flex space-x-8">
+                                    {navigation.map((item, idx) => (
+                                        <Link
+                                            key={idx}
+                                            href={item.href}
+                                            className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    ))}
+                                </nav>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Center Logo */}
+                    {logoPosition === 'center' && (
+                        <Link href="/" className="flex items-center space-x-2">
+                            {logoUrl ? (
+                                <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
+                            ) : (
+                                <span className="font-bold text-xl tracking-tighter">STOREFRONT</span>
+                            )}
+                        </Link>
+                    )}
+
+                    {/* Right section (Nav if center logo + Icons) */}
+                    <div className={`flex items-center space-x-4 ${logoPosition === 'center' ? 'absolute right-0' : ''}`}>
+                        {logoPosition === 'center' && (
+                             <nav className="hidden lg:flex space-x-8 mr-4">
+                                {navigation.map((item, idx) => (
+                                    <Link
+                                        key={idx}
+                                        href={item.href}
+                                        className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))}
+                            </nav>
+                        )}
+                        <div className="flex items-center space-x-4">
+                            <button className="p-2 text-inherit opacity-80 hover:opacity-100">
+                                <span className="sr-only">Search</span>
+                                <Search className="h-5 w-5" />
+                            </button>
+                            <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100">
+                                <span className="sr-only">Account</span>
+                                <User className="h-5 w-5" />
+                            </Link>
+                            <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative">
+                                <span className="sr-only">Cart</span>
+                                <ShoppingCart className="h-5 w-5" />
+                                {/* Optional Cart Badge */}
+                                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </header>
+        </div>
+    );
+};
+
+export const headerSchema = {
+    name: 'Header',
+    category: 'Header',
+    allowedBlocks: ['AnnouncementBar', 'HeaderMenuItem'],
+    settings: [
+        { id: 'logoUrl', type: 'image', label: 'Logo' },
+        { id: 'logoPosition', type: 'select', label: 'Vị trí Logo', options: [{label: 'Trái', value: 'left'}, {label: 'Giữa', value: 'center'}], default: 'left' },
+        { id: 'backgroundColor', type: 'color', label: 'Màu nền', default: '#ffffff' },
+        { id: 'textColor', type: 'color', label: 'Màu chữ', default: '#000000' }
+    ]
+};
