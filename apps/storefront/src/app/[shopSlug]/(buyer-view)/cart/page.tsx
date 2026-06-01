@@ -1,18 +1,28 @@
+import { getShopPageLayout, getShopInfo } from '@/lib/api/storefront.api';
+import { notFound } from 'next/navigation';
+import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
 import React from 'react';
 
-export default function CartPage() {
-    return (
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
-            <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center text-slate-500">
-                Your cart is currently empty.
-            </div>
+interface Props {
+  params: Promise<{ shopSlug: string }>;
+}
 
-            <div className="mt-8 flex justify-end">
-                <button className="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 text-white font-medium rounded-xl transition-colors">
-                    Proceed to Payment
-                </button>
-            </div>
-        </div>
-    );
+export default async function CartPage({ params }: Props) {
+  const { shopSlug } = await params;
+
+  try {
+    const [shopInfo, pageLayout] = await Promise.all([
+      getShopInfo(shopSlug),
+      getShopPageLayout(shopSlug, 'cart')
+    ]);
+
+    if (!shopInfo) return notFound();
+    if (!pageLayout) return <div className="text-center py-20">Layout not found</div>;
+
+    // Cart store data is on client-side, but standard components can read it if needed.
+    return <LayoutRenderer pageLayout={pageLayout} pageContext={{ shopInfo }} />;
+  } catch (error) {
+    console.error('Error fetching cart page layout:', error);
+    return notFound();
+  }
 }

@@ -10,6 +10,8 @@ interface AddToCartButtonProps {
   title: string;
   imageUrl?: string;
   className?: string;
+  children?: React.ReactNode;
+  quantity?: number;
 }
 
 export function AddToCartButton({
@@ -19,6 +21,8 @@ export function AddToCartButton({
   title,
   imageUrl,
   className = '',
+  children,
+  quantity = 1,
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
@@ -31,7 +35,7 @@ export function AddToCartButton({
       price,
       title,
       imageUrl,
-      quantity: 1,
+      quantity,
     });
     setLoading(false);
   };
@@ -42,7 +46,7 @@ export function AddToCartButton({
       disabled={loading}
       className={`bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30 disabled:opacity-70 disabled:cursor-not-allowed ${className}`}
     >
-      {loading ? 'Adding...' : 'Add to Cart'}
+      {loading ? 'Adding...' : (children || 'Add to Cart')}
     </button>
   );
 }

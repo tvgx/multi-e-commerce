@@ -1,7 +1,5 @@
 import { z } from 'nestjs-zod/z';
 import { createZodDto } from 'nestjs-zod';
-import { TemplateTypeEnum } from '@ecommerce/schema';
-
 // UC-01: Tenant Registration (New)
 export const RegisterTenantSchema = z.object({
   shopName: z
@@ -18,7 +16,7 @@ export const RegisterTenantSchema = z.object({
     .string()
     .min(1, 'ownerName is required')
     .max(255, 'ownerName must be at most 255 characters'),
-  template: TemplateTypeEnum.optional().default('standard'),
+  template: z.string().optional().default('standard'),
   seedDemoProducts: z.boolean().optional().default(false),
 });
 
@@ -27,7 +25,7 @@ export const CreateShopSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   domain: z.string().optional(),
   productsPerPage: z.number().int().positive().optional().default(30),
-  templateType: TemplateTypeEnum.optional().default('standard'),
+  templateType: z.string().optional().default('standard'),
   templateKey: z.string().optional(),
 });
 

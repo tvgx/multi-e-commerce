@@ -2,9 +2,7 @@ import { Injectable, HttpStatus, Logger, Inject } from '@nestjs/common';
 import { SystemCacheService } from '../system/cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
 import { GlobalLayout, PageLayout } from '@ecommerce/database';
-import { mergeGlobalLayouts, mergePageLayouts } from './merger.utils';
 import { MinioService } from '../storage/minio.service';
-import { StandardTemplate } from '@ecommerce/master-templates';
 import { BaseResponseDto } from '../common/dto/base-response.dto';
 import { CustomException } from '../common/exceptions/custom.exception';
 import { ResponseCodes } from '../common/constants/response-codes.constant';
@@ -46,16 +44,6 @@ export class LayoutService {
     try {
       await this.checkAuth(ownerId, shopId);
 
-      // In the future, resolve Master Global Template here. Using an empty/default one for now.
-      const masterTemplate: ShopGlobalLayout = {
-        isMaster: true,
-        templateType: tenantDelta.templateType || 'standard',
-        globalComponents: [],
-        theme: {},
-      };
-
-      const finalLayout = mergeGlobalLayouts(masterTemplate, tenantDelta);
-
       await GlobalLayout.updateOne(
         { shopId },
         { $set: { publishedData: tenantDelta, lastPublishedAt: new Date() } },
@@ -84,15 +72,6 @@ export class LayoutService {
   ): Promise<BaseResponseDto<any>> {
     try {
       await this.checkAuth(ownerId, shopId);
-
-      // In the future, resolve Master Page Template here.
-      const masterTemplate: ShopPageLayout = {
-        isMaster: true,
-        pageType: pageType,
-        components: [],
-      };
-
-      const finalLayout = mergePageLayouts(masterTemplate, tenantDelta);
 
       await PageLayout.updateOne(
         { shopId, pageType, slug: tenantDelta.slug || null },
@@ -126,19 +105,10 @@ export class LayoutService {
       return BaseResponseDto.success(null);
     }
 
-    // 2. Perform On-the-fly Merge (Fast enough for 16GB RAM / optimized node)
-    const masterTemplate: ShopGlobalLayout = {
-      isMaster: true,
-      templateType: 'standard',
-      globalComponents: [],
-      theme: {},
-    };
-    const merged = mergeGlobalLayouts(masterTemplate, layout.publishedData);
-
-    // 3. Cache merged version in Redis (Persistent enough for performance)
-    await this.cacheService.set(cacheKey, merged, 3600000); // 1 hour Redis cache
+    // 3. Cache version in Redis (Persistent enough for performance)
+    await this.cacheService.set(cacheKey, layout.publishedData, 3600000); // 1 hour Redis cache
     
-    return BaseResponseDto.success(merged);
+    return BaseResponseDto.success(layout.publishedData);
   }
 
   async getPageLayout(
@@ -158,15 +128,8 @@ export class LayoutService {
       return BaseResponseDto.success(null);
     }
 
-    const masterTemplate: ShopPageLayout = {
-      isMaster: true,
-      pageType,
-      components: [],
-    };
-    const merged = mergePageLayouts(masterTemplate, layout.publishedData);
-
-    await this.cacheService.set(cacheKey, merged, 3600000);
-    return BaseResponseDto.success(merged);
+    await this.cacheService.set(cacheKey, layout.publishedData, 3600000);
+    return BaseResponseDto.success(layout.publishedData);
   }
 
   async getGlobalLayoutByDomain(domain: string): Promise<BaseResponseDto<any>> {
@@ -258,19 +221,11 @@ export class LayoutService {
       return BaseResponseDto.success(null);
     }
 
-    const masterTemplate: ShopGlobalLayout = {
-      isMaster: true,
-      templateType: 'standard',
-      globalComponents: [],
-      theme: {},
-    };
-
     const draft = layout.draftData && Object.keys(layout.draftData).length > 0
       ? layout.draftData
       : layout.publishedData;
 
-    const merged = mergeGlobalLayouts(masterTemplate, draft);
-    return BaseResponseDto.success(merged);
+    return BaseResponseDto.success(draft);
   }
 
   async savePageLayoutDraft(
@@ -353,17 +308,10 @@ export class LayoutService {
       return BaseResponseDto.success(null);
     }
 
-    const masterTemplate: ShopPageLayout = {
-      isMaster: true,
-      pageType,
-      components: [],
-    };
-
     const draft = layout.draftData && Object.keys(layout.draftData).length > 0
       ? layout.draftData
       : layout.publishedData;
 
-    const merged = mergePageLayouts(masterTemplate, draft);
-    return BaseResponseDto.success(merged);
+    return BaseResponseDto.success(draft);
   }
 }

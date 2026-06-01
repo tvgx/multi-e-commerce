@@ -6,6 +6,7 @@ import { Search, User, ShoppingCart, Menu } from 'lucide-react';
 import { AnnouncementBar } from './AnnouncementBar';
 
 export interface HeaderProps {
+    shopName?: string;
     logoUrl?: string;
     logoPosition?: 'left' | 'center';
     backgroundColor?: string;
@@ -18,6 +19,7 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+    shopName = 'STOREFRONT',
     logoUrl,
     logoPosition = 'left',
     backgroundColor = '#ffffff',
@@ -68,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     {logoUrl ? (
                                         <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
                                     ) : (
-                                        <span className="font-bold text-xl tracking-tighter">STOREFRONT</span>
+                                        <span className="font-bold text-xl tracking-tighter uppercase">{shopName}</span>
                                     )}
                                 </Link>
                                 <nav className="hidden lg:flex space-x-8">
@@ -92,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
                             {logoUrl ? (
                                 <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
                             ) : (
-                                <span className="font-bold text-xl tracking-tighter">STOREFRONT</span>
+                                <span className="font-bold text-xl tracking-tighter uppercase">{shopName}</span>
                             )}
                         </Link>
                     )}
@@ -141,6 +143,7 @@ export const headerSchema = {
     category: 'Header',
     allowedBlocks: ['AnnouncementBar', 'HeaderMenuItem'],
     settings: [
+        { id: 'shopName', type: 'text', label: 'Tên Shop', default: 'STOREFRONT' },
         { id: 'logoUrl', type: 'image', label: 'Logo' },
         { id: 'logoPosition', type: 'select', label: 'Vị trí Logo', options: [{label: 'Trái', value: 'left'}, {label: 'Giữa', value: 'center'}], default: 'left' },
         { id: 'backgroundColor', type: 'color', label: 'Màu nền', default: '#ffffff' },

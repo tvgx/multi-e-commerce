@@ -7,7 +7,7 @@ import { CartInitializer } from './components/cart/CartInitializer';
 import { CartSidebar } from './components/cart/CartSidebar';
 import { CartTrigger } from './components/cart/CartTrigger';
 import { CookieConsent } from './components/cookie-consent';
-import { Footer } from './components/footer';
+import { Footer, footerSchema } from './components/footer';
 import { Header, headerSchema } from './components/sections/header/Header';
 import { AnnouncementBar, announcementBarSchema } from './components/sections/header/AnnouncementBar';
 import { HeroBottomAligned, heroBottomAlignedSchema } from './components/sections/banners/HeroBottomAligned';
@@ -55,6 +55,11 @@ import { Multicolumn } from './components/sections/text/Multicolumn';
 import { PullQuote } from './components/sections/text/PullQuote';
 import { RichText } from './components/sections/text/RichText';
 
+// Mega-Components for Standard Pages
+import { StandardProductDetail } from './components/pages/StandardProductDetail';
+import { StandardCategoryPage } from './components/pages/StandardCategoryPage';
+import { StandardCart } from './components/pages/StandardCart';
+import { StandardCheckout } from './components/pages/StandardCheckout';
 
 export const registry: Record<string, any> = {
   AnnouncementBar,
@@ -113,11 +118,18 @@ export const registry: Record<string, any> = {
   Heading: HeadingBlock,
   Button: ButtonBlock,
   Media: MediaBlock,
-  HotspotBlock: HotspotBlock
+  HotspotBlock: HotspotBlock,
+
+  // Standard Pages
+  StandardProductDetail,
+  StandardCategoryPage,
+  StandardCart,
+  StandardCheckout
 };
 
 export const schemaRegistry: Record<string, any> = {
   Header: headerSchema,
+  Footer: footerSchema,
   AnnouncementBar: announcementBarSchema,
   Hero: heroSchema,
   HeroBottomAligned: heroBottomAlignedSchema,
@@ -186,3 +198,7 @@ export * from './components/sections/text/Multicolumn';
 export * from './components/sections/text/PullQuote';
 export * from './components/sections/text/RichText';
 
+export * from './components/pages/StandardProductDetail';
+export * from './components/pages/StandardCategoryPage';
+export * from './components/pages/StandardCart';
+export * from './components/pages/StandardCheckout';

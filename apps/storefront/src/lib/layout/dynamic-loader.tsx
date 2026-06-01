@@ -99,17 +99,18 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
 
 interface LayoutRendererProps {
     pageLayout?: any; // ShopPageLayout
+    pageContext?: any;
 }
 
 /**
  * Renders an entire Page Content within the shop's styling.
  */
-export function LayoutRenderer({ pageLayout }: LayoutRendererProps) {
+export function LayoutRenderer({ pageLayout, pageContext }: LayoutRendererProps) {
     const pageComponents = pageLayout?.components || [];
 
     return (
         <main className="flex-grow w-full">
-            <DynamicRenderer components={pageComponents} />
+            <DynamicRenderer components={pageComponents} pageContext={pageContext} />
         </main>
     );
 }

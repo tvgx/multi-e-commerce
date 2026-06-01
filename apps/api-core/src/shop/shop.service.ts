@@ -132,14 +132,34 @@ export class ShopService {
       try {
         // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
         await this.layoutService.publishGlobalLayout(owner.id, shop.id, {
-          templateType: shop.templateType,
           globalComponents: [],
           theme: {},
         } as any);
+
+        const standardPagesMap: Record<string, string> = {
+          product_detail: 'StandardProductDetail',
+          product_listing: 'StandardCategoryPage',
+          cart: 'StandardCart',
+          checkout: 'StandardCheckout',
+          search_results: 'StandardCategoryPage'
+        };
+
+        for (const [page, componentId] of Object.entries(standardPagesMap)) {
+          await this.layoutService.publishPageLayout(owner.id, shop.id, page as any, {
+            pageType: page,
+            components: [
+              {
+                id: `mega-${page}`,
+                componentId,
+                props: {},
+              }
+            ],
+          } as any);
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `[registerTenant] Failed to publish layout for shop ${shop.id}: ${msg}`,
+          `[registerTenant] Failed to publish layouts for shop ${shop.id}: ${msg}`,
         );
       }
 
@@ -286,14 +306,21 @@ export class ShopService {
       try {
         // Publish layout using LayoutService to generate compiled layout in MinIO and Postgres Cache
         await this.layoutService.publishGlobalLayout(ownerId, shop.id, {
-          templateType: shop.templateType,
           globalComponents: [],
           theme: {},
         } as any);
+
+        const standardPages = ['product_detail', 'product_listing', 'cart', 'checkout', 'search_results'];
+        for (const page of standardPages) {
+          await this.layoutService.publishPageLayout(ownerId, shop.id, page as any, {
+            pageType: page,
+            components: [],
+          } as any);
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `[createShop] Failed to publish layout for shop ${shop.id}: ${msg}`,
+          `[createShop] Failed to publish layouts for shop ${shop.id}: ${msg}`,
         );
       }
 

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-export const TemplateTypeEnum = z.enum(['standard', 'visual', 'technical', 'service']);
-export type TemplateType = z.infer<typeof TemplateTypeEnum>;
+
 
 export interface UIComponentRef {
     id: string;
@@ -37,23 +36,19 @@ export const PageTypeEnum = z.enum([
     'home',
     'product_listing',
     'product_detail',
-    'all_products',
     'cart',
     'checkout',
-    'shipping',
-    'payment',
-    'review',
-    'order_success',
-    'profile',
-    'system_message',
+    'search_results',
+    'policy',
+    'terms',
+    'about',
+    'contact',
     'custom_page'
 ]);
 export type PageType = z.infer<typeof PageTypeEnum>;
 
 export const ShopGlobalLayoutSchema = z.object({
-    shopId: z.string().optional(), // Optional for Master Templates
-    isMaster: z.boolean().default(false),
-    templateType: TemplateTypeEnum.default('standard'),
+    shopId: z.string().optional(),
     theme: z.record(z.string(), z.any()).optional().default({}),
     globalComponents: z.array(UIComponentRefSchema).optional().default([]), // For Header, Footer, AnnouncementBar, etc.
 });
@@ -61,7 +56,6 @@ export type ShopGlobalLayout = z.infer<typeof ShopGlobalLayoutSchema>;
 
 export const ShopPageLayoutSchema = z.object({
     shopId: z.string().optional(),
-    isMaster: z.boolean().default(false),
     pageType: PageTypeEnum,
     slug: z.string().optional(), // For custom pages
     components: z.array(UIComponentRefSchema),
