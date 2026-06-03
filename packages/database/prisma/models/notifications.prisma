@@ -1,0 +1,20 @@
+// ==========================================
+// Notifications Models
+// ==========================================
+
+model Notification {
+  id            String   @id @default(uuid())
+  shopId        String
+  recipientId   String
+  recipientType String   // "CUSTOMER" | "OWNER"
+  type          String   // e.g., "ORDER_CONFIRMED", "PAYMENT_SUCCESS"
+  title         String
+  body          String
+  data          Json?    @default("{}")
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@index([recipientId, recipientType])
+  @@map("notifications")
+}

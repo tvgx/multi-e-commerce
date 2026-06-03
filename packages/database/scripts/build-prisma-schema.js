@@ -29,6 +29,8 @@ const MODEL_FILES = [
   'promotion.prisma',
   'content.prisma',
   'media.prisma',
+  'interactions.prisma',
+  'notifications.prisma',
 ];
 
 /**

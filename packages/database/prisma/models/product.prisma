@@ -6,7 +6,7 @@ model Product {
   id          String   @id @default(uuid())
   shopId      String
   name        String
-  slug        String   @unique // URL thân thiện (vd: ao-thun-nam)
+  slug        String   // URL thân thiện (vd: ao-thun-nam)
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId    String?
@@ -18,19 +18,22 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([shopId, slug])
   @@index([shopId])
   @@map("products")
 }
 
 model Variant {
   id          String   @id @default(uuid())
+  shopId      String
   productId   String
-  sku         String   @unique
+  sku         String
   price       Float    @default(0)
   currency    String   @default("VND")
   weight      Float?   // Cân nặng (KG)
   isMaster    Boolean  @default(false) // Biến thể chính của sản phẩm
 
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
@@ -39,6 +42,8 @@ model Variant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([shopId, sku])
+  @@index([shopId])
   @@index([productId])
   @@map("product_variants")
 }

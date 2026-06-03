@@ -141,8 +141,12 @@ model Shop {
   collections    Collection[]
   navigationMenus NavigationMenu[]
   shopPages      ShopPage[]
+  media          Media[]
 
-  media              Media[]
+  variants           Variant[]
+  stockMovements     StockMovement[]
+  customerAddresses  CustomerAddress[]
+  shopFeatures       ShopFeature[]
 
   @@map("shops")
 }
@@ -170,10 +174,10 @@ model Customer {
   image          String?   // Avatar URL
   phoneNumber    String?   // Số điện thoại
 
-  // Sessions & Accounts for Better Auth (Customer scope)
   customerSessions CustomerSession[]
   customerAccounts CustomerAccount[]
   orders           Order[]
+  addresses        CustomerAddress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,6 +234,41 @@ model CustomerVerification {
   @@map("customer_verifications")
 }
 
+model CustomerAddress {
+  id           String   @id @default(uuid())
+  customerId   String
+  shopId       String
+  fullName     String
+  phone        String
+  addressLine1 String
+  city         String
+  province     String
+  postalCode   String?
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([shopId])
+  @@map("customer_addresses")
+}
+
+model ShopFeature {
+  id        String   @id @default(uuid())
+  shopId    String
+  feature   String   // e.g., 'advanced_analytics', 'custom_domain'
+  createdAt DateTime @default(now())
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, feature])
+  @@index([shopId])
+  @@map("shop_features")
+}
+
 // ==========================================
 // Product Models
 // ==========================================
@@ -238,7 +277,7 @@ model Product {
   id          String   @id @default(uuid())
   shopId      String
   name        String
-  slug        String   @unique // URL thân thiện (vd: ao-thun-nam)
+  slug        String   // URL thân thiện (vd: ao-thun-nam)
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId    String?
@@ -250,19 +289,22 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([shopId, slug])
   @@index([shopId])
   @@map("products")
 }
 
 model Variant {
   id          String   @id @default(uuid())
+  shopId      String
   productId   String
-  sku         String   @unique
+  sku         String
   price       Float    @default(0)
   currency    String   @default("VND")
   weight      Float?   // Cân nặng (KG)
   isMaster    Boolean  @default(false) // Biến thể chính của sản phẩm
 
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
@@ -271,6 +313,8 @@ model Variant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([shopId, sku])
+  @@index([shopId])
   @@index([productId])
   @@map("product_variants")
 }
@@ -358,12 +402,33 @@ model StockItem {
 
   stockLocation   StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
   variant         Variant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  stockMovements  StockMovement[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@unique([stockLocationId, variantId])
   @@map("stock_items")
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  shopId        String
+  variantId     String
+  stockItemId   String
+  quantityDelta Int      // Positive for addition, negative for deduction
+  reason        String   // e.g., "manual_adjustment", "order_fulfillment", "restock"
+  userId        String?  // Admin/Owner who made the adjustment (if manual)
+  orderId       String?  // Related order (if applicable)
+
+  stockItem     StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  shop          Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([shopId])
+  @@index([variantId])
+  @@map("stock_movements")
 }
 
 // ==========================================
@@ -455,6 +520,21 @@ model Payment {
   @@map("payments")
 }
 
+model PaymentConfirmToken {
+  id        String   @id @default(uuid())
+  token     String   @unique  // JWT or signed UUID
+  orderId   String
+  paymentId String
+  shopId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([shopId])
+  @@index([orderId])
+  @@map("payment_confirm_tokens")
+}
+
 // ==========================================
 // Promotion & Coupon Models
 // ==========================================
@@ -464,7 +544,7 @@ model Promotion {
   shopId      String
   name        String
   description String?
-  code        String?  @unique // Global code (vd: "NEWYEAR")
+  code        String?  // Global code (vd: "NEWYEAR")
   usageLimit  Int?
   usedCount   Int      @default(0)
   startsAt    DateTime?
@@ -475,9 +555,26 @@ model Promotion {
   createdAt     DateTime @default(now())
 
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  usages      PromotionUsage[]
 
+  @@unique([shopId, code])
   @@index([shopId])
   @@map("promotions")
+}
+
+model PromotionUsage {
+  id          String   @id @default(uuid())
+  promotionId String
+  customerId  String
+  orderId     String
+  shopId      String
+  usedAt      DateTime @default(now())
+
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([customerId])
+  @@map("promotion_usages")
 }
 
 // ==========================================
@@ -579,3 +676,72 @@ model Media {
   @@map("media")
 }
 
+
+// ==========================================
+// Interactions Models (Wishlist, Reviews, Search)
+// ==========================================
+
+model WishlistItem {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  productId   String
+  variantId   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([shopId])
+  @@map("wishlist_items")
+}
+
+model ProductReview {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  productId   String
+  orderId     String?
+  rating      Int
+  title       String?
+  body        String?
+  status      String   @default("published") // published, pending, hidden
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([productId])
+  @@index([customerId])
+  @@map("product_reviews")
+}
+
+model SearchHistory {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  query       String
+  createdAt   DateTime @default(now())
+
+  @@index([customerId])
+  @@index([shopId])
+  @@map("search_history")
+}
+
+// ==========================================
+// Notifications Models
+// ==========================================
+
+model Notification {
+  id            String   @id @default(uuid())
+  shopId        String
+  recipientId   String
+  recipientType String   // "CUSTOMER" | "OWNER"
+  type          String   // e.g., "ORDER_CONFIRMED", "PAYMENT_SUCCESS"
+  title         String
+  body          String
+  data          Json?    @default("{}")
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@index([recipientId, recipientType])
+  @@map("notifications")
+}

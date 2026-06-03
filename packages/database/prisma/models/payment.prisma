@@ -34,3 +34,18 @@ model Payment {
   @@index([orderId])
   @@map("payments")
 }
+
+model PaymentConfirmToken {
+  id        String   @id @default(uuid())
+  token     String   @unique  // JWT or signed UUID
+  orderId   String
+  paymentId String
+  shopId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([shopId])
+  @@index([orderId])
+  @@map("payment_confirm_tokens")
+}

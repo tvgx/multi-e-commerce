@@ -6,8 +6,9 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
+import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
 
-@UseGuards(RolesGuard)
+@UseGuards(BetterAuthGuard, RolesGuard)
 @Controller('catalog')
 export class CatalogController {
   constructor(
@@ -34,21 +35,26 @@ export class CatalogController {
     return this.catalogService.findOneProduct(id);
   }
 
-  @UseGuards(RolesGuard)
+  @Get('products/slug/:slug')
+  findBySlug(@Param('slug') slug: string) {
+    return this.catalogService.findProductBySlug(slug);
+  }
+
+  @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Post('products')
   create(@Body() createProductDto: CreateProductDto) {
     return this.catalogService.createProduct(createProductDto);
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Patch('products/:id')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.catalogService.updateProduct(id, updateProductDto);
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Delete('products/:id')
   remove(@Param('id') id: string) {

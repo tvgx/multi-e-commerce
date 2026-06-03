@@ -64,6 +64,16 @@ export class CatalogService {
     return product;
   }
 
+  async findProductBySlug(slug: string) {
+    const shopId = this.getShopId();
+    const product = await this.prisma.product.findUnique({
+      where: { shopId_slug: { shopId, slug } },
+      include: { variants: true },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    return product;
+  }
+
   async createProduct(dto: CreateProductDto) {
     const shopId = this.getShopId();
     
@@ -77,12 +87,13 @@ export class CatalogService {
         categoryId: dto.categoryId,
         status: dto.status || 'DRAFT',
         variants: dto.variants ? {
-          create: dto.variants.map(v => ({
+          create: dto.variants.map((v, index) => ({
+            shopId,
             sku: v.sku,
             price: v.price,
             weight: v.weight,
             currency: v.currency || 'VND',
-            isMaster: true,
+            isMaster: index === 0, // First variant is master
           }))
         } : undefined,
       },
@@ -95,17 +106,59 @@ export class CatalogService {
     // Verify ownership
     await this.findOneProduct(id);
 
-    return this.prisma.product.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        slug: dto.slug,
-        description: dto.description,
-        categoryId: dto.categoryId,
-        status: dto.status,
-        // Variant updating logic would be more complex (upsert/delete) in reality
-      },
-      include: { variants: true }
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update basic product info
+      const product = await tx.product.update({
+        where: { id: id, shopId },
+        data: {
+          name: dto.name,
+          slug: dto.slug,
+          description: dto.description,
+          categoryId: dto.categoryId,
+          status: dto.status,
+        },
+      });
+
+      // 2. Upsert/Delete variants if provided
+      if (dto.variants && dto.variants.length > 0) {
+         const incomingSkus = dto.variants.map(v => v.sku);
+
+         // Delete variants not in incoming list
+         await tx.variant.deleteMany({
+           where: {
+             productId: id,
+             shopId,
+             sku: { notIn: incomingSkus }
+           }
+         });
+
+         // Upsert each variant
+         for (const [index, v] of dto.variants.entries()) {
+            await tx.variant.upsert({
+               where: { shopId_sku: { shopId, sku: v.sku } },
+               create: {
+                 shopId,
+                 productId: id,
+                 sku: v.sku,
+                 price: v.price,
+                 weight: v.weight,
+                 currency: v.currency || 'VND',
+                 isMaster: index === 0
+               },
+               update: {
+                 price: v.price,
+                 weight: v.weight,
+                 currency: v.currency,
+                 isMaster: index === 0
+               }
+            });
+         }
+      }
+
+      return tx.product.findUnique({
+         where: { id: id },
+         include: { variants: true }
+      });
     });
   }
 

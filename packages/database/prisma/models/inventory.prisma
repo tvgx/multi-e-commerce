@@ -29,10 +29,31 @@ model StockItem {
 
   stockLocation   StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
   variant         Variant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  stockMovements  StockMovement[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@unique([stockLocationId, variantId])
   @@map("stock_items")
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  shopId        String
+  variantId     String
+  stockItemId   String
+  quantityDelta Int      // Positive for addition, negative for deduction
+  reason        String   // e.g., "manual_adjustment", "order_fulfillment", "restock"
+  userId        String?  // Admin/Owner who made the adjustment (if manual)
+  orderId       String?  // Related order (if applicable)
+
+  stockItem     StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  shop          Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([shopId])
+  @@index([variantId])
+  @@map("stock_movements")
 }

@@ -1,0 +1,47 @@
+// ==========================================
+// Interactions Models (Wishlist, Reviews, Search)
+// ==========================================
+
+model WishlistItem {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  productId   String
+  variantId   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([shopId])
+  @@map("wishlist_items")
+}
+
+model ProductReview {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  productId   String
+  orderId     String?
+  rating      Int
+  title       String?
+  body        String?
+  status      String   @default("published") // published, pending, hidden
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([productId])
+  @@index([customerId])
+  @@map("product_reviews")
+}
+
+model SearchHistory {
+  id          String   @id @default(uuid())
+  shopId      String
+  customerId  String
+  query       String
+  createdAt   DateTime @default(now())
+
+  @@index([customerId])
+  @@index([shopId])
+  @@map("search_history")
+}

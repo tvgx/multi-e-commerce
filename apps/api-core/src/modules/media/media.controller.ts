@@ -4,8 +4,9 @@ import { MediaService } from './media.service';
 import { UploadMediaDto } from './dto/media.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
+import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
 
-@UseGuards(RolesGuard)
+@UseGuards(BetterAuthGuard, RolesGuard)
 @RequireRoles('ADMIN', 'OWNER')
 @Controller('media')
 export class MediaController {

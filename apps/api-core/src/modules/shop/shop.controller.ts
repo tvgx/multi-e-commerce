@@ -4,8 +4,9 @@ import { UpdateShopDto } from './dto/update-shop.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
+import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
 
-@UseGuards(RolesGuard)
+@UseGuards(BetterAuthGuard, RolesGuard)
 @RequireRoles('ADMIN', 'OWNER')
 @Controller('shops')
 export class ShopController {

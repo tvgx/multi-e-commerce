@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsNumber } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class ToggleWishlistDto {
@@ -18,14 +18,18 @@ export class CreateReviewDto {
   @IsNotEmpty()
   productId: string;
 
-  @IsInt()
+  @IsNumber()
   @Min(1)
   @Max(5)
   rating: number;
 
-  @IsOptional()
   @IsString()
-  comment?: string;
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  body?: string;
 }
 
 export class GetReviewsDto extends PaginationDto {

@@ -6,7 +6,14 @@ import * as crypto from 'crypto';
 @Injectable()
 export class EncryptionInterceptor implements NestInterceptor {
   private readonly ALGORITHM = 'aes-256-gcm';
-  private readonly SECRET_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+  private readonly SECRET_KEY: string;
+
+  constructor() {
+    if (!process.env.ENCRYPTION_KEY) {
+      throw new Error('CRITICAL: ENCRYPTION_KEY is not defined in environment variables. Encryption interceptor will fail and data will be unrecoverable if fallback is used.');
+    }
+    this.SECRET_KEY = process.env.ENCRYPTION_KEY;
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();

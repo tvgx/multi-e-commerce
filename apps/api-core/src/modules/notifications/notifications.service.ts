@@ -18,14 +18,78 @@ export class NotificationsService {
 
   async getNotifications(userId: string, query: GetNotificationsDto) {
     const shopId = this.getShopId();
-    // Implementation placeholder
-    return { data: [], meta: { total: 0 } };
+    const { page = 1, limit = 20 } = query;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      shopId,
+      recipientId: userId
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.prisma.notification.count({ where })
+    ]);
+
+    return { 
+      data: items, 
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) } 
+    };
   }
 
   async markAsRead(userId: string, notificationId: string) {
     const shopId = this.getShopId();
-    // Implementation placeholder
+    
+    const notification = await this.prisma.notification.findFirst({
+      where: { id: notificationId, shopId, recipientId: userId }
+    });
+
+    if (!notification) {
+      throw new BadRequestException('Notification not found or access denied');
+    }
+
+    await this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { readAt: new Date() }
+    });
+
     return { status: 'marked_as_read' };
+  }
+
+  async markAllAsRead(userId: string) {
+    const shopId = this.getShopId();
+    await this.prisma.notification.updateMany({
+      where: { shopId, recipientId: userId, readAt: null },
+      data: { readAt: new Date() }
+    });
+    return { status: 'all_marked_as_read' };
+  }
+
+  async createNotification(data: {
+    shopId: string;
+    recipientId: string;
+    recipientType: 'CUSTOMER' | 'OWNER';
+    type: string;
+    title: string;
+    body: string;
+    payload?: any;
+  }) {
+    return this.prisma.notification.create({
+      data: {
+        shopId: data.shopId,
+        recipientId: data.recipientId,
+        recipientType: data.recipientType,
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        data: data.payload || {}
+      }
+    });
   }
 }
 

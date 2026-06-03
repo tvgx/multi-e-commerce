@@ -4,6 +4,7 @@ import { CreateMasterTemplateDto, UpdateTenantLayoutDto } from './dto/layout.dto
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
 
 @Controller('layout')
 export class LayoutController {
@@ -22,7 +23,7 @@ export class LayoutController {
     return this.layoutService.getTenantLayout();
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Patch('tenant')
   updateTenantLayout(@Body() dto: UpdateTenantLayoutDto) {

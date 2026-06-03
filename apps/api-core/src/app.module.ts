@@ -1,6 +1,8 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
 import * as path from 'path';
 
 import { AppController } from './app.controller';
@@ -23,6 +25,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { LayoutModule } from './modules/layout/layout.module';
 import { MediaModule } from './modules/media/media.module';
+import { PromotionsModule } from './modules/promotions/promotions.module';
 
 @Module({
   imports: [
@@ -31,6 +34,17 @@ import { MediaModule } from './modules/media/media.module';
     ConfigModule.forRoot({
       envFilePath: path.resolve(__dirname, '../../../.env'),
       isGlobal: true,
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        store: await redisStore({
+          host: config.get('REDIS_HOST') || 'localhost',
+          port: config.get('REDIS_PORT') ? parseInt(config.get('REDIS_PORT') as string) : 6379,
+          ttl: 60 * 1000, // 60s default TTL
+        }),
+      }),
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
@@ -58,6 +72,7 @@ import { MediaModule } from './modules/media/media.module';
     LayoutModule,
     MediaModule,
     TemplatesModule,
+    PromotionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

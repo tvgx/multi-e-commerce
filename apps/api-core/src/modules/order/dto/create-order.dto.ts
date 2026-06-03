@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class LineItemDto {
@@ -19,4 +19,8 @@ export class CheckoutDto {
   @ValidateNested({ each: true })
   @Type(() => LineItemDto)
   lineItems: LineItemDto[];
+
+  @IsString()
+  @IsOptional()
+  promotionCode?: string;
 }

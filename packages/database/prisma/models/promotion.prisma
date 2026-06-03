@@ -7,7 +7,7 @@ model Promotion {
   shopId      String
   name        String
   description String?
-  code        String?  @unique // Global code (vd: "NEWYEAR")
+  code        String?  // Global code (vd: "NEWYEAR")
   usageLimit  Int?
   usedCount   Int      @default(0)
   startsAt    DateTime?
@@ -18,7 +18,24 @@ model Promotion {
   createdAt     DateTime @default(now())
 
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  usages      PromotionUsage[]
 
+  @@unique([shopId, code])
   @@index([shopId])
   @@map("promotions")
+}
+
+model PromotionUsage {
+  id          String   @id @default(uuid())
+  promotionId String
+  customerId  String
+  orderId     String
+  shopId      String
+  usedAt      DateTime @default(now())
+
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([customerId])
+  @@map("promotion_usages")
 }

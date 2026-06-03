@@ -11,6 +11,7 @@ export class MinioService {
   private bucketName: string;
   private endpoint: string;
   private port: string;
+  private cdnBaseUrl: string;
 
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     this.endpoint = this.configService.get<string>(
@@ -29,6 +30,10 @@ export class MinioService {
     const secretAccessKey = this.configService.get<string>(
       'MINIO_SECRET_KEY',
       'minioadmin',
+    );
+    this.cdnBaseUrl = this.configService.get<string>(
+      'CDN_BASE_URL',
+      `http://${this.endpoint}:${this.port}`
     );
 
     const endpointUrl = `http://${this.endpoint}:${this.port}`;
@@ -69,8 +74,8 @@ export class MinioService {
 
       await this.s3Client.send(command);
 
-      // Return the public URL for the uploaded file
-      const publicUrl = `http://${this.endpoint}:${this.port}/${this.bucketName}/${fileName}`;
+      // Return the public URL for the uploaded file using CDN_BASE_URL
+      const publicUrl = `${this.cdnBaseUrl}/${this.bucketName}/${fileName}`;
       this.logger.log(`File uploaded successfully: ${publicUrl}`);
 
       return publicUrl;

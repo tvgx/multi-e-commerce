@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { PrismaService } from '../../../database/prisma.service';
 
 /**
  * BetterAuthGuard
@@ -27,6 +28,7 @@ export class BetterAuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
     private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -64,6 +66,15 @@ export class BetterAuthGuard implements CanActivate {
     (request as any).user = session.user;
     (request as any).session = session.session;
     (request as any).authType = authType || 'owner';
+
+    // Lấy danh sách shopIds mà user làm owner
+    if ((request as any).authType === 'owner') {
+      const shops = await this.prisma.shop.findMany({
+        where: { ownerId: session.user.id as string },
+        select: { id: true },
+      });
+      (request as any).shopIds = shops.map((s: { id: string }) => s.id);
+    }
 
     return true;
   }

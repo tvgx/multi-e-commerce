@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Req, Headers, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto, PaymentWebhookDto } from './dto/payment.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -17,6 +17,17 @@ export class PaymentController {
   @Post('webhook')
   handleWebhook(@Body() dto: PaymentWebhookDto, @Headers('x-shop-id') shopId: string) {
     return this.paymentService.handleWebhook(dto, shopId);
+  }
+
+  @Public()
+  @Post('confirm')
+  confirmPayment(@Body('token') token: string, @Body('action') action: 'confirm' | 'reject') {
+    return this.paymentService.confirmPayment(token, action);
+  }
+
+  @Get('status/:orderId')
+  getPaymentStatus(@Param('orderId') orderId: string) {
+    return this.paymentService.getPaymentStatus(orderId);
   }
 }
 
