@@ -251,7 +251,7 @@ export function PropertiesSidebar() {
                 <div className="space-y-2">
                     {componentRef.blocks?.map((block, index) => {
                         const blockSchema = ComponentSchemas[block.componentId];
-                        const blockTitle = block.props?.title || block.props?.label || blockSchema?.title || `Block ${index + 1}`;
+                        const blockTitle = (block.props?.title as string) || (block.props?.label as string) || blockSchema?.title || `Block ${index + 1}`;
                         return (
                             <div 
                                 key={block.id} 

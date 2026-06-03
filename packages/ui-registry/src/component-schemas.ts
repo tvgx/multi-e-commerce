@@ -157,6 +157,162 @@ export const FooterColumnSchema: ComponentSchema = {
 
 
 // ---------------------------------------------------------
+// Collections
+// ---------------------------------------------------------
+export const CollectionLinksSpotlightSchema: ComponentSchema = {
+  id: 'CollectionLinksSpotlight', title: 'Danh mục (Spotlight)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CollectionLinksTextSchema: ComponentSchema = {
+  id: 'CollectionLinksText', title: 'Danh mục (Text list)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CollectionListsBentoSchema: ComponentSchema = {
+  id: 'CollectionListsBento', title: 'Danh mục (Bento Grid)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CollectionListsCarouselSchema: ComponentSchema = {
+  id: 'CollectionListsCarousel', title: 'Danh mục (Carousel)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CollectionListsEditorialSchema: ComponentSchema = {
+  id: 'CollectionListsEditorial', title: 'Danh mục (Editorial)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CollectionListsGridSchema: ComponentSchema = {
+  id: 'CollectionListsGrid', title: 'Danh mục (Grid)', type: 'section',
+  settings: [ { type: 'number', id: 'columns', label: 'Số cột', default: 4 }, ...commonTextSettings, ...commonStyleSettings ]
+};
+
+// ---------------------------------------------------------
+// Products
+// ---------------------------------------------------------
+export const FeaturedCollectionCarouselSchema: ComponentSchema = {
+  id: 'FeaturedCollectionCarousel', title: 'Sản phẩm nổi bật (Carousel)', type: 'section',
+  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const FeaturedCollectionEditorialSchema: ComponentSchema = {
+  id: 'FeaturedCollectionEditorial', title: 'Sản phẩm nổi bật (Editorial)', type: 'section',
+  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const FeaturedCollectionGridSchema: ComponentSchema = {
+  id: 'FeaturedCollectionGrid', title: 'Sản phẩm nổi bật (Grid)', type: 'section',
+  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, { type: 'number', id: 'columns', label: 'Số cột', default: 4 }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const FeaturedProductsSchema: ComponentSchema = {
+  id: 'FeaturedProducts', title: 'Sản phẩm nổi bật', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const ProductHighlightSchema: ComponentSchema = {
+  id: 'ProductHighlight', title: 'Highlight Sản phẩm', type: 'section',
+  settings: [ { type: 'text', id: 'productId', label: 'ID Sản phẩm' }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const ProductHotspotSchema: ComponentSchema = {
+  id: 'ProductHotspot', title: 'Hotspot Sản phẩm', type: 'section',
+  settings: [ { type: 'image', id: 'backgroundImageUrl', label: 'Ảnh chính' }, ...commonTextSettings ]
+};
+export const RecommendedProductsSchema: ComponentSchema = {
+  id: 'RecommendedProducts', title: 'Sản phẩm gợi ý', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const FiltersSidebarSchema: ComponentSchema = {
+  id: 'FiltersSidebar', title: 'Bộ lọc (Sidebar)', type: 'section',
+  settings: [ { type: 'text', id: 'title', label: 'Tiêu đề bộ lọc', default: 'Lọc sản phẩm' }, { type: 'color', id: 'backgroundColor', label: 'Màu nền', default: '#ffffff' } ]
+};
+export const SearchBarSchema: ComponentSchema = {
+  id: 'SearchBar', title: 'Thanh tìm kiếm', type: 'block',
+  settings: [ { type: 'text', id: 'placeholder', label: 'Placeholder', default: 'Tìm kiếm...' } ]
+};
+
+// ---------------------------------------------------------
+// Storytelling
+// ---------------------------------------------------------
+export const BlogPostCarouselSchema: ComponentSchema = {
+  id: 'BlogPostCarousel', title: 'Bài viết (Carousel)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const BlogPostEditorialSchema: ComponentSchema = {
+  id: 'BlogPostEditorial', title: 'Bài viết (Editorial)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const BlogPostGridSchema: ComponentSchema = {
+  id: 'BlogPostGrid', title: 'Bài viết (Grid)', type: 'section',
+  settings: [ { type: 'number', id: 'columns', label: 'Số cột', default: 3 }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const CarouselSchema: ComponentSchema = {
+  id: 'Carousel', title: 'Carousel Cơ bản', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const EditorialSchema: ComponentSchema = {
+  id: 'Editorial', title: 'Editorial', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const EditorialJumboTextSchema: ComponentSchema = {
+  id: 'EditorialJumboText', title: 'Editorial (Chữ lớn)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const ImageCompareSchema: ComponentSchema = {
+  id: 'ImageCompare', title: 'So sánh ảnh (Trước/Sau)', type: 'section',
+  settings: [ { type: 'image', id: 'imageBefore', label: 'Ảnh Trước' }, { type: 'image', id: 'imageAfter', label: 'Ảnh Sau' }, ...commonTextSettings ]
+};
+export const ImageWithTextSchema: ComponentSchema = {
+  id: 'ImageWithText', title: 'Ảnh kèm Chữ', type: 'section',
+  settings: [ { type: 'select', id: 'layout', label: 'Bố cục', options: [{value: 'image_first', label: 'Ảnh bên trái'}, {value: 'text_first', label: 'Ảnh bên phải'}], default: 'image_first' }, ...commonTextSettings, ...commonStyleSettings ]
+};
+
+// ---------------------------------------------------------
+// Text
+// ---------------------------------------------------------
+export const FAQSchema: ComponentSchema = {
+  id: 'FAQ', title: 'Hỏi đáp (FAQ)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const IconsWithTextSchema: ComponentSchema = {
+  id: 'IconsWithText', title: 'Icon kèm Chữ', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const MarqueeSchema: ComponentSchema = {
+  id: 'Marquee', title: 'Chữ chạy (Marquee)', type: 'section',
+  settings: [ { type: 'text', id: 'text', label: 'Nội dung chữ chạy' }, { type: 'number', id: 'speed', label: 'Tốc độ', default: 20 }, ...commonStyleSettings ]
+};
+export const MulticolumnSchema: ComponentSchema = {
+  id: 'Multicolumn', title: 'Nhiều cột', type: 'section',
+  settings: [ { type: 'number', id: 'columns', label: 'Số cột', default: 3 }, ...commonTextSettings, ...commonStyleSettings ]
+};
+export const PullQuoteSchema: ComponentSchema = {
+  id: 'PullQuote', title: 'Trích dẫn', type: 'section',
+  settings: [ { type: 'textarea', id: 'quote', label: 'Nội dung trích dẫn' }, { type: 'text', id: 'author', label: 'Tác giả' }, ...commonStyleSettings ]
+};
+export const RichTextSchema: ComponentSchema = {
+  id: 'RichText', title: 'Đoạn văn bản', type: 'section',
+  settings: [ ...commonTextSettings, { type: 'select', id: 'alignment', label: 'Căn lề', options: [{value: 'left', label: 'Trái'}, {value: 'center', label: 'Giữa'}, {value: 'right', label: 'Phải'}], default: 'center' }, ...commonStyleSettings ]
+};
+
+// ---------------------------------------------------------
+// Banners
+// ---------------------------------------------------------
+export const HeroMarqueeSchema: ComponentSchema = {
+  id: 'HeroMarquee', title: 'Banner Hero (Chữ chạy)', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const LargeLogoSchema: ComponentSchema = {
+  id: 'LargeLogo', title: 'Logo lớn', type: 'section',
+  settings: [ { type: 'image', id: 'logoUrl', label: 'Logo' }, ...commonStyleSettings ]
+};
+export const SlideshowFullFrameSchema: ComponentSchema = {
+  id: 'SlideshowFullFrame', title: 'Slideshow Toàn màn hình', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const SlideshowInsetSchema: ComponentSchema = {
+  id: 'SlideshowInset', title: 'Slideshow Thu nhỏ', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+export const SplitShowcaseSchema: ComponentSchema = {
+  id: 'SplitShowcase', title: 'Showcase Chia đôi', type: 'section',
+  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+};
+
+// ---------------------------------------------------------
 // Registry Map
 // ---------------------------------------------------------
 export const ComponentSchemas: Record<string, ComponentSchema> = {
@@ -169,5 +325,48 @@ export const ComponentSchemas: Record<string, ComponentSchema> = {
   SlideItem: SlideItemSchema,
   Footer: FooterSchema,
   FooterColumn: FooterColumnSchema,
-  // Add other schemas as needed... default fallback will be used if not found
+
+  // Collections
+  CollectionLinksSpotlight: CollectionLinksSpotlightSchema,
+  CollectionLinksText: CollectionLinksTextSchema,
+  CollectionListsBento: CollectionListsBentoSchema,
+  CollectionListsCarousel: CollectionListsCarouselSchema,
+  CollectionListsEditorial: CollectionListsEditorialSchema,
+  CollectionListsGrid: CollectionListsGridSchema,
+
+  // Products
+  FeaturedCollectionCarousel: FeaturedCollectionCarouselSchema,
+  FeaturedCollectionEditorial: FeaturedCollectionEditorialSchema,
+  FeaturedCollectionGrid: FeaturedCollectionGridSchema,
+  FeaturedProducts: FeaturedProductsSchema,
+  ProductHighlight: ProductHighlightSchema,
+  ProductHotspot: ProductHotspotSchema,
+  RecommendedProducts: RecommendedProductsSchema,
+  FiltersSidebar: FiltersSidebarSchema,
+  SearchBar: SearchBarSchema,
+
+  // Storytelling
+  BlogPostCarousel: BlogPostCarouselSchema,
+  BlogPostEditorial: BlogPostEditorialSchema,
+  BlogPostGrid: BlogPostGridSchema,
+  Carousel: CarouselSchema,
+  Editorial: EditorialSchema,
+  EditorialJumboText: EditorialJumboTextSchema,
+  ImageCompare: ImageCompareSchema,
+  ImageWithText: ImageWithTextSchema,
+
+  // Text
+  FAQ: FAQSchema,
+  IconsWithText: IconsWithTextSchema,
+  Marquee: MarqueeSchema,
+  Multicolumn: MulticolumnSchema,
+  PullQuote: PullQuoteSchema,
+  RichText: RichTextSchema,
+
+  // Banners
+  HeroMarquee: HeroMarqueeSchema,
+  LargeLogo: LargeLogoSchema,
+  SlideshowFullFrame: SlideshowFullFrameSchema,
+  SlideshowInset: SlideshowInsetSchema,
+  SplitShowcase: SplitShowcaseSchema,
 };

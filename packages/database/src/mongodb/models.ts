@@ -14,7 +14,7 @@ export interface IGlobalLayout extends Document {
     draftData: Record<string, unknown>;
 }
 
-const GlobalLayoutSchema: Schema = new Schema({
+export const GlobalLayoutSchema: Schema = new Schema({
     shopId: { type: String, required: true, unique: true, index: true },
     publishedData: { type: Schema.Types.Mixed, default: {} },
     draftData: { type: Schema.Types.Mixed, default: {} },
@@ -28,7 +28,7 @@ export interface IPageLayout extends Document {
     draftData: Record<string, unknown>;
 }
 
-const PageLayoutSchema: Schema = new Schema({
+export const PageLayoutSchema: Schema = new Schema({
     shopId: { type: String, required: true },
     pageType: { type: String, required: true },
     slug: { type: String },
@@ -48,10 +48,10 @@ export interface IProductLayout extends Document {
     descriptionHtml: string;
     imageUrls: string[];
     videoUrls: string[];
-    attributes: Record<string, any>;
+    attributes: Record<string, unknown>;
     variantsData: Array<{
         sku: string;
-        attributes: Record<string, any>;
+        attributes: Record<string, unknown>;
         image: string;
     }>;
     seoData: {
@@ -59,10 +59,10 @@ export interface IProductLayout extends Document {
         metaDescription: string;
         keywords: string[];
     };
-    customLandingPageLayout: Record<string, any> | null;
+    customLandingPageLayout: Record<string, unknown> | null;
 }
 
-const ProductLayoutSchema: Schema = new Schema({
+export const ProductLayoutSchema: Schema = new Schema({
     productId: { type: String, required: true, index: true },
     shopId: { type: String, required: true, index: true },
     descriptionHtml: { type: String, default: '' },
@@ -99,7 +99,7 @@ export interface IMasterTemplateCatalog extends Document {
     isCustom: boolean;
 }
 
-const MasterTemplateCatalogSchema: Schema = new Schema({
+export const MasterTemplateCatalogSchema: Schema = new Schema({
     templateKey: { type: String, required: true, unique: true, index: true },
     templateType: { type: String, required: true },
     industry: { type: String, required: true },

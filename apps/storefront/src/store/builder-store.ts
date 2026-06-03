@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 
+const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export type ComponentType = 'Hero' | 'FeaturedCollection' | 'AnnouncementBar';
 
 export interface Section {
@@ -60,7 +62,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
 
     loadTemplate: async (shopId: string) => {
         try {
-            const response = await fetch(`http://localhost:3000/api/shops/${shopId}`);
+            const response = await fetch(`${getApiUrl()}/api/shops/${shopId}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.uiStructure && data.uiStructure.sections) {
@@ -95,7 +97,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
             };
 
             // To be implemented on backend side (PUT /api/shops/:id)
-            const response = await fetch(`http://localhost:3000/api/shops/${shopId}`, {
+            const response = await fetch(`${getApiUrl()}/api/shops/${shopId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

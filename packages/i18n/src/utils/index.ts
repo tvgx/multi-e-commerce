@@ -8,7 +8,7 @@ import { Language, Namespace } from '../types';
  * Interpolate variables in translation string
  * Example: "Hello {{name}}" with { name: 'John' } -> "Hello John"
  */
-export function interpolate(text: string, variables?: Record<string, any>): string {
+export function interpolate(text: string, variables?: Record<string, unknown>): string {
   if (!variables || !text) {
     return text;
   }
@@ -23,21 +23,26 @@ export function interpolate(text: string, variables?: Record<string, any>): stri
  * Example: getNestedValue({ a: { b: { c: 'value' } } }, 'a.b.c') -> 'value'
  */
 export function getNestedValue(
-  obj: Record<string, any>,
+  obj: Record<string, unknown>,
   path: string,
   defaultValue?: string
-): any {
+): unknown {
   const keys = path.split('.');
-  let result = obj;
+  let result: unknown = obj;
 
   for (const key of keys) {
-    if (result?.[key] === undefined) {
+    if (typeof result === 'object' && result !== null) {
+      const record = result as Record<string, unknown>;
+      if (record[key] === undefined) {
+        return defaultValue ?? path;
+      }
+      result = record[key];
+    } else {
       return defaultValue ?? path;
     }
-    result = result[key];
   }
 
-  return result;
+  return result !== undefined ? result : (defaultValue ?? path);
 }
 
 /**
@@ -89,7 +94,7 @@ export function formatLanguageName(language: Language): string {
  * Example: pluralize(resources, 'item', 2) -> 'items' (if plural key exists)
  */
 export function pluralize(
-  resources: Record<string, any>,
+  resources: Record<string, unknown>,
   key: string,
   count: number
 ): string {
@@ -100,28 +105,32 @@ export function pluralize(
     return interpolate(value, { count });
   }
 
-  return value || key;
+  return key;
 }
 
 /**
  * Deep merge translation resources
  */
 export function mergeResources(
-  base: Record<string, any>,
-  override: Record<string, any>
-): Record<string, any> {
-  const result = { ...base };
+  base: Record<string, unknown>,
+  override: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...base };
 
   for (const key in override) {
-    if (override.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(override, key)) {
+      const val = override[key];
       if (
-        typeof override[key] === 'object' &&
-        override[key] !== null &&
-        !Array.isArray(override[key])
+        typeof val === 'object' &&
+        val !== null &&
+        !Array.isArray(val)
       ) {
-        result[key] = mergeResources(result[key] || {}, override[key]);
+        result[key] = mergeResources(
+          (result[key] as Record<string, unknown>) || {}, 
+          val as Record<string, unknown>
+        );
       } else {
-        result[key] = override[key];
+        result[key] = val;
       }
     }
   }

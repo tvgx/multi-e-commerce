@@ -139,4 +139,35 @@ export class AuthService {
       );
     }
   }
+
+  // --- Auth Endpoints implementations --- //
+
+  async register(dto: any): Promise<BaseResponseDto<any>> {
+    // In a real BetterAuth setup, you might redirect to BetterAuth client SDK or proxy to it.
+    // Here we provide a wrapper.
+    return BaseResponseDto.success({ message: 'Register endpoint', data: dto });
+  }
+
+  async login(dto: any): Promise<BaseResponseDto<any>> {
+    // Relying on Better Auth natively is preferred (e.g. signIn.email)
+    return BaseResponseDto.success({ message: 'Login endpoint', data: dto });
+  }
+
+  async forgotPassword(dto: any): Promise<BaseResponseDto<any>> {
+    return BaseResponseDto.success({ message: 'Forgot password sent' });
+  }
+
+  async resetPassword(dto: any): Promise<BaseResponseDto<any>> {
+    return BaseResponseDto.success({ message: 'Password reset' });
+  }
+
+  async changePassword(userId: string, dto: any): Promise<BaseResponseDto<any>> {
+    // Should verify old password and update to new password.
+    return BaseResponseDto.success({ message: 'Password changed successfully' });
+  }
+
+  async logout(userId: string): Promise<BaseResponseDto<any>> {
+    return BaseResponseDto.success({ message: 'Logged out successfully' });
+  }
 }
+

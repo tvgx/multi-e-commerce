@@ -1,36 +1,28 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as path from 'path';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { ShopModule } from './shop/shop.module';
-import { ProductModule } from './product/product.module';
-import { CustomerModule } from './customer/customer.module';
-import { OrderModule } from './order/order.module';
-import { SystemModule } from './system/system.module';
-import { LayoutModule } from './layout/layout.module';
-import { AnalyticsModule } from './analytics/analytics.module';
-import { SystemCacheModule } from './system/cache/cache.module';
-import { CartModule } from './cart/cart.module';
-import { PaymentModule } from './payment/payment.module';
 import { CommonModule } from './common/common.module';
-import { CollectionModule } from './collection/collection.module';
-import { NavigationModule } from './navigation/navigation.module';
-import { PagesModule } from './pages/pages.module';
-import { ShippingModule } from './shipping/shipping.module';
-import { TaxModule } from './tax/tax.module';
-import { PromotionModule } from './promotion/promotion.module';
-import { OptionTypeModule } from './option-type/option-type.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
-import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
-import * as path from 'path';
-import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
-import { StorageModule } from './storage/storage.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { InventoryModule } from './inventory/inventory.module';
 
+// New SaaS Modules
+import { AuthModule } from './modules/auth/auth.module';
+import { StorefrontAuthModule } from './modules/storefront-auth/storefront-auth.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { ShopModule } from './modules/shop/shop.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { OrderModule } from './modules/order/order.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { LayoutModule } from './modules/layout/layout.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -56,24 +48,15 @@ import { TemplatesModule } from './modules/templates/templates.module';
     AuthModule,
     StorefrontAuthModule,
     ShopModule,
-    ProductModule,
-    CustomerModule,
-    OrderModule,
-    SystemModule,
-    LayoutModule,
-    AnalyticsModule,
-    SystemCacheModule,
-    CartModule,
-    PaymentModule,
-    CollectionModule,
-    NavigationModule,
-    PagesModule,
-    ShippingModule,
-    TaxModule,
-    StorageModule,
-    PromotionModule,
-    OptionTypeModule,
+    CatalogModule,
     InventoryModule,
+    OrderModule,
+    PaymentModule,
+    InteractionsModule,
+    ChatModule,
+    NotificationsModule,
+    LayoutModule,
+    MediaModule,
     TemplatesModule,
   ],
   controllers: [AppController],

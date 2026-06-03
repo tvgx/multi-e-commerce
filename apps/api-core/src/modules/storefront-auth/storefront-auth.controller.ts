@@ -8,18 +8,19 @@ import {
 import { StorefrontAuthService } from './storefront-auth.service';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { verifyJwt } from './jwt.utils';
+import { StoreLoginDto, StoreRegisterDto } from './dto/store-auth.dto';
 
 @Controller('storefront-auth')
 export class StorefrontAuthController {
   constructor(private readonly authService: StorefrontAuthService) {}
 
   @Post('register')
-  async register(@Body() body: any): Promise<BaseResponseDto<any>> {
+  async register(@Body() body: StoreRegisterDto): Promise<BaseResponseDto<any>> {
     return this.authService.register(body);
   }
 
   @Post('login')
-  async login(@Body() body: any): Promise<BaseResponseDto<any>> {
+  async login(@Body() body: StoreLoginDto): Promise<BaseResponseDto<any>> {
     return this.authService.login(body);
   }
 

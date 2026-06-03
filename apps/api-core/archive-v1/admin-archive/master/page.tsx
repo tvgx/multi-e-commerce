@@ -42,9 +42,10 @@ export default function MasterDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
         const [sumRes, chartRes] = await Promise.all([
-          fetch("http://localhost:3000/analytics/master-summary"),
-          fetch("http://localhost:3000/analytics/master-charts"),
+          fetch(`${apiUrl}/analytics/master-summary`),
+          fetch(`${apiUrl}/analytics/master-charts`),
         ]);
 
         if (!sumRes.ok || !chartRes.ok) throw new Error("Failed to fetch data");

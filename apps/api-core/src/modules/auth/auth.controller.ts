@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
   Body,
   UseGuards,
@@ -16,6 +17,7 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { ResponseCodes } from '../../common/constants/response-codes.constant';
 import { CustomException } from '../../common/exceptions/custom.exception';
 import { UpdateUserProfileDto } from './dto/auth-update.dto';
+import { LoginDto, RegisterDto, ChangePasswordDto } from './dto/auth.dto';
 
 @Controller('auth')
 @UseGuards(BetterAuthGuard) // Áp dụng guard cho toàn bộ controller
@@ -77,11 +79,6 @@ export class AuthController {
     return BaseResponseDto.success({ status: 'ok', service: 'auth' });
   }
 
-  /**
-   * PUT /api/auth/profile
-   * Cập nhật thông tin cá nhân của Owner.
-   * Yêu cầu header: 'x-auth-type: owner'
-   */
   @Put('profile')
   async updateProfile(
     @CurrentUser() user: any,
@@ -92,5 +89,39 @@ export class AuthController {
       throw new ForbiddenException('Only owners can update their profiles');
     }
     return this.authService.updateProfile(user.id, dto);
+  }
+
+  @Public()
+  @Post('register')
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Public()
+  @Post('login')
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: any) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() dto: any) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @Post('change-password')
+  async changePassword(@CurrentUser() user: any, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, dto);
+  }
+
+  @Post('logout')
+  async logout(@CurrentUser() user: any) {
+    return this.authService.logout(user.id);
   }
 }

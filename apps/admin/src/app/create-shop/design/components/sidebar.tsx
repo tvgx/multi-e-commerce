@@ -110,7 +110,7 @@ export function Sidebar() {
              {comp.blocks!.map((block, blockIdx) => {
                  const isBlockActive = activeBlockId === block.id;
                  const blockSchema = ComponentSchemas[block.componentId];
-                 const blockTitle = block.props?.title || block.props?.label || blockSchema?.title || `Block ${blockIdx + 1}`;
+                 const blockTitle = (block.props?.title as string) || (block.props?.label as string) || blockSchema?.title || `Block ${blockIdx + 1}`;
                  
                  return (
                     <div 
