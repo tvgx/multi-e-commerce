@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 
@@ -85,6 +85,21 @@ export class MinioService {
         error.stack,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Checks if a file exists in the bucket
+   */
+  async fileExists(key: string): Promise<boolean> {
+    try {
+      await this.s3Client.send(new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      }));
+      return true;
+    } catch {
+      return false;
     }
   }
 }

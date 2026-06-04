@@ -8,6 +8,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import * as QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class OrderService {
@@ -16,6 +17,7 @@ export class OrderService {
     private readonly tenantService: TenantService,
     private readonly inventoryService: InventoryService,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly emailService: EmailService,
   ) {}
 
   private getShopId(): string {
@@ -152,7 +154,8 @@ export class OrderService {
          });
          
          const shop = await tx.shop.findUnique({ where: { id: shopId } });
-         confirmUrl = `https://${shop?.domain || 'unknown-shop.com'}/payment/confirm?token=${token}`;
+         const STOREFRONT_BASE = process.env.STOREFRONT_URL || 'http://localhost:3002';
+         confirmUrl = `${STOREFRONT_BASE}/payment/confirm/${token}`;
          qrCodeUrl = await QRCode.toDataURL(confirmUrl);
       }
 
@@ -173,6 +176,12 @@ export class OrderService {
       `Your order ${finalOrder.number} has been received and is pending payment.`,
       { orderId: finalOrder.id }
     ).catch(err => console.error('Notification error', err));
+
+    // Send Email
+    const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
+    if (customer?.email) {
+      this.emailService.sendOrderConfirmation(customer.email, finalOrder).catch(console.error);
+    }
 
     return finalOrder;
   }
@@ -214,6 +223,71 @@ export class OrderService {
     return order;
   }
 
+  async getAnalytics(period: string) {
+    const shopId = this.getShopId();
+    const days = period === '7d' ? 7 : 30;
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    
+    const [revenueRaw, ordersByState, topProducts] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } },
+        _sum: { totalAmount: true },
+        _count: true
+      }),
+      this.prisma.order.groupBy({
+        by: ['state'],
+        where: { shopId, createdAt: { gte: since } },
+        _count: true
+      }),
+      this.prisma.lineItem.groupBy({
+        by: ['variantId'],
+        where: { order: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } } },
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5
+      })
+    ]);
+    
+    // We might want to populate product info for top products
+    const populatedProducts = await Promise.all(topProducts.map(async (tp) => {
+      const variant = await this.prisma.variant.findUnique({
+        where: { id: tp.variantId },
+        include: { product: true }
+      });
+      return {
+        variantId: tp.variantId,
+        soldQuantity: tp._sum.quantity,
+        name: variant?.product?.name || variant?.sku || tp.variantId
+      };
+    }));
+
+    // Revenue per day for chart
+    // We group orders by day in JS as prisma doesn't support Date grouping natively easily across DBs
+    const ordersForChart = await this.prisma.order.findMany({
+      where: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } },
+      select: { createdAt: true, totalAmount: true }
+    });
+
+    const revenueByDay: Record<string, number> = {};
+    ordersForChart.forEach(o => {
+      const dateStr = o.createdAt.toISOString().split('T')[0];
+      revenueByDay[dateStr] = (revenueByDay[dateStr] || 0) + o.totalAmount;
+    });
+
+    const chartData = Object.entries(revenueByDay)
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return { 
+      revenue: revenueRaw._sum.totalAmount || 0,
+      orderCount: revenueRaw._count || 0,
+      ordersByState: ordersByState.reduce((acc, curr) => ({...acc, [curr.state]: curr._count}), {}), 
+      topProducts: populatedProducts,
+      chartData
+    };
+  }
+
   async updateOrderStatus(id: string, dto: UpdateOrderStatusDto) {
     const shopId = this.getShopId();
     const order = await this.findOneOrder(id);
@@ -249,6 +323,12 @@ export class OrderService {
       `Your order ${order.number} is now ${dto.status}.`,
       { orderId: order.id, status: dto.status }
     ).catch(err => console.error('Notification error', err));
+
+    if (dto.status === 'shipped') {
+      if (order.customer?.email) {
+        this.emailService.sendOrderShipped(order.customer.email, order).catch(console.error);
+      }
+    }
 
     return updatedOrder;
   }

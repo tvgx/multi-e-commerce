@@ -4,6 +4,7 @@ import { TenantService } from '../../common/services/tenant.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
+import { CreateCollectionDto, UpdateCollectionDto } from './dto/collection.dto';
 
 @Injectable()
 export class CatalogService {
@@ -19,6 +20,48 @@ export class CatalogService {
     }
     return shopId;
   }
+
+  // --- Collection Methods ---
+  async createCollection(dto: CreateCollectionDto) {
+    const shopId = this.getShopId();
+    return this.prisma.collection.create({
+      data: {
+        shopId,
+        title: dto.title,
+        slug: dto.slug,
+        description: dto.description,
+        imageUrl: dto.imageUrl,
+      }
+    });
+  }
+
+  async getCollections() {
+    const shopId = this.getShopId();
+    return this.prisma.collection.findMany({
+      where: { shopId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async addProductToCollection(collectionId: string, productId: string) {
+    const shopId = this.getShopId();
+    // Verify ownership
+    const collection = await this.prisma.collection.findFirst({ where: { id: collectionId, shopId } });
+    const product = await this.prisma.product.findFirst({ where: { id: productId, shopId } });
+    if (!collection || !product) throw new NotFoundException('Collection or Product not found');
+
+    return this.prisma.productCollection.upsert({
+      where: {
+        productId_collectionId: {
+          productId,
+          collectionId
+        }
+      },
+      create: { productId, collectionId },
+      update: {}
+    });
+  }
+  // -------------------------
 
   async findAllProducts(query: GetProductsDto) {
     const shopId = this.getShopId();
@@ -85,6 +128,7 @@ export class CatalogService {
         slug: dto.slug,
         description: dto.description,
         categoryId: dto.categoryId,
+        imageUrl: dto.imageUrl,
         status: dto.status || 'DRAFT',
         variants: dto.variants ? {
           create: dto.variants.map((v, index) => ({
@@ -115,6 +159,7 @@ export class CatalogService {
           slug: dto.slug,
           description: dto.description,
           categoryId: dto.categoryId,
+          imageUrl: dto.imageUrl,
           status: dto.status,
         },
       });

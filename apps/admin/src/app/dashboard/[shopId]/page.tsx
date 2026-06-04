@@ -3,21 +3,27 @@
 import React, { use } from "react";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { 
+  Rocket, 
+  Settings, 
+  LayoutTemplate, 
+  Package, 
+  ArrowRight, 
   CheckCircle2, 
+  ExternalLink,
+  Globe,
+  Loader2,
+  MessageCircle,
   Circle, 
   Lock, 
-  ArrowRight, 
-  Rocket, 
-  Package, 
   Layers, 
   Store, 
   Palette, 
   CreditCard, 
-  Truck, 
-  Globe,
-  Loader2
+  Truck
 } from "lucide-react";
 import Link from "next/link";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { ChatPanel } from "./ChatPanel";
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
   step1: <Rocket className="w-5 h-5" />,
@@ -56,6 +62,22 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
+      {/* Analytics Dashboard */}
+      {progressPercentage === 100 && (
+        <>
+          <AnalyticsDashboard shopId={shopId} />
+          
+          <div className="mt-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">Live Support</h2>
+            </div>
+            <ChatPanel shopId={shopId} />
+          </div>
+        </>
+      )}
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-violet-700 to-indigo-900 p-10 text-white shadow-2xl">
          <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[150%] bg-white/10 blur-[80px] -rotate-45 pointer-events-none" />

@@ -63,7 +63,7 @@ export interface IProductLayout extends Document {
 }
 
 export const ProductLayoutSchema: Schema = new Schema({
-    productId: { type: String, required: true, index: true },
+    productId: { type: String, required: true },
     shopId: { type: String, required: true, index: true },
     descriptionHtml: { type: String, default: '' },
     imageUrls: [{ type: String }],

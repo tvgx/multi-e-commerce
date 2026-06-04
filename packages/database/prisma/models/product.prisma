@@ -9,8 +9,9 @@ model Product {
   slug        String   // URL thân thiện (vd: ao-thun-nam)
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
-  categoryId    String?
-  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  imageUrl    String?  // Ảnh đại diện sản phẩm
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   variants      Variant[]
   optionTypes   ProductOptionType[]
   collections   ProductCollection[]

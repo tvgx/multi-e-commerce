@@ -26,3 +26,9 @@ export class PaymentWebhookDto {
   @IsString()
   signature?: string;
 }
+
+export class TokenInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+}

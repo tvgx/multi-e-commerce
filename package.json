@@ -29,9 +29,12 @@
     "prisma:studio": "npm run prisma:build && npx prisma studio --schema=packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
     "prettier": "^3.7.4",
     "prisma": "^5.22.0",
     "resolve-pkg-maps": "^1.0.0",
+    "ts-jest": "^29.4.11",
     "turbo": "^2.9.14",
     "typescript": "5.9.2"
   },
@@ -56,7 +59,7 @@
     "dotenv": "^17.4.2",
     "iterare": "^1.2.1",
     "minio": "^8.0.7",
-    "mongoose": "^9.5.0",
+    "mongoose": "^8.24.0",
     "postgres": "^3.4.9",
     "rxjs": "^7.8.1"
   },

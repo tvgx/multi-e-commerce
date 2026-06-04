@@ -44,4 +44,8 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => VariantDto)
   variants?: VariantDto[];
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

@@ -5,6 +5,7 @@ import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/F
 interface Props {
     params: Promise<{ shopSlug: string }>;
     searchParams?: Promise<{
+        q?: string;
         search?: string;
         category?: string;
         minPrice?: string;
@@ -23,7 +24,8 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
     
     // Resolve search params
     const resolvedParams = searchParams ? await searchParams : {};
-    const { search, category, minPrice, maxPrice } = resolvedParams;
+    const { q, search, category, minPrice, maxPrice } = resolvedParams;
+    const finalSearch = q || search;
 
     // Fetch products and shop info in parallel
     // We first need the shop info to know the products per page
@@ -32,7 +34,7 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
 
     const { products } = await getShopProducts(shopSlug, {
         limit,
-        search,
+        search: finalSearch,
         categoryId: category,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,

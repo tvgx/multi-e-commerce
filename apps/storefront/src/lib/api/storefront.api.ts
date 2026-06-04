@@ -296,19 +296,22 @@ export async function getShopProductDetails(shopIdentifier: string, productId: s
 }
 
 /**
- * Fetches order history for a customer by email.
+ * Fetches order history for the authenticated customer.
  *
- * @param shopId - the shop's ID (slug)
- * @param email - customer's email
+ * @param shopIdentifier - the shop's ID (slug)
+ * @param token - customer's session token
  */
-export async function getCustomerOrders(shopIdentifier: string, email: string) {
+export async function getMyOrders(shopIdentifier: string, token: string) {
     try {
         const resolvedShop = await resolveShopContext(shopIdentifier);
         if (!resolvedShop?.id) return [];
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/orders/shop/${encodeURIComponent(shopId)}/customer/${encodeURIComponent(email)}`, {
-            headers: getTenantHeaders(shopId),
+        const res = await fetch(`${API_BASE_URL}/api/orders/my`, {
+            headers: {
+                ...getTenantHeaders(shopId),
+                'Authorization': `Bearer ${token}`
+            },
             cache: 'no-store' // Orders should always be fresh
         });
 
@@ -317,7 +320,67 @@ export async function getCustomerOrders(shopIdentifier: string, email: string) {
         const body = await res.json();
         return body.data || [];
     } catch (err) {
-        console.error(`[storefront.api] getCustomerOrders failed for email=${email}`, err);
+        console.error(`[storefront.api] getMyOrders failed`, err);
+        return [];
+    }
+}
+
+/**
+ * Fetches profile for the authenticated customer.
+ *
+ * @param shopIdentifier - the shop's ID (slug)
+ * @param token - customer's session token
+ */
+export async function getMyProfile(shopIdentifier: string, token: string) {
+    try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return null;
+
+        const shopId = resolvedShop.id;
+        const res = await fetch(`${API_BASE_URL}/api/storefront-auth/me`, {
+            headers: {
+                ...getTenantHeaders(shopId),
+                'Authorization': `Bearer ${token}`
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) return null;
+
+        const body = await res.json();
+        return body.data || null;
+    } catch (err) {
+        console.error(`[storefront.api] getMyProfile failed`, err);
+        return null;
+    }
+}
+
+/**
+ * Fetches wishlist for the authenticated customer.
+ *
+ * @param shopIdentifier - the shop's ID (slug)
+ * @param token - customer's session token
+ */
+export async function getWishlist(shopIdentifier: string, token: string) {
+    try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return [];
+
+        const shopId = resolvedShop.id;
+        const res = await fetch(`${API_BASE_URL}/api/interactions/wishlist`, {
+            headers: {
+                ...getTenantHeaders(shopId),
+                'Authorization': `Bearer ${token}`
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) return [];
+
+        const body = await res.json();
+        return body.data || [];
+    } catch (err) {
+        console.error(`[storefront.api] getWishlist failed`, err);
         return [];
     }
 }

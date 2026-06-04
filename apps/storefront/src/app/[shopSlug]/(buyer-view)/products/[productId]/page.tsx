@@ -1,6 +1,7 @@
 import { getShopProductDetails, getShopInfo, getShopPageLayout } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
+import { ProductDetailDefault } from '@ecommerce/ui-registry/src/components/products/ProductDetailDefault';
 import React from 'react';
 
 interface Props {
@@ -22,7 +23,7 @@ export default async function ProductDetailsPage({ params }: Props) {
     if (!product || !shopInfo) return notFound();
 
     if (!pageLayout) {
-        return <div className="text-center py-20">Layout not found</div>;
+        return <ProductDetailDefault product={product} shopInfo={shopInfo} />;
     }
 
     // Pass product and shopInfo as pageContext so that the Mega-Component receives them

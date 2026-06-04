@@ -43,7 +43,7 @@ export default function ThemesPage({ params }: { params: Promise<{ shopId: strin
               
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100">
                  <Link 
-                   href={`/create-shop/design?shopId=${shopId}`}
+                   href={`/dashboard/${shopId}/online-store/builder`}
                    className="px-8 py-4 bg-white text-black font-bold rounded-2xl flex items-center gap-2 shadow-2xl transition-transform active:scale-95"
                  >
                    <Paintbrush size={20} /> Tùy chỉnh ngay

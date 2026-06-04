@@ -26,6 +26,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { LayoutModule } from './modules/layout/layout.module';
 import { MediaModule } from './modules/media/media.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
         socketTimeoutMS: 45000,
         retryWrites: true,
         retryReads: true,
+        autoIndex: false, // Turn off autoIndex to prevent Kareem crash during index build
       }),
     }),
     AuthModule,
@@ -79,6 +81,6 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes({ path: '(.*)', method: RequestMethod.ALL });
+    consumer.apply(TenantMiddleware).forRoutes({ path: '/*path', method: RequestMethod.ALL });
   }
 }

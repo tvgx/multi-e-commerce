@@ -11,6 +11,7 @@ export interface Product {
   images: string[];
   variants?: any[];
   collections?: { collection: { id: string, title: string, slug: string } }[];
+  extraMetadata?: any;
 }
 
 export function useProducts(shopId: string) {
@@ -31,6 +32,20 @@ export function useProducts(shopId: string) {
         setError(err.message || "Failed to fetch products");
       }
       setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  const fetchProductById = useCallback(async (productId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.get<Product>(`/api/products/${productId}`, { shopId });
+      return res.data;
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch product");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -63,6 +78,7 @@ export function useProducts(shopId: string) {
     loading,
     error,
     fetchProducts,
+    fetchProductById,
     createProduct,
     updateProduct,
   };

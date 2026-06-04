@@ -1,6 +1,7 @@
 import { getShopPageLayout, getShopInfo } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
+import { CheckoutDefault } from '@ecommerce/ui-registry/src/components/cart/CheckoutDefault';
 import React from 'react';
 
 interface Props {
@@ -17,7 +18,9 @@ export default async function CheckoutPage({ params }: Props) {
     ]);
 
     if (!shopInfo) return notFound();
-    if (!pageLayout) return <div className="text-center py-20">Layout not found</div>;
+    if (!pageLayout) {
+        return <CheckoutDefault shopInfo={shopInfo} shopSlug={shopSlug} />;
+    }
 
     return <LayoutRenderer pageLayout={pageLayout} pageContext={{ shopInfo, shopSlug }} />;
   } catch (error) {

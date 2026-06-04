@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Headers,
@@ -40,5 +41,27 @@ export class StorefrontAuthController {
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired token');
     }
+  }
+
+  @Get('me')
+  async getMe(@Headers('authorization') authHeader: string): Promise<BaseResponseDto<any>> {
+    if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException('Missing or invalid token');
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = verifyJwt(token);
+      return this.authService.getMe(payload.sub);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string, shopId: string, shopSlug: string }): Promise<BaseResponseDto<any>> {
+    return this.authService.forgotPassword(body.email, body.shopId, body.shopSlug);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string, password: string }): Promise<BaseResponseDto<any>> {
+    return this.authService.resetPassword(body.token, body.password);
   }
 }

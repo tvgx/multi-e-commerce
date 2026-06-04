@@ -1,0 +1,246 @@
+'use client';
+
+import React, { useEffect, useState, use } from 'react';
+import { usePromotions, Promotion } from '@/hooks/usePromotions';
+import { Loader2, Ticket, Plus, Save, X, Trash2, Edit } from 'lucide-react';
+
+export default function PromotionsPage({ params }: { params: Promise<{ shopId: string }> }) {
+  const { shopId } = use(params);
+  const { promotions, loading, error, fetchPromotions, createPromotion, updatePromotion, deletePromotion } = usePromotions(shopId);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form State
+  const [formData, setFormData] = useState<Partial<Promotion>>({
+    code: '',
+    type: 'PERCENTAGE',
+    value: 10,
+    isActive: true,
+  });
+
+  useEffect(() => {
+    fetchPromotions();
+  }, [fetchPromotions]);
+
+  const handleOpenModal = (promo?: Promotion) => {
+    if (promo) {
+      setEditingPromo(promo);
+      setFormData(promo);
+    } else {
+      setEditingPromo(null);
+      setFormData({
+        code: '',
+        type: 'PERCENTAGE',
+        value: 10,
+        isActive: true,
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    let success = false;
+    if (editingPromo) {
+      success = await updatePromotion(editingPromo.id, formData);
+    } else {
+      success = await createPromotion(formData);
+    }
+    if (success) {
+      setIsModalOpen(false);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this promotion?')) {
+      await deletePromotion(id);
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 relative">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Promotions</h1>
+          <p className="text-slate-400">Create and manage discount codes for your store.</p>
+        </div>
+        <button 
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-colors font-bold"
+        >
+          <Plus size={18} /> New Promotion
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading && promotions.length === 0 ? (
+          <div className="col-span-full py-12 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500 mb-4" />
+            <p className="text-slate-400">Loading promotions...</p>
+          </div>
+        ) : promotions.length === 0 ? (
+          <div className="col-span-full py-12 text-center bg-white/5 rounded-2xl border border-white/10">
+            <Ticket className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+            <p className="text-slate-400 mb-4">No promotions found.</p>
+            <button 
+              onClick={() => handleOpenModal()}
+              className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors"
+            >
+              Create your first discount code
+            </button>
+          </div>
+        ) : (
+          promotions.map((promo) => (
+            <div key={promo.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 relative group overflow-hidden">
+              <div className={`absolute top-0 right-0 w-2 h-full ${promo.isActive ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="font-mono font-bold text-xl text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
+                    {promo.code}
+                  </span>
+                  <div className="text-emerald-400 font-medium mt-3">
+                    {promo.type === 'PERCENTAGE' ? `${promo.value}% OFF` : `${promo.value.toLocaleString('vi-VN')}đ OFF`}
+                  </div>
+                </div>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleOpenModal(promo)} className="p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg">
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(promo.id)} className="p-2 text-red-400 hover:text-white hover:bg-red-500/20 bg-white/5 rounded-lg">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 text-sm text-slate-400">
+                <p>Status: <span className={promo.isActive ? 'text-emerald-400' : 'text-slate-500'}>{promo.isActive ? 'Active' : 'Inactive'}</span></p>
+                <p>Used: {promo.usedCount || 0} times</p>
+                {promo.minOrderValue && <p>Min order: {promo.minOrderValue.toLocaleString('vi-VN')}đ</p>}
+                {promo.usageLimit && <p>Limit: {promo.usageLimit} uses</p>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-slate-800 shrink-0">
+              <h3 className="text-xl font-bold text-white">{editingPromo ? 'Edit Promotion' : 'New Promotion'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <form id="promoForm" onSubmit={handleSave} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Discount Code</label>
+                  <input 
+                    type="text"
+                    required
+                    value={formData.code}
+                    onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none uppercase font-mono"
+                    placeholder="SUMMER2026"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Type</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="PERCENTAGE">Percentage (%)</option>
+                      <option value="FIXED">Fixed Amount</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Value</label>
+                    <input 
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.value}
+                      onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Minimum Order Value (Optional)</label>
+                  <input 
+                    type="number"
+                    min="0"
+                    value={formData.minOrderValue || ''}
+                    onChange={(e) => setFormData({...formData, minOrderValue: parseFloat(e.target.value) || undefined})}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Usage Limit (Optional)</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    value={formData.usageLimit || ''}
+                    onChange={(e) => setFormData({...formData, usageLimit: parseInt(e.target.value) || undefined})}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. 100 uses"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <input 
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-slate-300">
+                    Active (Customers can use this code)
+                  </label>
+                </div>
+              </form>
+            </div>
+
+            <div className="p-6 border-t border-slate-800 shrink-0 flex gap-3 bg-slate-900/50">
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                form="promoForm"
+                disabled={saving}
+                className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                Save Promotion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

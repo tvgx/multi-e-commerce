@@ -7,8 +7,8 @@ import { GlobalLayoutSchema, PageLayoutSchema } from '@ecommerce/database';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: 'GlobalLayout', schema: GlobalLayoutSchema },
-      { name: 'PageLayout', schema: PageLayoutSchema },
+      { name: 'GlobalLayout', schema: GlobalLayoutSchema.clone() },
+      { name: 'PageLayout', schema: PageLayoutSchema.clone() },
     ]),
   ],
   controllers: [LayoutController],

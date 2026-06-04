@@ -23,12 +23,17 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
+import { NotificationBell } from "@/components/NotificationBell";
+import { ShoppingBag, Box, Tag } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
   { icon: <LayoutDashboard size={20} />, label: "Dashboard", href: "" },
+  { icon: <ShoppingBag size={20} />, label: "Orders", href: "/orders" },
   { icon: <Package size={20} />, label: "Products", href: "/products" },
+  { icon: <Box size={20} />, label: "Inventory", href: "/inventory" },
   { icon: <Layers size={20} />, label: "Collections", href: "/collections" },
   { icon: <Store size={20} />, label: "Online Store", href: "/online-store" },
+  { icon: <Tag size={20} />, label: "Promotions", href: "/promotions" },
   { icon: <BarChart3 size={20} />, label: "Analytics", href: "/analytics" },
   { icon: <CreditCard size={20} />, label: "Payments", href: "/payments" },
   { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
@@ -134,6 +139,7 @@ export default function DashboardLayout({
           </div>
           
           <div className="flex items-center gap-4 relative">
+             <NotificationBell shopId={shopId} />
              <button 
                onClick={() => setIsMenuOpen(!isMenuOpen)}
                title="User Menu"

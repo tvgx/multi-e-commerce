@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { UIComponentRef } from '@ecommerce/schema';
 import { registry } from '../../../registry';
 
@@ -28,10 +29,12 @@ export function Hero({
     return (
         <section className="relative w-full h-[600px] flex items-center justify-center overflow-hidden" style={containerStyle}>
             <div className="absolute inset-0 z-0">
-                <img
+                <Image
                     src={finalImage}
                     alt="Hero Background"
-                    className="w-full h-full object-cover opacity-50"
+                    fill
+                    className="object-cover opacity-50"
+                    priority
                 />
             </div>
             <div className="relative z-10 text-center max-w-3xl px-4">

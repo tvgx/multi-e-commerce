@@ -69,5 +69,19 @@ export class LayoutService {
 
     return { status: 'updated', data: updated };
   }
+
+  async publishLayout() {
+    const shopId = this.getShopId();
+    const layout = await this.globalLayoutModel.findOne({ shopId }).exec();
+    if (!layout) throw new BadRequestException('No layout draft found');
+    
+    const published = await this.globalLayoutModel.findOneAndUpdate(
+      { shopId },
+      { $set: { publishedData: layout.draftData } },
+      { new: true }
+    ).exec();
+
+    return { status: 'published', data: published };
+  }
 }
 

@@ -1,29 +1,45 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import { useCallback, useState, useEffect } from 'react';
 
 export function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('search') || '');
+  const params = useParams();
+  const shopSlug = params?.shopSlug as string;
+  const [query, setQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
 
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set(name, value);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const currentParams = new URLSearchParams(searchParams.toString());
+      if (query) {
+        currentParams.set('q', query);
       } else {
-        params.delete(name);
+        currentParams.delete('q');
+        currentParams.delete('search'); // clean up old 'search' param
       }
-      return params.toString();
-    },
-    [searchParams]
-  );
+      // If we are not on all-products page, pushing might be better handled on enter,
+      // but for now, we debounce and push to /all-products
+      if (query && shopSlug) {
+        // We only want to auto-redirect to all-products if they are typing, or we can just keep them on current page if we want.
+        // Usually, debounce search is used ON the search page.
+        // Let's check if window is already at all-products
+        if (window.location.pathname.includes('/all-products')) {
+          router.replace(`/${shopSlug}/all-products?${currentParams.toString()}`, { scroll: false });
+        }
+      } else if (!query && shopSlug && window.location.pathname.includes('/all-products')) {
+          router.replace(`/${shopSlug}/all-products?${currentParams.toString()}`, { scroll: false });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, searchParams, shopSlug, router]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`?${createQueryString('search', query)}`);
+    if (shopSlug) {
+      router.push(`/${shopSlug}/all-products?q=${encodeURIComponent(query)}`);
+    }
   };
 
   return (

@@ -1,7 +1,18 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+
+export enum OrderStatus {
+  CONFIRMED = 'confirmed',
+  PROCESSING = 'processing',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  COMPLETED = 'completed',
+  CANCELED = 'canceled',
+  RETURNED = 'returned',
+}
 
 export class UpdateOrderStatusDto {
-  @IsString()
-  @IsNotEmpty()
-  status: string; // 'delivery', 'confirm', 'complete', 'canceled'
+  @IsEnum(OrderStatus, {
+    message: `status must be one of: ${Object.values(OrderStatus).join(', ')}`
+  })
+  status: OrderStatus;
 }

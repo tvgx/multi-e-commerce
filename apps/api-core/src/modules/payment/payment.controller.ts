@@ -14,6 +14,12 @@ export class PaymentController {
   }
 
   @Public()
+  @Get('methods')
+  getPaymentMethods(@Headers('x-shop-id') shopId: string) {
+    return this.paymentService.getPaymentMethods(shopId);
+  }
+
+  @Public()
   @Post('webhook')
   handleWebhook(@Body() dto: PaymentWebhookDto, @Headers('x-shop-id') shopId: string) {
     return this.paymentService.handleWebhook(dto, shopId);
@@ -28,6 +34,12 @@ export class PaymentController {
   @Get('status/:orderId')
   getPaymentStatus(@Param('orderId') orderId: string) {
     return this.paymentService.getPaymentStatus(orderId);
+  }
+
+  @Public()
+  @Get('token-info/:token')
+  getTokenInfo(@Param('token') token: string) {
+    return this.paymentService.getTokenInfo(token);
   }
 }
 

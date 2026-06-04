@@ -1,6 +1,7 @@
 import dynamic from 'next/dynamic';
 import React from 'react';
 import type { ShopPageLayout, UIComponentRef } from '@ecommerce/schema';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // 1. Component Registry Map
 // This maps the string 'componentId' from the JSON database to actual React Components.
@@ -86,11 +87,12 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
                 }
 
                 return (
-                    <ComponentConstructor
-                        key={`${comp.componentId}-${idx}`}
-                        {...comp.props}
-                        {...pageContext}
-                    />
+                    <ErrorBoundary key={`${comp.componentId}-${idx}`} componentName={comp.componentId}>
+                        <ComponentConstructor
+                            {...comp.props}
+                            {...pageContext}
+                        />
+                    </ErrorBoundary>
                 );
             })}
         </>

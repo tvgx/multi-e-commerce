@@ -66,6 +66,14 @@ class ApiClient {
   async delete<T>(endpoint: string, options: RequestInit & { shopId?: string } = {}) {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
   }
+
+  async patch<T>(endpoint: string, body: unknown, options: RequestInit & { shopId?: string } = {}) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

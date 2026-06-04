@@ -5,6 +5,12 @@ import { CartSidebar } from '@ecommerce/ui-registry/src/components/cart/CartSide
 import { CartTrigger } from '@ecommerce/ui-registry/src/components/cart/CartTrigger';
 import { SearchBar } from '@ecommerce/ui-registry/src/components/products/SearchBar';
 import { DynamicRenderer } from '@/lib/layout/dynamic-loader';
+import { NotificationToast } from '@/components/NotificationToast';
+import { getCustomerSession, getCustomerData } from '@/app/actions/auth.actions';
+import { PreviewWrapper } from '@/components/PreviewWrapper';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ChatWidget } from '@ecommerce/ui-registry/src/components/chat/ChatWidget';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface Props {
     children: React.ReactNode;
@@ -13,6 +19,9 @@ interface Props {
 
 export default async function BuyerLayout({ children, params }: Props) {
     const { shopSlug } = await params;
+    const token = await getCustomerSession(shopSlug);
+    const customerData = await getCustomerData(shopSlug);
+    const customerId = customerData?.sub || customerData?.id;
 
     // Combined fetch via Bootstrap API (Reduces 4 round-trips to 1)
     const bootstrapData = await getShopBootstrapData(shopSlug);
@@ -26,8 +35,9 @@ export default async function BuyerLayout({ children, params }: Props) {
     const globalComponents = globalLayout?.globalComponents || [];
 
     return (
-        <div 
-            className="flex flex-col min-h-screen storefront-layout-wrapper"
+        <PreviewWrapper initialGlobalComponents={globalComponents} initialTheme={globalLayout?.theme}>
+            <div 
+                className="flex flex-col min-h-screen storefront-layout-wrapper"
             style={{
                 '--theme-primary': globalLayout?.theme?.primaryColor || '#000',
                 fontFamily: globalLayout?.theme?.fontFamily || 'Inter, sans-serif'
@@ -35,10 +45,13 @@ export default async function BuyerLayout({ children, params }: Props) {
         >
             {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
             <CartSidebar />
+            <NotificationToast token={token ?? undefined} />
             
             {/* ── Global Header (Dynamic) or Fallback ── */}
             {globalComponents.length > 0 ? (
-                <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('header'))} />
+                <ErrorBoundary componentName="GlobalHeader">
+                    <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('header'))} />
+                </ErrorBoundary>
             ) : (
                 <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
                     <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -64,6 +77,8 @@ export default async function BuyerLayout({ children, params }: Props) {
                                     All Products
                                 </a>
                             )}
+                            <div className="mx-2 w-px h-4 bg-slate-200"></div>
+                            <LanguageSwitcher />
                             <CartTrigger />
                         </nav>
                     </div>
@@ -71,11 +86,17 @@ export default async function BuyerLayout({ children, params }: Props) {
             )}
 
             {/* ── Main Content ── */}
-            <main className="flex-1">{children}</main>
+            <main className="flex-1">
+                <ErrorBoundary componentName="PageContent">
+                    {children}
+                </ErrorBoundary>
+            </main>
 
             {/* ── Global Footer (Dynamic) or Fallback ── */}
             {globalComponents.length > 0 ? (
-                <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('footer'))} />
+                <ErrorBoundary componentName="GlobalFooter">
+                    <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('footer'))} />
+                </ErrorBoundary>
             ) : (
                 <footer className="border-t border-slate-200 py-12 mt-20">
                     <div className="container mx-auto px-4">
@@ -107,6 +128,11 @@ export default async function BuyerLayout({ children, params }: Props) {
                     </div>
                 </footer>
             )}
+
+            {shopInfo?.id && (
+                <ChatWidget shopId={shopInfo.id} customerId={customerId} />
+            )}
         </div>
+        </PreviewWrapper>
     );
 }

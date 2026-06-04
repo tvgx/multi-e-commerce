@@ -1,4 +1,5 @@
-
+import React from 'react';
+import Image from 'next/image';
 
 export interface ProductCardProps {
     id: string;
@@ -14,7 +15,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ name, price, imageUrl,
     return (
         <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">
             <div className="relative h-64 w-full bg-gray-100">
-                <img src={imgSrc} alt={name} className="object-cover w-full h-full" />
+                <Image src={imgSrc} alt={name} fill className="object-cover w-full h-full" />
             </div>
             <div className="p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-1">{name}</h3>

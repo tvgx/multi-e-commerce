@@ -29,5 +29,12 @@ export class LayoutController {
   updateTenantLayout(@Body() dto: UpdateTenantLayoutDto) {
     return this.layoutService.updateTenantLayout(dto);
   }
+
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Post('publish')
+  publishLayout() {
+    return this.layoutService.publishLayout();
+  }
 }
 

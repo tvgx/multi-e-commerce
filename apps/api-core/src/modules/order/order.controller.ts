@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CheckoutDto } from './dto/create-order.dto';
 import { GetOrdersDto } from './dto/get-orders.dto';
@@ -6,29 +6,36 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
+import { StorefrontAuthGuard } from '../storefront-auth/guards/storefront-auth.guard';
 
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   // Customer endpoint
+  @UseGuards(StorefrontAuthGuard)
   @Post('checkout')
   create(@Req() req: any, @Body() dto: CheckoutDto) {
-    const customerId = req.user?.id || 'anonymous-or-mock-id'; // Requires AuthGuard in reality
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
     return this.orderService.createOrder(customerId, dto);
   }
 
   // Customer endpoint: GET /orders/my
+  @UseGuards(StorefrontAuthGuard)
   @Get('my')
   findMyOrders(@Req() req: any, @Query() query: GetOrdersDto) {
-    const customerId = req.user?.id || 'anonymous-or-mock-id';
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
     return this.orderService.findAllOrders({ ...query, customerId } as any);
   }
 
   // Customer endpoint: POST /orders/:id/cancel
+  @UseGuards(StorefrontAuthGuard)
   @Post(':id/cancel')
   cancelMyOrder(@Req() req: any, @Param('id') id: string) {
-    const customerId = req.user?.id || 'anonymous-or-mock-id';
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
     return this.orderService.cancelOrder(id, customerId);
   }
 
@@ -37,6 +44,13 @@ export class OrderController {
   @Get()
   findAll(@Query() query: GetOrdersDto) {
     return this.orderService.findAllOrders(query);
+  }
+
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Get('analytics')
+  getAnalytics(@Query('period') period: '7d' | '30d' = '30d') {
+    return this.orderService.getAnalytics(period);
   }
 
   @UseGuards(BetterAuthGuard, RolesGuard)
