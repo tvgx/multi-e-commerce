@@ -83,5 +83,27 @@ export class LayoutService {
 
     return { status: 'published', data: published };
   }
+
+  // ─── Public storefront endpoints (by shopId directly) ─────────────────
+
+  async getGlobalLayout(shopId: string) {
+    let globalLayout = await this.globalLayoutModel.findOne({ shopId }).exec();
+    if (!globalLayout) {
+      globalLayout = await this.globalLayoutModel.create({
+        shopId,
+        publishedData: {},
+        draftData: {},
+      });
+    }
+    return globalLayout.publishedData;
+  }
+
+  async getPageLayout(shopId: string, pageType: string, slug?: string) {
+    const query: any = { shopId, pageType };
+    if (slug) query.slug = slug;
+
+    const pageLayout = await this.pageLayoutModel.findOne(query).exec();
+    return pageLayout ? pageLayout.publishedData : null;
+  }
 }
 

@@ -38,7 +38,7 @@ export default function PaymentSetupPage() {
     const fetchShop = async () => {
       setLoading(true);
       try {
-        const res = await apiClient.get<any>(`/api/shops/${shopId}`);
+        const res = await apiClient.get<any>(`/api/shops/${shopId}`, { shopId });
         if (res.data.bankAccount && typeof res.data.bankAccount === 'object' && Object.keys(res.data.bankAccount).length > 0) {
           setBankAccount({
             bankName: res.data.bankAccount.bankName || "",
@@ -59,10 +59,12 @@ export default function PaymentSetupPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Update shop bank info
-      await apiClient.put(`/api/shops/${shopId}`, {
-        bankAccount: bankAccount
-      });
+      // 1. Update shop bank info via bank-account endpoint
+      await apiClient.patch(`/api/shops/bank-account`, {
+        bankName: bankAccount.bankName,
+        accountNumber: bankAccount.accountNumber,
+        accountHolder: bankAccount.accountHolder,
+      }, { shopId });
 
       // 2. Complete Step 6
       await completeStep(6);

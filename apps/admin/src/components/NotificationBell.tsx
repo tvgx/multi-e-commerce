@@ -19,10 +19,15 @@ export function NotificationBell({ shopId }: { shopId: string }) {
     // For simplicity, we just connect to the notifications namespace
     const socketInstance = io(`${SOCKET_URL}/notifications`, {
       reconnection: true,
+      withCredentials: true,
+      auth: {
+        shopId
+      }
     });
 
     socketInstance.on('connect', () => {
-      socketInstance.emit('join', { shopId });
+      // The backend automatically joins the user and shop rooms based on session and auth payload
+      console.log('Connected to notifications WebSocket');
     });
 
     socketInstance.on('ORDER_CREATED', (data: any) => {

@@ -64,26 +64,22 @@ export const Footer: React.FC<FooterProps> = ({
                             </h3>
                             <div className="flex items-center space-x-4">
                                 {facebookUrl && (
-                                    <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-                                        <span className="sr-only">Facebook</span>
+                                    <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity" title="Facebook">
                                         <Facebook className="h-6 w-6" />
                                     </a>
                                 )}
                                 {instagramUrl && (
-                                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-                                        <span className="sr-only">Instagram</span>
+                                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity" title="Instagram">
                                         <Instagram className="h-6 w-6" />
                                     </a>
                                 )}
                                 {twitterUrl && (
-                                    <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-                                        <span className="sr-only">Twitter</span>
+                                    <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity" title="Twitter">
                                         <Twitter className="h-6 w-6" />
                                     </a>
                                 )}
                                 {websiteUrl && (
-                                    <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-                                        <span className="sr-only">Website</span>
+                                    <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity" title="Website">
                                         <Globe className="h-6 w-6" />
                                     </a>
                                 )}

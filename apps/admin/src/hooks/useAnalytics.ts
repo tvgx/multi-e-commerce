@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api-client';
 
 export function useAnalytics(shopId: string, period: '7d' | '30d' = '30d') {
   const [data, setData] = useState<any>(null);
@@ -10,19 +11,12 @@ export function useAnalytics(shopId: string, period: '7d' | '30d' = '30d') {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('access_token');
-        const res = await fetch(`/api/api-core/orders/analytics?period=${period}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'x-tenant-id': shopId
-          }
+        const res = await apiClient.get<any>(`/api/orders/analytics?period=${period}`, {
+          shopId
         });
-        
-        if (!res.ok) throw new Error('Failed to fetch analytics');
-        const json = await res.json();
-        
+
         if (isMounted) {
-          setData(json);
+          setData(res.data);
           setError(null);
         }
       } catch (err: any) {

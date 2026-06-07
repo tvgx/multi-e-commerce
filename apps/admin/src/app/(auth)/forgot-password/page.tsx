@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Zap, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { authClient } from '@/lib/auth-client';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -15,8 +15,11 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError('');
     try {
-      // Mock API call to backend
-      await apiClient.post('/api/auth/mock-forgot-password', { email });
+      const { error } = await authClient.requestPasswordReset({
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw new Error(error.message || 'Failed to send reset link');
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset link');

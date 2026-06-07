@@ -59,8 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {/* Left section (Mobile menu or Left Logo + Nav) */}
                     <div className={`flex items-center ${logoPosition === 'center' ? 'absolute left-0' : ''}`}>
                         {/* Mobile menu */}
-                        <button className="mr-4 lg:hidden p-2 text-inherit opacity-80 hover:opacity-100">
-                            <span className="sr-only">Open menu</span>
+                        <button className="mr-4 lg:hidden p-2 text-inherit opacity-80 hover:opacity-100" title="Open menu">
                             <Menu className="h-6 w-6" />
                         </button>
 
@@ -70,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     {logoUrl ? (
                                         <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
                                     ) : (
-                                        <span className="font-bold text-xl tracking-tighter uppercase">{shopName}</span>
+                                        <span className="font-bold text-xl tracking-tighter uppercase whitespace-nowrap">{shopName}</span>
                                     )}
                                 </Link>
                                 <nav className="hidden lg:flex space-x-8">
@@ -94,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
                             {logoUrl ? (
                                 <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
                             ) : (
-                                <span className="font-bold text-xl tracking-tighter uppercase">{shopName}</span>
+                                <span className="font-bold text-xl tracking-tighter uppercase whitespace-nowrap">{shopName}</span>
                             )}
                         </Link>
                     )}
@@ -114,17 +113,14 @@ export const Header: React.FC<HeaderProps> = ({
                                 ))}
                             </nav>
                         )}
-                        <div className="flex items-center space-x-4">
-                            <button className="p-2 text-inherit opacity-80 hover:opacity-100">
-                                <span className="sr-only">Search</span>
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                            <button className="p-2 text-inherit opacity-80 hover:opacity-100" title="Search">
                                 <Search className="h-5 w-5" />
                             </button>
-                            <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100">
-                                <span className="sr-only">Account</span>
+                            <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100" title="Account">
                                 <User className="h-5 w-5" />
                             </Link>
-                            <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative">
-                                <span className="sr-only">Cart</span>
+                            <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
                                 <ShoppingCart className="h-5 w-5" />
                                 {/* Optional Cart Badge */}
                                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />

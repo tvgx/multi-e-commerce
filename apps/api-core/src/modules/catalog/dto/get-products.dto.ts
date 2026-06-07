@@ -15,4 +15,8 @@ export class GetProductsDto extends PaginationDto {
   @IsOptional()
   @IsString()
   status?: string; // DRAFT, PUBLISHED, ARCHIVED
+
+  @IsOptional()
+  @IsString()
+  shopId?: string;
 }

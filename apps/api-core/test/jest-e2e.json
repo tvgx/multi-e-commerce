@@ -4,6 +4,6 @@
   "testEnvironment": "node",
   "testRegex": "test/.*\\.e2e-spec\\.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "/home/lordfeeder/workspaces/multi-e-commerce/node_modules/ts-jest/dist/index.js"
+    "^.+\\.(t|j)s$": "ts-jest"
   }
 }

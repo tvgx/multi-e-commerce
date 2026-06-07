@@ -3,7 +3,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Lock, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { authClient } from '@/lib/auth-client';
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -26,8 +26,12 @@ function ResetPasswordForm() {
     setLoading(true);
     setError('');
     try {
-      // Mock API call to backend
-      await apiClient.post('/api/auth/mock-reset-password', { password, token });
+      if (!token) throw new Error('Missing reset token');
+      const { error } = await authClient.resetPassword({
+        newPassword: password,
+        token,
+      });
+      if (error) throw new Error(error.message || 'Failed to reset password');
       setSuccess(true);
       setTimeout(() => router.push('/login'), 3000);
     } catch (err: any) {

@@ -24,7 +24,7 @@ export function useInventory(shopId: string) {
     try {
       // In a real app, there might be a dedicated inventory API.
       // We reuse the products API here and just map the data.
-      const res = await apiClient.get<any>(`/api/products/shop/${shopId}`);
+      const res = await apiClient.get<any>(`/api/catalog/products/shop/${shopId}`);
       // Assuming response data is an array of products
       const products = res.data.data || res.data;
       setItems(products);
@@ -47,7 +47,7 @@ export function useInventory(shopId: string) {
       );
 
       // Send update to API (assuming the backend supports partial update or we just send the variants array)
-      await apiClient.put(`/api/products/${productId}`, { variants: updatedVariants });
+      await apiClient.patch(`/api/catalog/products/${productId}`, { variants: updatedVariants });
 
       // Update local state
       setItems(prev => prev.map(p => 

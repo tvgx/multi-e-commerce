@@ -3,38 +3,112 @@
 import React from 'react';
 import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store';
 import { schemaRegistry } from '@ecommerce/ui-registry/src/registry';
-import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft } from 'lucide-react';
+import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft, Upload } from 'lucide-react';
+import { useParams } from 'next/navigation';
+
+function findNodeRecursive(nodes: any[], id: string): any | null {
+    for (const node of nodes) {
+        if (node.id === id) return node;
+        if (node.blocks && node.blocks.length > 0) {
+            const found = findNodeRecursive(node.blocks, id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
 
 export function PropEditor() {
-    const { pages, activePage, activeComponentId, updatePageSection } = useBuilderStore();
+    const { pages, activePage, activeComponentId, activeBlockId, globalComponents, updatePageSection, updateGlobalComponent, updateBlockProp } = useBuilderStore();
+    const [isUploading, setIsUploading] = React.useState(false);
+    const { shopId } = useParams() as { shopId: string };
     
-    if (!activeComponentId) {
+    let targetId = activeBlockId || activeComponentId;
+
+    if (!targetId) {
         return (
             <div className="flex flex-col h-full items-center justify-center p-6 text-center text-slate-500">
                 <Settings2 className="w-12 h-12 mb-4 opacity-50" />
-                <p>Select a section to edit its properties</p>
+                <p>Select a section or block to edit its properties</p>
             </div>
         );
     }
 
     const sections = pages[activePage] || [];
-    const activeSection = sections.find(s => s.id === activeComponentId);
+    const allRoots = [...globalComponents, ...sections];
+    const targetNode = findNodeRecursive(allRoots, targetId);
     
-    if (!activeSection) return null;
+    if (!targetNode) {
+        return (
+            <div className="flex flex-col h-full items-center justify-center p-6 text-center text-slate-500">
+                <Settings2 className="w-12 h-12 mb-4 opacity-50" />
+                <p>Node not found</p>
+            </div>
+        );
+    }
 
-    const schema = schemaRegistry[activeSection.componentId];
+    const schema = schemaRegistry[targetNode.componentId] || {};
     const fields = schema?.settings || schema?.fields;
 
-    if (!schema || !fields || fields.length === 0) {
+    if (!fields || fields.length === 0) {
         return (
-            <div className="p-6 text-slate-400">
-                <p>No configurable properties for this component.</p>
+            <div className="flex flex-col h-full">
+                <div className="p-4 border-b border-white/5 bg-slate-900/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
+                    <h3 className="font-bold text-white flex items-center gap-2">
+                        <Settings2 size={18} className="text-indigo-400" />
+                        {schema.title || targetNode.componentId}
+                    </h3>
+                </div>
+                <div className="p-6 text-slate-400">
+                    <p>No configurable properties for this component.</p>
+                </div>
             </div>
         );
     }
 
     const handlePropChange = (key: string, value: any) => {
-        updatePageSection(activePage, activeComponentId, { [key]: value });
+        if (activeBlockId) {
+            updateBlockProp(activeBlockId, key, value);
+        } else {
+            if (globalComponents.some(c => c.id === targetId)) {
+                updateGlobalComponent(targetId!, { [key]: value });
+            } else {
+                updatePageSection(activePage, targetId!, { [key]: value });
+            }
+        }
+    };
+
+    const handleUpload = async (fieldId: string, file: File) => {
+        try {
+            setIsUploading(true);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('entityType', 'shop_logo'); 
+            
+            const token = localStorage.getItem('accessToken') || '';
+            const res = await fetch('http://localhost:3000/api/media/upload', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    'x-shop-id': shopId
+                },
+                body: formData
+            });
+            
+            if (res.ok) {
+                const json = await res.json();
+                if (json.data && json.data.url) {
+                    handlePropChange(fieldId, json.data.url);
+                }
+            } else {
+                alert('Upload failed');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Upload error');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const renderField = (field: any, currentValue: any) => {
@@ -88,6 +162,18 @@ export function PropEditor() {
                                 className="flex-1 bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
                                 placeholder="https://"
                             />
+                            <label className={`flex items-center justify-center p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 cursor-pointer transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <Upload size={18} className="text-white" />
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUpload(fieldId, file);
+                                    }}
+                                />
+                            </label>
                         </div>
                     </div>
                 );
@@ -175,7 +261,6 @@ export function PropEditor() {
                     </div>
                 );
             default:
-                // Fallback for array/object or unknown
                 return (
                     <div className="space-y-2">
                         <label htmlFor={id} className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -200,11 +285,11 @@ export function PropEditor() {
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-[#0a0a0f]">
             <div className="p-4 border-b border-white/5 bg-slate-900/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <Settings2 size={18} className="text-indigo-400" />
-                    {schema.title || activeSection.componentId}
+                    {schema.title || targetNode.componentId}
                 </h3>
                 {schema.description && (
                     <p className="text-xs text-slate-400 mt-1">{schema.description}</p>
@@ -216,7 +301,7 @@ export function PropEditor() {
                     const fieldId = field.id || field.name;
                     return (
                         <div key={fieldId}>
-                            {renderField(field, activeSection.props?.[fieldId])}
+                            {renderField(field, targetNode.props?.[fieldId])}
                         </div>
                     );
                 })}

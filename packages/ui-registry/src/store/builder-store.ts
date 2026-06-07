@@ -84,11 +84,23 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         theme: { ...state.theme, ...themePatch }
     })),
 
-    updateGlobalComponent: (id, props) => set((state) => ({
-        globalComponents: state.globalComponents.map((c) =>
-            c.id === id ? { ...c, props: { ...c.props, ...props } } : c
-        )
-    })),
+    updateGlobalComponent: (id, props) => set((state) => {
+        if (props.shopName !== undefined) {
+            return {
+                theme: { ...state.theme, shopName: props.shopName },
+                globalComponents: state.globalComponents.map((c) =>
+                    (c.componentId === 'Header' || c.componentId === 'Footer') 
+                        ? { ...c, props: { ...c.props, ...props, shopName: props.shopName } } 
+                        : (c.id === id ? { ...c, props: { ...c.props, ...props } } : c)
+                )
+            };
+        }
+        return {
+            globalComponents: state.globalComponents.map((c) =>
+                c.id === id ? { ...c, props: { ...c.props, ...props } } : c
+            )
+        };
+    }),
 
     addPageSection: (pageType, componentId, insertIndex) => set((state) => {
         const pages = { ...state.pages };
@@ -315,14 +327,42 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                 pageData = json.data;
             }
 
+            let shopData: any = null;
+            if (!globalData?.theme?.shopName) {
+                try {
+                    const shopRes = await fetch(`http://localhost:3000/api/shops/${shopId}`, { headers });
+                    if (shopRes.ok) {
+                        const shopJson = await shopRes.json();
+                        shopData = shopJson.data;
+                    }
+                } catch (err) {}
+            }
+
             const defaultGlobalComponents: UIComponentRef[] = [
-                { id: 'global-header', componentId: 'Header', props: {}, type: 'section' },
-                { id: 'global-footer', componentId: 'Footer', props: {}, type: 'section' }
+                { 
+                    id: 'global-header', 
+                    componentId: 'Header', 
+                    props: { shopName: shopData?.name || 'STOREFRONT' }, 
+                    type: 'section',
+                    blocks: [
+                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Home', link: '/' }, type: 'block' },
+                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Catalog', link: '/catalog' }, type: 'block' },
+                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Contact', link: '/contact' }, type: 'block' }
+                    ]
+                },
+                { 
+                    id: 'global-footer', 
+                    componentId: 'Footer', 
+                    props: { shopName: shopData?.name || 'STOREFRONT' }, 
+                    type: 'section' 
+                }
             ];
+
+            const finalTheme = globalData?.theme || (shopData ? { shopName: shopData.name } : {});
 
             set({
                 globalComponents: globalData?.globalComponents?.length ? globalData.globalComponents : defaultGlobalComponents,
-                theme: globalData?.theme || {},
+                theme: finalTheme,
                 pages: {
                     home: pageData?.components || []
                 },

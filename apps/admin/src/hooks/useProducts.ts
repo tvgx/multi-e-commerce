@@ -24,7 +24,7 @@ export function useProducts(shopId: string) {
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/products/shop/${shopId}` + (searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '');
+      const url = `/api/catalog/products/shop/${shopId}` + (searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '');
       const res = await apiClient.get<Product[]>(url);
       setProducts(res.data || []);
     } catch (err: any) {
@@ -41,7 +41,7 @@ export function useProducts(shopId: string) {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<Product>(`/api/products/${productId}`, { shopId });
+      const res = await apiClient.get<Product>(`/api/catalog/products/${productId}`, { shopId });
       return res.data;
     } catch (err: any) {
       setError(err.message || "Failed to fetch product");
@@ -54,7 +54,7 @@ export function useProducts(shopId: string) {
   const createProduct = async (data: any) => {
     setError(null);
     try {
-      const res = await apiClient.post<Product>(`/api/products`, data, { shopId });
+      const res = await apiClient.post<Product>(`/api/catalog/products`, data, { shopId });
       return res.data;
     } catch (err: any) {
       setError(err.message || "Failed to create product");
@@ -65,7 +65,7 @@ export function useProducts(shopId: string) {
   const updateProduct = async (id: string, data: any) => {
     setError(null);
     try {
-      const res = await apiClient.put<Product>(`/api/products/${id}`, data, { shopId });
+      const res = await apiClient.patch<Product>(`/api/catalog/products/${id}`, data, { shopId });
       return res.data;
     } catch (err: any) {
       setError(err.message || "Failed to update product");

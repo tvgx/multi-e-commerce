@@ -1,7 +1,6 @@
 const path = require('path');
 
 module.exports = {
-  preset: 'ts-jest',
   moduleNameMapper: {
     '^@ecommerce/(.*)$': '<rootDir>/../../packages/$1',
     '^@thallesp/nestjs-better-auth$': '<rootDir>/src/__mocks__/@thallesp/nestjs-better-auth.js',

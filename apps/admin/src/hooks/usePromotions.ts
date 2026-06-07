@@ -47,7 +47,7 @@ export function usePromotions(shopId: string) {
 
   const updatePromotion = async (id: string, data: Partial<Promotion>) => {
     try {
-      const res = await apiClient.put<Promotion>(`/api/promotions/${id}`, data);
+      const res = await apiClient.patch<Promotion>(`/api/promotions/${id}`, data);
       setPromotions(prev => prev.map(p => (p.id === id ? res.data : p)));
       return true;
     } catch (err: any) {

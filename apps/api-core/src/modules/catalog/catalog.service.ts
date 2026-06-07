@@ -61,10 +61,46 @@ export class CatalogService {
       update: {}
     });
   }
+
+  async updateCollection(id: string, dto: UpdateCollectionDto) {
+    const shopId = this.getShopId();
+    const existing = await this.prisma.collection.findFirst({ where: { id, shopId } });
+    if (!existing) throw new NotFoundException('Collection not found');
+    return this.prisma.collection.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        slug: dto.slug,
+        description: dto.description,
+        imageUrl: dto.imageUrl,
+      },
+    });
+  }
+
+  async getCollectionBySlug(slug: string, shopId: string) {
+    const collection = await this.prisma.collection.findFirst({
+      where: { slug, shopId },
+      include: { products: { include: { product: { include: { variants: true } } } } },
+    });
+    if (!collection) throw new NotFoundException('Collection not found');
+    return collection;
+  }
+
+  async removeProductFromCollection(collectionId: string, productId: string) {
+    const shopId = this.getShopId();
+    const collection = await this.prisma.collection.findFirst({ where: { id: collectionId, shopId } });
+    if (!collection) throw new NotFoundException('Collection not found');
+    return this.prisma.productCollection.delete({
+      where: {
+        productId_collectionId: { productId, collectionId }
+      }
+    });
+  }
   // -------------------------
 
+
   async findAllProducts(query: GetProductsDto) {
-    const shopId = this.getShopId();
+    const shopId = query.shopId || this.getShopId();
     const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC', search, categoryId, inStockOnly, status } = query;
     const skip = (page - 1) * limit;
 

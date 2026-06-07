@@ -7,20 +7,18 @@ export function PreviewIframe({ shopId }: { shopId: string }) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const { pages, theme, globalComponents, deviceMode } = useBuilderStore();
 
-    // Send state to iframe whenever it changes
-    useEffect(() => {
+    const sendUpdate = () => {
         if (!iframeRef.current?.contentWindow) return;
-
         const message = {
             type: 'BUILDER_UPDATE',
-            payload: {
-                pages,
-                theme,
-                globalComponents
-            }
+            payload: { pages, theme, globalComponents }
         };
-
         iframeRef.current.contentWindow.postMessage(message, '*');
+    };
+
+    // Send state to iframe whenever it changes
+    useEffect(() => {
+        sendUpdate();
     }, [pages, theme, globalComponents]);
 
     return (
@@ -33,10 +31,11 @@ export function PreviewIframe({ shopId }: { shopId: string }) {
         >
             <iframe 
                 ref={iframeRef}
-                src={`http://localhost:3001/${shopId}?preview=true`}
+                src={`http://${shopId}.localhost:3002?preview=true`}
                 className="w-full h-full border-0 bg-white"
                 title="Storefront Preview"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                onLoad={sendUpdate}
             />
         </div>
     );

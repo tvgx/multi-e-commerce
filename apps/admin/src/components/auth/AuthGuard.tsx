@@ -24,7 +24,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           if (pathname !== '/create-shop' && !pathname.startsWith('/dashboard/')) {
             try {
               const shopsRes = await apiClient.get<any[]>('/api/shops/my-shops');
-              if (shopsRes.data.length === 0) {
+              if ((shopsRes.data?.length ?? 0) === 0) {
                 router.push('/create-shop');
               }
             } catch (shopErr) {

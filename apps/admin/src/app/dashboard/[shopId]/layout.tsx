@@ -84,7 +84,9 @@ export default function DashboardLayout({
         <nav className="p-4 space-y-2">
           {SIDEBAR_ITEMS.map((item) => {
             const fullHref = `/dashboard/${shopId}${item.href}`;
-            const isActive = pathname === fullHref || (item.href === "" && pathname === `/dashboard/${shopId}`);
+            const isActive = item.href === "" 
+              ? pathname === `/dashboard/${shopId}`
+              : pathname.startsWith(fullHref);
             
             return (
               <Link

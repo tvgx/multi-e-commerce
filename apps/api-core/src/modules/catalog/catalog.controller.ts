@@ -4,10 +4,12 @@ import { CatalogStreamService } from './catalog-stream.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
-import { CreateCollectionDto } from './dto/collection.dto';
+import { CreateCollectionDto, UpdateCollectionDto } from './dto/collection.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
+
+import { BaseResponseDto } from '../../common/dto/base-response.dto';
 
 @UseGuards(BetterAuthGuard, RolesGuard)
 @Controller('catalog')
@@ -29,58 +31,96 @@ export class CatalogController {
   // --- Collection Endpoints ---
   @RequireRoles('ADMIN', 'OWNER')
   @Post('collections')
-  createCollection(@Body() dto: CreateCollectionDto) {
-    return this.catalogService.createCollection(dto);
+  async createCollection(@Body() dto: CreateCollectionDto) {
+    const result = await this.catalogService.createCollection(dto);
+    return BaseResponseDto.success(result);
   }
 
   @RequireRoles('ADMIN', 'OWNER')
   @Get('collections')
-  getCollections() {
-    return this.catalogService.getCollections();
+  async getCollections() {
+    const result = await this.catalogService.getCollections();
+    return BaseResponseDto.success(result);
   }
 
   @RequireRoles('ADMIN', 'OWNER')
   @Post('collections/:id/products')
-  addProductToCollection(@Param('id') id: string, @Body() { productId }: { productId: string }) {
-    return this.catalogService.addProductToCollection(id, productId);
+  async addProductToCollection(@Param('id') id: string, @Body() { productId }: { productId: string }) {
+    const result = await this.catalogService.addProductToCollection(id, productId);
+    return BaseResponseDto.success(result);
+  }
+
+  @RequireRoles('ADMIN', 'OWNER')
+  @Patch('collections/:id')
+  async updateCollection(@Param('id') id: string, @Body() dto: UpdateCollectionDto) {
+    const result = await this.catalogService.updateCollection(id, dto);
+    return BaseResponseDto.success(result);
+  }
+
+  @RequireRoles('ADMIN', 'OWNER')
+  @Delete('collections/:collectionId/products/:productId')
+  async removeProductFromCollection(
+    @Param('collectionId') collectionId: string,
+    @Param('productId') productId: string,
+  ) {
+    const result = await this.catalogService.removeProductFromCollection(collectionId, productId);
+    return BaseResponseDto.success(result);
+  }
+
+  @Get('collections/:slug')
+  async getCollectionBySlug(@Param('slug') slug: string, @Query('shopId') shopId: string) {
+    const result = await this.catalogService.getCollectionBySlug(slug, shopId);
+    return BaseResponseDto.success(result);
   }
   // ----------------------------
 
 
   @Get('products')
-  findAll(@Query() query: GetProductsDto) {
-    return this.catalogService.findAllProducts(query);
+  async findAll(@Query() query: GetProductsDto) {
+    const result = await this.catalogService.findAllProducts(query);
+    return BaseResponseDto.success(result);
+  }
+
+  @Get('products/shop/:shopId')
+  async findShopProducts(@Param('shopId') shopId: string) {
+    const result = await this.catalogService.findAllProducts({ shopId });
+    return BaseResponseDto.success(result);
   }
 
   @Get('products/:id')
-  findOne(@Param('id') id: string) {
-    return this.catalogService.findOneProduct(id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.catalogService.findOneProduct(id);
+    return BaseResponseDto.success(result);
   }
 
   @Get('products/slug/:slug')
-  findBySlug(@Param('slug') slug: string) {
-    return this.catalogService.findProductBySlug(slug);
+  async findBySlug(@Param('slug') slug: string) {
+    const result = await this.catalogService.findProductBySlug(slug);
+    return BaseResponseDto.success(result);
   }
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Post('products')
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.catalogService.createProduct(createProductDto);
+  async create(@Body() createProductDto: CreateProductDto) {
+    const result = await this.catalogService.createProduct(createProductDto);
+    return BaseResponseDto.success(result);
   }
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Patch('products/:id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.catalogService.updateProduct(id, updateProductDto);
+  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
+    const result = await this.catalogService.updateProduct(id, updateProductDto);
+    return BaseResponseDto.success(result);
   }
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Delete('products/:id')
-  remove(@Param('id') id: string) {
-    return this.catalogService.removeProduct(id);
+  async remove(@Param('id') id: string) {
+    const result = await this.catalogService.removeProduct(id);
+    return BaseResponseDto.success(result);
   }
 }
 
