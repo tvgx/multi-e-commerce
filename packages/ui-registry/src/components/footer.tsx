@@ -37,9 +37,9 @@ export const Footer: React.FC<FooterProps> = ({
                         </p>
                     </div>
 
-                    {/* Utilities */}
-                    <div className="flex flex-col sm:flex-row gap-6 sm:gap-12">
-                        <div>
+                    {/* Utilities - One flexible horizontal row */}
+                    <div className="flex-1 flex flex-wrap lg:flex-nowrap items-start justify-end gap-6 sm:gap-12 w-full mt-8 md:mt-0">
+                        <div className="flex-1 min-w-[200px]">
                             <h3 className="text-sm font-semibold tracking-wider uppercase mb-4">
                                 Khám phá
                             </h3>
@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({
                         </div>
                         
                         {/* Social Links */}
-                        <div>
+                        <div className="flex-1 min-w-[200px]">
                             <h3 className="text-sm font-semibold tracking-wider uppercase mb-4">
                                 Liên kết
                             </h3>

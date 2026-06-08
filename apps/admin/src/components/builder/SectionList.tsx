@@ -239,6 +239,9 @@ export function SectionList() {
               </SortableContext>
             </DndContext>
           )}
+          <div className="mt-3 px-2">
+            <AddSectionDropdown />
+          </div>
         </div>
 
         {/* FOOTER ZONE */}

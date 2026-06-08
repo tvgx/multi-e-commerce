@@ -345,9 +345,9 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                     props: { shopName: shopData?.name || 'STOREFRONT' }, 
                     type: 'section',
                     blocks: [
-                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Home', link: '/' }, type: 'block' },
-                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Catalog', link: '/catalog' }, type: 'block' },
-                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'Contact', link: '/contact' }, type: 'block' }
+                        { id: uuidv4(), componentId: 'HeaderMenuItem', props: { label: 'All Products', link: '/all-products' }, type: 'block' },
+                        { id: uuidv4(), componentId: 'HeaderLanguageSwitcher', props: {}, type: 'block' },
+                        { id: uuidv4(), componentId: 'HeaderCartTrigger', props: {}, type: 'block' }
                     ]
                 },
                 { 

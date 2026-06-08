@@ -28,17 +28,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
     // Extract menu items from blocks
     const navigation = blocks.length > 0 
-        ? blocks
-            .filter(b => b.componentId === 'HeaderMenuItem')
-            .map(b => ({
-                label: b.props?.label || 'Menu Item',
-                href: b.props?.link || '/'
-            }))
-        : [
-            { label: 'Home', href: '/' },
-            { label: 'Catalog', href: '/catalog' },
-            { label: 'Contact', href: '/contact' }
-          ];
+        ? blocks.filter(b => b.componentId === 'HeaderMenuItem')
+        : [{ id: '1', componentId: 'HeaderMenuItem', props: { label: 'All Products', link: '/all-products' } }];
+
+    const hasLanguageSwitcher = blocks.some(b => b.componentId === 'HeaderLanguageSwitcher');
+    const hasCartTrigger = blocks.some(b => b.componentId === 'HeaderCartTrigger');
 
     return (
         <div className="w-full relative z-50">
@@ -75,11 +69,11 @@ export const Header: React.FC<HeaderProps> = ({
                                 <nav className="hidden lg:flex space-x-8">
                                     {navigation.map((item, idx) => (
                                         <Link
-                                            key={idx}
-                                            href={item.href}
+                                            key={item.id || idx}
+                                            href={item.props?.link || '/'}
                                             className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
                                         >
-                                            {item.label}
+                                            {item.props?.label || 'Menu Item'}
                                         </Link>
                                     ))}
                                 </nav>
@@ -104,11 +98,11 @@ export const Header: React.FC<HeaderProps> = ({
                              <nav className="hidden lg:flex space-x-8 mr-4">
                                 {navigation.map((item, idx) => (
                                     <Link
-                                        key={idx}
-                                        href={item.href}
+                                        key={item.id || idx}
+                                        href={item.props?.link || '/'}
                                         className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
                                     >
-                                        {item.label}
+                                        {item.props?.label || 'Menu Item'}
                                     </Link>
                                 ))}
                             </nav>
@@ -120,11 +114,17 @@ export const Header: React.FC<HeaderProps> = ({
                             <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100" title="Account">
                                 <User className="h-5 w-5" />
                             </Link>
-                            <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
-                                <ShoppingCart className="h-5 w-5" />
-                                {/* Optional Cart Badge */}
-                                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
-                            </Link>
+                            
+                            {(blocks.length === 0 || hasLanguageSwitcher) && (
+                                <div className="text-sm font-medium mx-2 opacity-80 hover:opacity-100 cursor-pointer">VI</div>
+                            )}
+                            
+                            {(blocks.length === 0 || hasCartTrigger) && (
+                                <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
+                                    <ShoppingCart className="h-5 w-5" />
+                                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500" />
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
 export const headerSchema = {
     name: 'Header',
     category: 'Header',
-    allowedBlocks: ['AnnouncementBar', 'HeaderMenuItem'],
+    allowedBlocks: ['AnnouncementBar', 'HeaderMenuItem', 'HeaderLanguageSwitcher', 'HeaderCartTrigger'],
     settings: [
         { id: 'shopName', type: 'text', label: 'Tên Shop', default: 'STOREFRONT' },
         { id: 'logoUrl', type: 'image', label: 'Logo' },

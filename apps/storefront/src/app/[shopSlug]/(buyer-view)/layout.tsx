@@ -7,7 +7,10 @@ import { SearchBar } from '@ecommerce/ui-registry/src/components/products/Search
 import { DynamicRenderer } from '@/lib/layout/dynamic-loader';
 import { NotificationToast } from '@/components/NotificationToast';
 import { getCustomerSession, getCustomerData } from '@/app/actions/auth.actions';
-import { PreviewWrapper } from '@/components/PreviewWrapper';
+import { StorefrontPreviewProvider } from '@/components/preview/StorefrontPreviewProvider';
+import { DynamicGlobalHeader } from '@/components/preview/DynamicGlobalHeader';
+import { DynamicGlobalFooter } from '@/components/preview/DynamicGlobalFooter';
+import { DynamicPageContent } from '@/components/preview/DynamicPageContent';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ChatWidget } from '@ecommerce/ui-registry/src/components/chat/ChatWidget';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -35,7 +38,7 @@ export default async function BuyerLayout({ children, params }: Props) {
     const globalComponents = globalLayout?.globalComponents || [];
 
     return (
-        <PreviewWrapper initialGlobalComponents={globalComponents} initialTheme={globalLayout?.theme}>
+        <StorefrontPreviewProvider>
             <div 
                 className="flex flex-col min-h-screen storefront-layout-wrapper"
             style={{
@@ -48,6 +51,7 @@ export default async function BuyerLayout({ children, params }: Props) {
             <NotificationToast token={token ?? undefined} />
             
             {/* ── Global Header (Dynamic) or Fallback ── */}
+            <DynamicGlobalHeader initialComponents={globalComponents}>
             {globalComponents.length > 0 ? (
                 <ErrorBoundary componentName="GlobalHeader">
                     <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('header'))} />
@@ -84,15 +88,19 @@ export default async function BuyerLayout({ children, params }: Props) {
                     </div>
                 </header>
             )}
+            </DynamicGlobalHeader>
 
             {/* ── Main Content ── */}
             <main className="flex-1">
                 <ErrorBoundary componentName="PageContent">
-                    {children}
+                    <DynamicPageContent>
+                        {children}
+                    </DynamicPageContent>
                 </ErrorBoundary>
             </main>
 
             {/* ── Global Footer (Dynamic) or Fallback ── */}
+            <DynamicGlobalFooter initialComponents={globalComponents}>
             {globalComponents.length > 0 ? (
                 <ErrorBoundary componentName="GlobalFooter">
                     <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('footer'))} />
@@ -128,11 +136,12 @@ export default async function BuyerLayout({ children, params }: Props) {
                     </div>
                 </footer>
             )}
+            </DynamicGlobalFooter>
 
             {shopInfo?.id && (
                 <ChatWidget shopId={shopInfo.id} customerId={customerId} />
             )}
         </div>
-        </PreviewWrapper>
+        </StorefrontPreviewProvider>
     );
 }

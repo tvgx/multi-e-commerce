@@ -107,6 +107,20 @@ export const HeaderMenuItemSchema: ComponentSchema = {
   ]
 };
 
+export const HeaderLanguageSwitcherSchema: ComponentSchema = {
+  id: 'HeaderLanguageSwitcher',
+  title: 'Chuyển đổi ngôn ngữ',
+  type: 'block',
+  settings: []
+};
+
+export const HeaderCartTriggerSchema: ComponentSchema = {
+  id: 'HeaderCartTrigger',
+  title: 'Giỏ hàng',
+  type: 'block',
+  settings: []
+};
+
 // --- Layered Slideshow ---
 export const LayeredSlideshowSchema: ComponentSchema = {
   id: 'LayeredSlideshow',
@@ -321,6 +335,8 @@ export const ComponentSchemas: Record<string, ComponentSchema> = {
   AnnouncementBar: AnnouncementBarSchema,
   Header: HeaderSchema,
   HeaderMenuItem: HeaderMenuItemSchema,
+  HeaderLanguageSwitcher: HeaderLanguageSwitcherSchema,
+  HeaderCartTrigger: HeaderCartTriggerSchema,
   LayeredSlideshow: LayeredSlideshowSchema,
   SlideItem: SlideItemSchema,
   Footer: FooterSchema,

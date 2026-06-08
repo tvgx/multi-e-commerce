@@ -61,6 +61,8 @@ import { StandardCategoryPage } from './components/pages/StandardCategoryPage';
 import { StandardCart } from './components/pages/StandardCart';
 import { StandardCheckout } from './components/pages/StandardCheckout';
 
+import { ComponentSchemas } from './component-schemas';
+
 export const registry: Record<string, any> = {
   AnnouncementBar,
   AddSectionDropdown,
@@ -128,6 +130,7 @@ export const registry: Record<string, any> = {
 };
 
 export const schemaRegistry: Record<string, any> = {
+  ...ComponentSchemas,
   Header: headerSchema,
   Footer: footerSchema,
   AnnouncementBar: announcementBarSchema,

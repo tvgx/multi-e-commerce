@@ -70,11 +70,13 @@ interface DynamicRendererProps {
  * Renders an array of UIComponentRef objects.
  */
 export function DynamicRenderer({ components, pageContext }: DynamicRendererProps) {
-    if (!components || components.length === 0) return null;
+    if (!components || !Array.isArray(components) || components.length === 0) return null;
 
     return (
         <>
             {components.map((comp, idx) => {
+                if (!comp || !comp.componentId) return null;
+                
                 const ComponentConstructor = ComponentRegistry[comp.componentId];
 
                 if (!ComponentConstructor) {
