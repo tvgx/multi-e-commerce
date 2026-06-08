@@ -109,11 +109,36 @@ export const MasterTemplateCatalogSchema: Schema = new Schema({
     isCustom: { type: Boolean, default: false },
 }, { timestamps: true, collection: 'master_template_catalog' });
 
+// ------------------------------------------
+// 4. UI Component Catalog
+// ------------------------------------------
+
+export interface IUIComponentCatalog extends Document {
+    componentId: string;
+    name: string;
+    category: string;
+    type: string; // 'section' or 'block'
+    mediaUrl?: string; // For blocks/sections containing media from MinIO
+    settings: Record<string, unknown>[];
+    allowedBlocks?: string[];
+}
+
+export const UIComponentCatalogSchema: Schema = new Schema({
+    componentId: { type: String, required: true, unique: true, index: true },
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    type: { type: String, required: true },
+    mediaUrl: { type: String },
+    settings: { type: [Schema.Types.Mixed], default: [] },
+    allowedBlocks: [{ type: String }],
+}, { timestamps: true, collection: 'ui_component_catalog' });
+
 // Exports
 export const GlobalLayout = mongoose.models.GlobalLayout || mongoose.model<IGlobalLayout>('GlobalLayout', GlobalLayoutSchema);
 export const PageLayout = mongoose.models.PageLayout || mongoose.model<IPageLayout>('PageLayout', PageLayoutSchema);
 export const ProductLayout = mongoose.models.ProductLayout || mongoose.model<IProductLayout>('ProductLayout', ProductLayoutSchema);
 export const MasterTemplateCatalog = mongoose.models.MasterTemplateCatalog || mongoose.model<IMasterTemplateCatalog>('MasterTemplateCatalog', MasterTemplateCatalogSchema);
+export const UIComponentCatalog = mongoose.models.UIComponentCatalog || mongoose.model<IUIComponentCatalog>('UIComponentCatalog', UIComponentCatalogSchema);
 
 /**
  * @deprecated Use ProductLayout instead. Kept for backward compatibility during migration.

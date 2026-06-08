@@ -1,7 +1,10 @@
 import React from 'react';
 import Image from 'next/image';
 import { UIComponentRef } from '@ecommerce/schema';
-import { registry } from '../../../registry';
+import { HeadingBlock } from '../../blocks/heading';
+import { TextBlock } from '../../blocks/text';
+import { ButtonBlock } from '../../blocks/button';
+import { MediaBlock } from '../../blocks/media';
 
 interface HeroProps {
     backgroundImageUrl?: string;
@@ -40,9 +43,20 @@ export function Hero({
             <div className="relative z-10 text-center max-w-3xl px-4">
                 {blocks.map(block => {
                     if (block.isHidden) return null;
-                    const BlockComponent = registry[block.componentId];
-                    if (!BlockComponent) return null;
-                    return <BlockComponent key={block.id} {...block.props} blocks={block.blocks} />;
+                    const props: any = block.props || {};
+                    
+                    switch (block.componentId) {
+                        case 'Heading': 
+                            return <HeadingBlock key={block.id} content={props.content || 'Heading Placeholder'} {...props} />;
+                        case 'Text': 
+                            return <TextBlock key={block.id} content={props.content || 'Text Placeholder'} {...props} />;
+                        case 'Button': 
+                            return <ButtonBlock key={block.id} label={props.label || 'Button Placeholder'} {...props} />;
+                        case 'Media': 
+                            return <MediaBlock key={block.id} {...props} />;
+                        default: 
+                            return null;
+                    }
                 })}
             </div>
         </section>

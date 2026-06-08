@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import { Plus, X, LayoutTemplate, ImageIcon, Type, Grid, Box } from "lucide-react";
 import { useBuilderStore } from "../../store/builder-store";
-import { schemaRegistry } from "../../registry";
 
-const getAddableItems = () => {
-    const items = Object.entries(schemaRegistry).map(([componentId, schema]) => {
+const getAddableItems = (availableSchemas: any[]) => {
+    const items = availableSchemas.map((schema) => {
+        const componentId = schema.componentId;
         let cat = schema.category;
         if (!cat) {
             cat = schema.type === 'block' ? 'Atomic Blocks' : 'Other';
@@ -15,7 +15,8 @@ const getAddableItems = () => {
             componentId,
             category: cat,
             name: schema.title || schema.name || componentId,
-            previewImage: schema.previewImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%231e1e24"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="bold" fill="%23a8a29e">${encodeURIComponent(schema.title || schema.name || componentId)}</text></svg>`
+            previewImage: schema.mediaUrl || schema.previewImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%231e1e24"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="bold" fill="%23a8a29e">${encodeURIComponent(schema.title || schema.name || componentId)}</text></svg>`,
+            schema: schema // Pass the whole schema for Live Preview
         };
     });
     
@@ -40,9 +41,9 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 export function AddSectionDropdown() {
     const [isOpen, setIsOpen] = useState(false);
     const [hoveredItem, setHoveredItem] = useState<any | null>(null);
-    const { addPageSection, addBlock, activePage, activeComponentId } = useBuilderStore();
+    const { addPageSection, addBlock, activePage, activeComponentId, availableSchemas } = useBuilderStore();
     
-    const groupedItems = getAddableItems();
+    const groupedItems = getAddableItems(availableSchemas);
 
     const handleAdd = (componentId: string, category: string) => {
         if (category === 'Atomic Blocks') {
@@ -69,7 +70,7 @@ export function AddSectionDropdown() {
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8" onClick={() => setIsOpen(false)}>
                     <div 
-                        className="w-[60vw] max-w-5xl h-[70vh] min-h-[500px] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl flex overflow-hidden"
+                        className="w-[80%] h-[80%] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl flex overflow-hidden"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Left Pane - Scrollable List */}
@@ -118,13 +119,9 @@ export function AddSectionDropdown() {
                             </button>
                             
                             {hoveredItem ? (
-                                <div className="flex-1 flex flex-col p-6 items-center justify-center animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="w-full aspect-[4/3] rounded-lg border border-slate-800 overflow-hidden bg-slate-900 mb-4 shadow-xl">
-                                        <img 
-                                            src={hoveredItem.previewImage} 
-                                            alt={hoveredItem.name}
-                                            className="w-full h-full object-cover"
-                                        />
+                                <div className="flex-1 flex flex-col p-6 items-center justify-center animate-in fade-in zoom-in-95 duration-200 w-full">
+                                    <div className="w-full h-full max-h-[80%] rounded-lg border border-slate-800 overflow-hidden bg-white mb-4 shadow-xl relative flex items-center justify-center">
+                                        <LivePreview componentId={hoveredItem.componentId} previewImage={hoveredItem.previewImage} />
                                     </div>
                                     <h4 className="text-lg font-bold text-white mb-1">{hoveredItem.name}</h4>
                                     <p className="text-sm text-slate-500 text-center">
@@ -141,6 +138,26 @@ export function AddSectionDropdown() {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+// Live Preview Component
+import { registry } from "../../registry";
+
+function LivePreview({ componentId, previewImage }: { componentId: string, previewImage: string }) {
+    const Component = registry[componentId];
+    
+    // Fallback to image if component is not found or fails to render
+    if (!Component) {
+         return <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />;
+    }
+
+    return (
+        <div className="w-[1200px] origin-top-left scale-[0.4] absolute top-0 left-0 bg-white">
+            <div className="pointer-events-none">
+                <Component />
+            </div>
         </div>
     );
 }

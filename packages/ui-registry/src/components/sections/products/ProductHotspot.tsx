@@ -1,7 +1,6 @@
 import React from 'react';
 import { HeadingBlock } from '../../blocks/heading';
 import { UIComponentRef } from '@ecommerce/schema';
-import { registry } from '../../../registry';
 
 interface ProductHotspotProps {
     mainImage?: string;
@@ -31,9 +30,11 @@ export function ProductHotspot({
 
                 {blocks.map(block => {
                     if (block.isHidden) return null;
-                    const BlockComponent = registry[block.componentId];
-                    if (!BlockComponent) return null;
-                    return <BlockComponent key={block.id} {...block.props} />;
+                    const props: any = block.props || {};
+                    if (block.componentId === 'HotspotBlock') {
+                        return <HotspotBlock key={block.id} {...props} />;
+                    }
+                    return null;
                 })}
             </div>
         </section>

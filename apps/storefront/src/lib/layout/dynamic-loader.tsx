@@ -93,6 +93,7 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
                         <ComponentConstructor
                             {...comp.props}
                             {...pageContext}
+                            blocks={comp.blocks || []}
                         />
                     </ErrorBoundary>
                 );

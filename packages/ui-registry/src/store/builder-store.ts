@@ -10,6 +10,7 @@ interface BuilderStoreState extends BuilderState {
     activePage: string;
     deviceMode: DeviceMode;
     isLoading: boolean;
+    availableSchemas: any[];
     
     defaultImages: string[];
 
@@ -77,6 +78,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     activePage: 'home',
     deviceMode: 'desktop',
     isLoading: false,
+    availableSchemas: [],
 
     defaultImages: [],
 
@@ -338,6 +340,18 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                 } catch (err) {}
             }
 
+            // Fetch Available Schemas
+            let availableSchemas: any[] = [];
+            try {
+                const schemaRes = await fetch(`http://localhost:3000/api/layouts/builder/schemas`, { headers });
+                if (schemaRes.ok) {
+                    const schemaJson = await schemaRes.json();
+                    availableSchemas = schemaJson.data || [];
+                }
+            } catch (err) {
+                console.error("Failed to load schemas", err);
+            }
+
             const defaultGlobalComponents: UIComponentRef[] = [
                 { 
                     id: 'global-header', 
@@ -366,6 +380,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                 pages: {
                     home: pageData?.components || []
                 },
+                availableSchemas,
                 isLoading: false
             });
         } catch (error) {

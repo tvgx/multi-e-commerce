@@ -24,7 +24,8 @@ export class LayoutService {
   constructor(
     private readonly tenantService: TenantService,
     @InjectModel('GlobalLayout') private globalLayoutModel: Model<GlobalLayoutDocument>,
-    @InjectModel('PageLayout') private pageLayoutModel: Model<PageLayoutDocument>
+    @InjectModel('PageLayout') private pageLayoutModel: Model<PageLayoutDocument>,
+    @InjectModel('UIComponentCatalog') private uiComponentCatalogModel: Model<any>
   ) {}
 
   private getShopId(): string {
@@ -105,5 +106,11 @@ export class LayoutService {
     const pageLayout = await this.pageLayoutModel.findOne(query).exec();
     return pageLayout ? pageLayout.publishedData : null;
   }
-}
 
+  // ─── Builder Component Schemas ──────────────────────────────────────────
+
+  async getComponentSchemas() {
+    const schemas = await this.uiComponentCatalogModel.find().lean().exec();
+    return schemas;
+  }
+}

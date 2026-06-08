@@ -31,6 +31,13 @@ export class LayoutController {
     return BaseResponseDto.success(data);
   }
 
+  @Public()
+  @Get('builder/schemas')
+  async getBuilderSchemas() {
+    const data = await this.layoutService.getComponentSchemas();
+    return BaseResponseDto.success(data);
+  }
+
   // ─── ADMIN endpoints ───────────────────────────────────────────────────────
 
   // Master Template usually created by System Admins, but for mock sake:
