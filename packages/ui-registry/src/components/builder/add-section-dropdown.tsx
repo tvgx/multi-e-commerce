@@ -1,163 +1,259 @@
 "use client"
 
-import React, { useState } from "react";
-import { Plus, X, LayoutTemplate, ImageIcon, Type, Grid, Box } from "lucide-react";
+import React, { useState, useRef, useMemo } from "react";
+import { Plus, ChevronDown, ChevronRight, LayoutTemplate, Image as ImageIcon, Type, Grid, Box, BookOpen, MessageSquare, Star, Columns, X, Search } from "lucide-react";
 import { useBuilderStore } from "../../store/builder-store";
 
-const getAddableItems = (availableSchemas: any[]) => {
-    const items = availableSchemas.map((schema) => {
-        const componentId = schema.componentId;
-        let cat = schema.category;
-        if (!cat) {
-            cat = schema.type === 'block' ? 'Atomic Blocks' : 'Other';
-        }
-        return {
-            componentId,
-            category: cat,
-            name: schema.title || schema.name || componentId,
-            previewImage: schema.mediaUrl || schema.previewImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%231e1e24"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="bold" fill="%23a8a29e">${encodeURIComponent(schema.title || schema.name || componentId)}</text></svg>`,
-            schema: schema // Pass the whole schema for Live Preview
-        };
-    });
-    
-    // Group by category
-    const grouped = items.reduce((acc, item) => {
-        if (!acc[item.category]) acc[item.category] = [];
-        acc[item.category].push(item);
-        return acc;
-    }, {} as Record<string, typeof items>);
-    
-    return grouped;
+// Preview images served from Next.js admin public folder
+const PREVIEW_MAP: Record<string, string> = {
+    Hero: '/section-previews/banners/hero/media__1780241741556.png',
+    HeroBottomAligned: '/section-previews/banners/header_bottom_aligned/media__1780242455808.png',
+    HeroMarquee: '/section-previews/banners/hero_marquee/media__1780242500657.png',
+    LargeLogo: '/section-previews/banners/large_logo/media__1780242605027.png',
+    LayeredSlideshow: '/section-previews/banners/layered_slideshow/media__1780242704303.png',
+    SlideshowFullFrame: '/section-previews/banners/slideshow_full_frame/media__1780243337620.png',
+    SlideshowInset: '/section-previews/banners/slideshow_inset/media__1780243401235.png',
+    SplitShowcase: '/section-previews/banners/spilt_showcase/media__1780243767084.png',
+    CollectionLinksSpotlight: '/section-previews/collections/spotlight/media__1780243921637.png',
+    CollectionLinksText: '/section-previews/collections/collection_links_text/media__1780243988798.png',
+    CollectionListsBento: '/section-previews/collections/collection_list_bento/media__1780244009660.png',
+    CollectionListsCarousel: '/section-previews/collections/collection_list_carousel/media__1780244076381.png',
+    CollectionListsEditorial: '/section-previews/collections/collection_list_editorial/media__1780244182514.png',
+    CollectionListsGrid: '/section-previews/collections/collection_list_grid/media__1780244223854.png',
+    FeaturedCollectionCarousel: '/section-previews/collections/featured_collection_carousel/media__1780244610965.png',
+    FeaturedCollectionEditorial: '/section-previews/collections/featured_collection_editorial/media__1780244720003.png',
+    FeaturedCollectionGrid: '/section-previews/collections/featured_collection_grid/media__1780244766344.png',
+    FeaturedProducts: '/section-previews/products/featured_product/media__1780244789282.png',
+    ProductHighlight: '/section-previews/products/product_highlight/media__1780244827534.png',
+    ProductHotspot: '/section-previews/products/product_hotspot/media__1780244931591.png',
+    RecommendedProducts: '/section-previews/products/recommended_products/media__1780244951786.png',
 };
 
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-    'Banners': ImageIcon,
-    'Collections': Grid,
-    'Products': Box,
-    'Atomic Blocks': Type,
-    'Other': LayoutTemplate
+const SECTION_CATALOG = [
+    { componentId: 'Hero', label: 'Image Banner', category: 'Banners' },
+    { componentId: 'HeroBottomAligned', label: 'Hero: Căn dưới', category: 'Banners' },
+    { componentId: 'HeroMarquee', label: 'Hero: Chữ chạy', category: 'Banners' },
+    { componentId: 'LargeLogo', label: 'Logo lớn', category: 'Banners' },
+    { componentId: 'LayeredSlideshow', label: 'Slideshow xếp lớp', category: 'Banners' },
+    { componentId: 'SlideshowFullFrame', label: 'Slideshow toàn màn hình', category: 'Banners' },
+    { componentId: 'SlideshowInset', label: 'Slideshow thu nhỏ', category: 'Banners' },
+    { componentId: 'SplitShowcase', label: 'Showcase chia đôi', category: 'Banners' },
+    { componentId: 'CollectionLinksSpotlight', label: 'Danh mục: Spotlight', category: 'Collections' },
+    { componentId: 'CollectionLinksText', label: 'Danh mục: Text', category: 'Collections' },
+    { componentId: 'CollectionListsBento', label: 'Danh mục: Bento Grid', category: 'Collections' },
+    { componentId: 'CollectionListsCarousel', label: 'Danh mục: Carousel', category: 'Collections' },
+    { componentId: 'CollectionListsEditorial', label: 'Danh mục: Editorial', category: 'Collections' },
+    { componentId: 'CollectionListsGrid', label: 'Danh mục: Grid', category: 'Collections' },
+    { componentId: 'FeaturedCollectionCarousel', label: 'Featured Collection Carousel', category: 'Products' },
+    { componentId: 'FeaturedCollectionEditorial', label: 'Featured Collection Editorial', category: 'Products' },
+    { componentId: 'FeaturedCollectionGrid', label: 'Featured Collection Grid', category: 'Products' },
+    { componentId: 'FeaturedProducts', label: 'Sản phẩm nổi bật', category: 'Products' },
+    { componentId: 'ProductHighlight', label: 'Product Highlight', category: 'Products' },
+    { componentId: 'ProductHotspot', label: 'Product Hotspot', category: 'Products' },
+    { componentId: 'RecommendedProducts', label: 'Sản phẩm gợi ý', category: 'Products' },
+    { componentId: 'BlogPostCarousel', label: 'Bài viết (Carousel)', category: 'Storytelling' },
+    { componentId: 'BlogPostEditorial', label: 'Bài viết (Editorial)', category: 'Storytelling' },
+    { componentId: 'BlogPostGrid', label: 'Bài viết (Grid)', category: 'Storytelling' },
+    { componentId: 'Carousel', label: 'Carousel Cơ bản', category: 'Storytelling' },
+    { componentId: 'Editorial', label: 'Editorial', category: 'Storytelling' },
+    { componentId: 'EditorialJumboText', label: 'Editorial (Chữ lớn)', category: 'Storytelling' },
+    { componentId: 'ImageCompare', label: 'So sánh ảnh (Trước/Sau)', category: 'Storytelling' },
+    { componentId: 'ImageWithText', label: 'Ảnh kèm Chữ', category: 'Storytelling' },
+    { componentId: 'FAQ', label: 'Hỏi đáp (FAQ)', category: 'Text' },
+    { componentId: 'IconsWithText', label: 'Icon kèm Chữ', category: 'Text' },
+    { componentId: 'Marquee', label: 'Chữ chạy (Marquee)', category: 'Text' },
+    { componentId: 'Multicolumn', label: 'Nhiều cột', category: 'Text' },
+    { componentId: 'PullQuote', label: 'Trích dẫn', category: 'Text' },
+    { componentId: 'RichText', label: 'Đoạn văn bản', category: 'Text' },
+    { componentId: 'AnnouncementBar', label: 'Thanh thông báo', category: 'Text' },
+];
+
+const CATEGORY_ICON: Record<string, React.ElementType> = {
+    Banners: ImageIcon,
+    Collections: Grid,
+    Products: Star,
+    Storytelling: BookOpen,
+    Text: Type,
+    Forms: MessageSquare,
+    Other: LayoutTemplate,
 };
 
-export function AddSectionDropdown() {
+interface AddSectionDropdownProps {
+    insertIndex?: number;
+}
+
+export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [hoveredItem, setHoveredItem] = useState<any | null>(null);
-    const { addPageSection, addBlock, activePage, activeComponentId, availableSchemas } = useBuilderStore();
-    
-    const groupedItems = getAddableItems(availableSchemas);
+    const [hoveredItem, setHoveredItem] = useState<typeof SECTION_CATALOG[number] & { previewImage?: string | null } | null>(null);
+    const [previewTop, setPreviewTop] = useState(200);
+    const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(['Banners']));
+    const [search, setSearch] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const { addPageSection, activePage, availableSchemas } = useBuilderStore();
 
-    const handleAdd = (componentId: string, category: string) => {
-        if (category === 'Atomic Blocks') {
-            if (!activeComponentId) {
-                alert("Vui lòng chọn một Section để thêm Block vào.");
-                return;
-            }
-            addBlock(activeComponentId, componentId);
-        } else {
-            addPageSection(activePage, componentId);
-        }
+    const enriched = useMemo(() => {
+        const schemaMap = new Map(availableSchemas.map((s: any) => [s.componentId, s]));
+        return SECTION_CATALOG.map(sec => ({
+            ...sec,
+            previewImage: (schemaMap.get(sec.componentId) as any)?.mediaUrl || PREVIEW_MAP[sec.componentId] || null,
+        }));
+    }, [availableSchemas]);
+
+    const filtered = useMemo(() => {
+        if (!search) return enriched;
+        const q = search.toLowerCase();
+        return enriched.filter(s => s.label.toLowerCase().includes(q) || s.componentId.toLowerCase().includes(q));
+    }, [enriched, search]);
+
+    const grouped = useMemo(() => {
+        const map: Record<string, typeof enriched> = {};
+        filtered.forEach(s => {
+            if (!map[s.category]) map[s.category] = [];
+            map[s.category].push(s);
+        });
+        return map;
+    }, [filtered]);
+
+    const handleAdd = (componentId: string) => {
+        addPageSection(activePage, componentId, insertIndex);
         setIsOpen(false);
+        setHoveredItem(null);
     };
 
+    const handleMouseEnter = (item: typeof enriched[number], e: React.MouseEvent) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setPreviewTop(rect.top + rect.height / 2);
+        setHoveredItem(item);
+    };
+
+    const toggleCat = (cat: string) => {
+        setExpandedCats(prev => {
+            const next = new Set(prev);
+            if (next.has(cat)) next.delete(cat); else next.add(cat);
+            return next;
+        });
+    };
+
+    const getSidebarRight = (): number => {
+        let el = containerRef.current as HTMLElement | null;
+        while (el) {
+            if (el.getAttribute('data-builder-panel') === 'left') {
+                return el.getBoundingClientRect().right;
+            }
+            el = el.parentElement;
+        }
+        return 320;
+    };
+
+    const close = () => { setIsOpen(false); setHoveredItem(null); setSearch(''); };
+
     return (
-        <div className="w-full">
+        <div ref={containerRef} className="w-full">
             <button
-                onClick={() => setIsOpen(true)}
-                className="w-full py-2 flex items-center justify-center gap-2 text-sm text-indigo-400 font-medium hover:bg-white/5 rounded-lg transition-colors border border-dashed border-white/10 hover:border-indigo-500/50"
+                onClick={() => { setIsOpen(v => !v); if (isOpen) close(); }}
+                className={`w-full py-2 flex items-center justify-center gap-2 text-sm font-medium rounded-lg transition-all border
+                    ${isOpen
+                        ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'
+                        : 'text-indigo-400 hover:bg-white/5 border-dashed border-white/10 hover:border-indigo-500/50'
+                    }`}
             >
-                <Plus className="h-4 w-4" /> Add Section
+                <Plus className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`} />
+                Thêm section
             </button>
 
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8" onClick={() => setIsOpen(false)}>
-                    <div 
-                        className="w-[80%] h-[80%] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl flex overflow-hidden"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Left Pane - Scrollable List */}
-                        <div className="w-1/2 flex flex-col border-r border-slate-800 bg-slate-900/50">
-                            <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
-                                <h2 className="text-sm font-semibold text-white">Add Section</h2>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-700">
-                                {Object.entries(groupedItems).map(([category, items]) => {
-                                    const CatIcon = CATEGORY_ICONS[category] || LayoutTemplate;
-                                    return (
-                                        <div key={category} className="mb-4">
-                                            <div className="flex items-center gap-2 px-3 py-2">
-                                                <CatIcon className="w-3.5 h-3.5 text-indigo-400" />
-                                                <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{category}</h3>
-                                            </div>
-                                            <div className="flex flex-col">
-                                                {items.map(item => (
-                                                    <button
-                                                        key={item.componentId}
-                                                        onClick={() => handleAdd(item.componentId, category)}
-                                                        onMouseEnter={() => setHoveredItem(item)}
-                                                        className="w-full flex items-center justify-between px-4 py-3 border-b border-slate-800/50 hover:bg-indigo-500/10 transition-colors text-left group last:border-b-0"
-                                                    >
-                                                        <span className="text-sm font-medium text-slate-300 group-hover:text-indigo-300 transition-colors">
-                                                            {item.name}
-                                                        </span>
-                                                        <Plus className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                <div className="mt-1.5 rounded-xl border border-white/10 bg-[#0c0c14] overflow-hidden shadow-xl">
+                    {/* Search */}
+                    <div className="p-2 border-b border-white/5 flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Tìm section..."
+                                autoFocus
+                                className="w-full bg-white/5 border border-white/8 rounded-md pl-7 pr-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/40 transition-colors"
+                            />
                         </div>
+                        <button onClick={close} className="p-1 text-slate-600 hover:text-white transition-colors rounded">
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
 
-                        {/* Right Pane - Preview */}
-                        <div className="w-1/2 bg-slate-950 flex flex-col relative">
-                            <button 
-                                onClick={() => setIsOpen(false)} 
-                                className="absolute top-4 right-4 text-slate-500 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors z-10 bg-black/20"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                            
-                            {hoveredItem ? (
-                                <div className="flex-1 flex flex-col p-6 items-center justify-center animate-in fade-in zoom-in-95 duration-200 w-full">
-                                    <div className="w-full h-full max-h-[80%] rounded-lg border border-slate-800 overflow-hidden bg-white mb-4 shadow-xl relative flex items-center justify-center">
-                                        <LivePreview componentId={hoveredItem.componentId} previewImage={hoveredItem.previewImage} />
-                                    </div>
-                                    <h4 className="text-lg font-bold text-white mb-1">{hoveredItem.name}</h4>
-                                    <p className="text-sm text-slate-500 text-center">
-                                        Click item on the left to add this section.
-                                    </p>
+                    {/* Section list */}
+                    <div className="max-h-[300px] overflow-y-auto">
+                        {Object.entries(grouped).length === 0 && (
+                            <p className="text-center text-slate-600 text-xs py-8">Không tìm thấy section</p>
+                        )}
+                        {Object.entries(grouped).map(([cat, items]) => {
+                            const CatIcon = CATEGORY_ICON[cat] || LayoutTemplate;
+                            const expanded = expandedCats.has(cat) || !!search;
+                            return (
+                                <div key={cat}>
+                                    <button
+                                        onClick={() => toggleCat(cat)}
+                                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group"
+                                    >
+                                        <CatIcon className="w-3 h-3 text-indigo-400/70 shrink-0" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex-1 text-left group-hover:text-slate-400">{cat}</span>
+                                        <span className="text-[9px] text-slate-700 mr-1">{items.length}</span>
+                                        {expanded
+                                            ? <ChevronDown className="w-2.5 h-2.5 text-slate-700" />
+                                            : <ChevronRight className="w-2.5 h-2.5 text-slate-700" />
+                                        }
+                                    </button>
+                                    {expanded && items.map(item => (
+                                        <button
+                                            key={item.componentId}
+                                            onClick={() => handleAdd(item.componentId)}
+                                            onMouseEnter={(e) => handleMouseEnter(item, e)}
+                                            onMouseLeave={() => setHoveredItem(null)}
+                                            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-indigo-500/10 transition-colors text-left group/item border-l-2 border-transparent hover:border-indigo-500/40"
+                                        >
+                                            <CatIcon className="w-3 h-3 text-slate-600 group-hover/item:text-indigo-400 shrink-0 transition-colors" />
+                                            <span className="text-xs text-slate-400 group-hover/item:text-white transition-colors flex-1 truncate">{item.label}</span>
+                                            <Plus className="w-3 h-3 text-slate-700 opacity-0 group-hover/item:opacity-100 group-hover/item:text-indigo-400 transition-all shrink-0" />
+                                        </button>
+                                    ))}
                                 </div>
-                            ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-                                    <LayoutTemplate className="w-12 h-12 mb-4 opacity-20" />
-                                    <p className="text-sm">Hover over a section to preview</p>
-                                </div>
-                            )}
-                        </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
-        </div>
-    );
-}
 
-// Live Preview Component
-import { registry } from "../../registry";
-
-function LivePreview({ componentId, previewImage }: { componentId: string, previewImage: string }) {
-    const Component = registry[componentId];
-    
-    // Fallback to image if component is not found or fails to render
-    if (!Component) {
-         return <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />;
-    }
-
-    return (
-        <div className="w-[1200px] origin-top-left scale-[0.4] absolute top-0 left-0 bg-white">
-            <div className="pointer-events-none">
-                <Component />
-            </div>
+            {/* Floating preview — positioned to the right of the sidebar */}
+            {isOpen && hoveredItem && (
+                <div
+                    className="fixed z-[200] rounded-xl shadow-2xl border border-zinc-200/80 overflow-hidden pointer-events-none bg-white"
+                    style={{
+                        left: getSidebarRight() + 12,
+                        top: Math.max(60, previewTop - 150),
+                        width: 480,
+                        maxHeight: 320,
+                    }}
+                >
+                    {hoveredItem.previewImage ? (
+                        <img
+                            src={hoveredItem.previewImage}
+                            alt={hoveredItem.label}
+                            className="w-full object-cover object-top"
+                            style={{ maxHeight: 280 }}
+                        />
+                    ) : (
+                        <div className="w-full h-48 bg-zinc-50 flex flex-col items-center justify-center gap-3 text-zinc-400">
+                            <LayoutTemplate className="w-10 h-10 opacity-20" />
+                            <span className="text-sm font-medium text-zinc-500">{hoveredItem.label}</span>
+                            <span className="text-xs text-zinc-400">Chưa có ảnh preview</span>
+                        </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
+                        <p className="text-white text-sm font-semibold">{hoveredItem.label}</p>
+                        <p className="text-white/60 text-xs">{hoveredItem.category}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

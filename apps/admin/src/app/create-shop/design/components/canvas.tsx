@@ -9,6 +9,7 @@ function CanvasBlock({
   id,
   componentId,
   props,
+  blocks,
   selected,
   onSelect,
   onRemove,
@@ -17,6 +18,7 @@ function CanvasBlock({
   id: string;
   componentId: string;
   props: any;
+  blocks?: any[];
   selected: boolean;
   onSelect: () => void;
   onRemove: () => void;
@@ -57,7 +59,7 @@ function CanvasBlock({
 
       <div className="pointer-events-none relative w-full overflow-hidden bg-white">
         {Component ? (
-           <Component {...props} />
+           <Component {...props} blocks={blocks || []} />
         ) : (
           <div className="h-32 bg-slate-100 border border-red-200 flex items-center justify-center text-red-500 font-mono text-sm">
             Component '{componentId}' not found
@@ -114,6 +116,7 @@ export function Canvas() {
                   id={node.id}
                   componentId={node.componentId}
                   props={node.props}
+                  blocks={node.blocks}
                   selected={activeComponentId === node.id}
                   onSelect={() => setActiveComponent(node.id)}
                   onRemove={() => removePageSection(activePage, node.id)}

@@ -28,6 +28,5 @@
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "typescript": "^5.0.0"
-    },
-    "type": "module"
+    }
 }

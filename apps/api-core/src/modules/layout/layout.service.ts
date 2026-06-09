@@ -99,12 +99,83 @@ export class LayoutService {
     return globalLayout.publishedData;
   }
 
+  // ─── Builder draft endpoints ────────────────────────────────────────────
+
+  async getBuilderGlobal(shopId: string) {
+    let doc = await this.globalLayoutModel.findOne({ shopId }).exec();
+    if (!doc) {
+      doc = await this.globalLayoutModel.create({ shopId, publishedData: {}, draftData: {} });
+    }
+    // Return draftData if it has content, otherwise fall back to publishedData
+    const data = (doc.draftData && Object.keys(doc.draftData).length > 0)
+      ? doc.draftData
+      : doc.publishedData;
+    return data;
+  }
+
+  async getBuilderPage(shopId: string, pageType: string) {
+    const query: any = { shopId, pageType };
+    const doc = await this.pageLayoutModel.findOne(query).exec();
+    if (!doc) return null;
+    return (doc.draftData && Object.keys(doc.draftData).length > 0)
+      ? doc.draftData
+      : doc.publishedData;
+  }
+
+  async saveBuilderGlobal(shopId: string, globalComponents: any[], theme: Record<string, any>) {
+    const draftData = { globalComponents: globalComponents || [], theme: theme || {} };
+    const doc = await this.globalLayoutModel.findOneAndUpdate(
+      { shopId },
+      { $set: { draftData } },
+      { upsert: true, new: true },
+    ).exec();
+    return doc;
+  }
+
+  async saveBuilderPage(shopId: string, pageType: string, components: any[]) {
+    const draftData = { components: components || [] };
+    const doc = await this.pageLayoutModel.findOneAndUpdate(
+      { shopId, pageType },
+      { $set: { draftData } },
+      { upsert: true, new: true },
+    ).exec();
+    return doc;
+  }
+
   async getPageLayout(shopId: string, pageType: string, slug?: string) {
     const query: any = { shopId, pageType };
     if (slug) query.slug = slug;
 
     const pageLayout = await this.pageLayoutModel.findOne(query).exec();
     return pageLayout ? pageLayout.publishedData : null;
+  }
+
+  // ─── Publish by shopId (copies draftData → publishedData) ──────────────
+
+  async publishLayoutByShopId(shopId: string) {
+    // Publish global layout
+    const globalDoc = await this.globalLayoutModel.findOne({ shopId }).exec();
+    if (globalDoc?.draftData && Object.keys(globalDoc.draftData).length > 0) {
+      await this.globalLayoutModel.findOneAndUpdate(
+        { shopId },
+        { $set: { publishedData: globalDoc.draftData } },
+        { new: true },
+      ).exec();
+    }
+
+    // Publish all page layouts for this shop
+    const pageLayouts = await this.pageLayoutModel.find({ shopId }).exec();
+    for (const page of pageLayouts) {
+      if (page.draftData && Object.keys(page.draftData).length > 0) {
+        await this.pageLayoutModel.findOneAndUpdate(
+          { shopId, pageType: page.pageType },
+          { $set: { publishedData: page.draftData } },
+          { new: true },
+        ).exec();
+      }
+    }
+
+    return { status: 'published', shopId };
   }
 
   // ─── Builder Component Schemas ──────────────────────────────────────────

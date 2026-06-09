@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Body, UseGuards, Param, Query } from '@nestjs/common';
 import { LayoutService } from './layout.service';
-import { CreateMasterTemplateDto, UpdateTenantLayoutDto } from './dto/layout.dto';
+import { CreateMasterTemplateDto, UpdateTenantLayoutDto, SaveBuilderGlobalDto, SaveBuilderPageDto } from './dto/layout.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -35,6 +35,54 @@ export class LayoutController {
   @Get('builder/schemas')
   async getBuilderSchemas() {
     const data = await this.layoutService.getComponentSchemas();
+    return BaseResponseDto.success(data);
+  }
+
+  // ─── Builder draft save/load (per-shop, no strict auth for local dev) ─────
+
+  @Public()
+  @Get(':shopId/draft/global')
+  async getBuilderGlobal(@Param('shopId') shopId: string) {
+    const data = await this.layoutService.getBuilderGlobal(shopId);
+    return BaseResponseDto.success(data);
+  }
+
+  @Public()
+  @Get(':shopId/draft/page/:pageType')
+  async getBuilderPage(
+    @Param('shopId') shopId: string,
+    @Param('pageType') pageType: string,
+  ) {
+    const data = await this.layoutService.getBuilderPage(shopId, pageType);
+    return BaseResponseDto.success(data);
+  }
+
+  @Public()
+  @Post('builder/save/global')
+  async saveBuilderGlobal(@Body() dto: SaveBuilderGlobalDto) {
+    const data = await this.layoutService.saveBuilderGlobal(
+      dto.shopId,
+      dto.globalComponents || [],
+      dto.theme || {},
+    );
+    return BaseResponseDto.success(data);
+  }
+
+  @Public()
+  @Post('builder/save/page')
+  async saveBuilderPage(@Body() dto: SaveBuilderPageDto) {
+    const data = await this.layoutService.saveBuilderPage(
+      dto.shopId,
+      dto.pageType,
+      dto.components || [],
+    );
+    return BaseResponseDto.success(data);
+  }
+
+  @Public()
+  @Post(':shopId/publish')
+  async publishLayoutByShopId(@Param('shopId') shopId: string) {
+    const data = await this.layoutService.publishLayoutByShopId(shopId);
     return BaseResponseDto.success(data);
   }
 
