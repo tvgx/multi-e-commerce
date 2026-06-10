@@ -1,28 +1,54 @@
 import React from 'react';
+import { SmartImage } from '../../blocks/SmartImage';
 
-export function ImageWithText() {
+const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
+
+interface ImageWithTextProps {
+    title?: string;
+    subtitle?: string;
+    backgroundImageUrl?: string;
+    ctaText?: string;
+    ctaLink?: string;
+    layout?: string;
+    backgroundColor?: string;
+    textColor?: string;
+}
+
+export function ImageWithText({
+    title,
+    subtitle,
+    backgroundImageUrl,
+    ctaText,
+    ctaLink,
+    layout = 'image_first',
+    backgroundColor,
+    textColor,
+}: ImageWithTextProps) {
+    const isImageFirst = layout !== 'text_first';
+
     return (
-        <section className="w-full bg-white overflow-hidden">
-            <div className="flex flex-col lg:flex-row min-h-[600px]">
+        <section className="w-full overflow-hidden" style={{ backgroundColor: backgroundColor || '#ffffff' }}>
+            <div className={`flex flex-col min-h-[600px] ${isImageFirst ? 'lg:flex-row' : 'lg:flex-row-reverse'}`}>
                 {/* Image */}
                 <div className="w-full lg:w-1/2 relative h-[400px] lg:h-auto">
-                    <img src="http://localhost:9000/assets/default-4.png" alt="Autumn Style" className="absolute inset-0 w-full h-full object-cover" />
+                    <SmartImage
+                        src={backgroundImageUrl || DEFAULT_IMG}
+                        alt={title || 'Image'}
+                        className="absolute inset-0 w-full h-full object-cover"
+                    />
                 </div>
 
                 {/* Text Content */}
-                <div className="w-full lg:w-1/2 flex items-center bg-slate-50 justify-center p-12 md:p-24">
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-12 md:p-24" style={{ backgroundColor: backgroundColor || '#f8fafc' }}>
                     <div className="max-w-lg">
-                        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">Cozy up for the incoming season.</h2>
-                        <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                            Discover our new range of heavy knits and insulated outerwear. Designed to keep you warm without sacrificing your silhouette. Layering has never looked this good.
+                        <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight" style={{ color: textColor || '#0f172a' }}>
+                            {title || 'Cozy up for the incoming season.'}
+                        </h2>
+                        <p className="text-lg mb-8 leading-relaxed opacity-80" style={{ color: textColor || '#0f172a' }}>
+                            {subtitle || 'Discover our new range of heavy knits and insulated outerwear. Designed to keep you warm without sacrificing your silhouette.'}
                         </p>
-                        <ul className="space-y-4 mb-10 text-slate-700 font-medium">
-                            <li className="flex items-center gap-3"><span className="text-emerald-500">✓</span> Cashmere Blends</li>
-                            <li className="flex items-center gap-3"><span className="text-emerald-500">✓</span> Recycled Down Insulation</li>
-                            <li className="flex items-center gap-3"><span className="text-emerald-500">✓</span> Weather-resistant Finishes</li>
-                        </ul>
                         <button className="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg text-sm uppercase tracking-widest">
-                            Shop The Lookbook
+                            {ctaText || 'Shop The Lookbook'}
                         </button>
                     </div>
                 </div>

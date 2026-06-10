@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../../store/cart-store';
 import { useRouter } from 'next/navigation';
+import { SmartImage } from '../blocks/SmartImage';
 
 export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlug: string }) {
     const { items, totalAmount, clearCart } = useCartStore();
@@ -318,7 +319,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             {items.map((item: any) => (
                                 <div key={`${item.productId}-${item.variantId}`} className="flex gap-4">
                                     <div className="w-16 h-16 bg-white rounded-lg border border-slate-200 overflow-hidden shrink-0 relative">
-                                        {item.imageUrl && <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />}
+                                        {item.imageUrl && <SmartImage src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" sizes="64px" />}
                                         <span className="absolute -top-2 -right-2 bg-slate-900 text-white text-xs w-6 h-6 flex items-center justify-center rounded-full font-bold">
                                             {item.quantity}
                                         </span>

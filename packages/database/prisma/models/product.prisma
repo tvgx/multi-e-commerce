@@ -21,6 +21,9 @@ model Product {
 
   @@unique([shopId, slug])
   @@index([shopId])
+  @@index([shopId, createdAt]) // paginated product lists sort by createdAt
+  @@index([shopId, status])    // status filter in findAllProducts
+  @@index([categoryId])        // category filter in findAllProducts
   @@map("products")
 }
 

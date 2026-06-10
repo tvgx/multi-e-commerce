@@ -2,6 +2,7 @@
 
 import { useCartStore } from '../../store/cart-store';
 import { useParams } from 'next/navigation';
+import { SmartImage } from '../blocks/SmartImage';
 
 export function CartSidebar() {
   const { items, totalAmount, isOpen, setIsOpen, updateQuantity, removeItem } = useCartStore();
@@ -32,7 +33,7 @@ export function CartSidebar() {
             items.map((item) => (
               <div key={`${item.productId}-${item.variantId}`} className="flex gap-4">
                 <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden shrink-0">
-                  {item.imageUrl && <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />}
+                  {item.imageUrl && <SmartImage src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" sizes="80px" />}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold line-clamp-2">{item.title || 'Product'}</h3>

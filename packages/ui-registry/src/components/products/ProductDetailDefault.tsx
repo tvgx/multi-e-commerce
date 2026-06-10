@@ -5,6 +5,7 @@ import { WishlistButton } from './WishlistButton';
 import { ProductReviews } from './ProductReviews';
 import { VariantSelector } from './VariantSelector';
 import { useState } from 'react';
+import { SmartImage } from '../blocks/SmartImage';
 
 interface ProductDetailDefaultProps {
   product: any;
@@ -30,10 +31,12 @@ export function ProductDetailDefault({ product, shopInfo }: ProductDetailDefault
           <div className="md:w-1/2 bg-slate-50 relative aspect-square md:aspect-auto md:min-h-[500px]">
             {thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <SmartImage
                 src={thumbnail}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                priority
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300 text-6xl">

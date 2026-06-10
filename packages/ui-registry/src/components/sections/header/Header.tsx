@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Search, User, ShoppingCart, Menu } from 'lucide-react';
 import { AnnouncementBar } from './AnnouncementBar';
+import { SmartImage } from '../../blocks/SmartImage';
 
 export interface HeaderProps {
     shopName?: string;
@@ -61,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
                             <>
                                 <Link href="/" className="flex items-center space-x-2 mr-10">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
+                                        <SmartImage src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" sizes="200px" priority />
                                     ) : (
                                         <span className="font-bold text-xl tracking-tighter uppercase whitespace-nowrap">{shopName}</span>
                                     )}
@@ -85,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {logoPosition === 'center' && (
                         <Link href="/" className="flex items-center space-x-2">
                             {logoUrl ? (
-                                <img src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" />
+                                <SmartImage src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" sizes="200px" priority />
                             ) : (
                                 <span className="font-bold text-xl tracking-tighter uppercase whitespace-nowrap">{shopName}</span>
                             )}

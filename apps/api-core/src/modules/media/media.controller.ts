@@ -5,6 +5,7 @@ import { UploadMediaDto } from './dto/media.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
+import { BaseResponseDto } from '../../common/dto/base-response.dto';
 
 @UseGuards(BetterAuthGuard, RolesGuard)
 @RequireRoles('ADMIN', 'OWNER')
@@ -14,8 +15,9 @@ export class MediaController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  uploadFile(@UploadedFile() file: any, @Body() dto: UploadMediaDto) {
-    return this.mediaService.uploadFile(file, dto);
+  async uploadFile(@UploadedFile() file: any, @Body() dto: UploadMediaDto) {
+    const media = await this.mediaService.uploadFile(file, dto);
+    return BaseResponseDto.success(media);
   }
 }
 

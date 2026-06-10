@@ -5,6 +5,7 @@ import { Lock, CreditCard, Wallet, Truck, CheckCircle, ChevronLeft, Info, X, Loa
 import { useCartStore } from '../../store/cart-store';
 // Note: We use dynamic import for router in a registry component
 import { useRouter } from 'next/navigation';
+import { SmartImage } from '../blocks/SmartImage';
 
 interface StandardCheckoutProps {
     shopInfo?: any;
@@ -285,7 +286,7 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                                     <div key={idx} className="flex gap-4 items-center">
                                         <div className="relative">
                                             <div className="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
-                                                {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl text-slate-300">📦</div>}
+                                                {item.imageUrl ? <SmartImage src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" sizes="64px" /> : <div className="w-full h-full flex items-center justify-center text-xl text-slate-300">📦</div>}
                                             </div>
                                             <div className="absolute -top-2 -right-2 w-6 h-6 bg-slate-500 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
                                                 {item.quantity}

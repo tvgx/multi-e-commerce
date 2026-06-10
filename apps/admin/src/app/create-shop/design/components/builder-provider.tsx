@@ -7,7 +7,8 @@ import { useBuilderStore } from "@ecommerce/ui-registry/src/store/builder-store"
 export function BuilderProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
-  const { loadTemplate, fetchDefaultImages } = useBuilderStore();
+  const loadTemplate = useBuilderStore(s => s.loadTemplate);
+  const fetchDefaultImages = useBuilderStore(s => s.fetchDefaultImages);
 
   useEffect(() => {
     if (shopId) {

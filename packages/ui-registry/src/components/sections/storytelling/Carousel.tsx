@@ -1,5 +1,8 @@
 "use client";
 import React, { useRef } from 'react';
+import { SmartImage } from '../../blocks/SmartImage';
+
+const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
 
 interface SlideBlock {
     id: string;
@@ -56,15 +59,21 @@ export function Carousel({
 
             <div
                 ref={trackRef}
-                className="flex gap-4 px-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-none"
+                className="flex gap-4 px-4 overflow-x-auto snap-x snap-mandatory pb-4"
                 style={{ scrollbarWidth: 'none' }}
             >
                 {slides.length === 0
                     ? placeholders.map(i => (
                         <div
                             key={i}
-                            className="min-w-[80vw] md:min-w-[40vw] lg:min-w-[30vw] aspect-[3/4] snap-center bg-slate-700/50 rounded-2xl flex-shrink-0"
-                        />
+                            className="min-w-[80vw] md:min-w-[40vw] lg:min-w-[30vw] aspect-[3/4] snap-center relative rounded-2xl overflow-hidden flex-shrink-0"
+                        >
+                            <SmartImage
+                                src={DEFAULT_IMG}
+                                alt="Slide placeholder"
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
                     ))
                     : slides.map(slide => {
                         const p = slide.props || {};
@@ -73,12 +82,11 @@ export function Carousel({
                                 key={slide.id}
                                 className="min-w-[80vw] md:min-w-[40vw] lg:min-w-[30vw] aspect-[3/4] snap-center relative rounded-2xl overflow-hidden flex-shrink-0"
                             >
-                                <img
-                                    src={p.backgroundImageUrl || 'http://localhost:9000/assets/default-2.png'}
+                                <SmartImage
+                                    src={p.backgroundImageUrl || DEFAULT_IMG}
                                     alt={p.title || 'Slide'}
                                     className="w-full h-full object-cover"
                                 />
-                                {/* Overlay */}
                                 <div
                                     className="absolute inset-0"
                                     style={{
@@ -86,7 +94,6 @@ export function Carousel({
                                         opacity: p.overlayOpacity ?? 0.4,
                                     }}
                                 />
-                                {/* Text */}
                                 {(p.title || p.ctaText) && (
                                     <div className="absolute bottom-0 left-0 right-0 p-6" style={{ color: p.textColor || '#ffffff' }}>
                                         {p.title && <h3 className="font-bold text-xl mb-1">{p.title}</h3>}

@@ -1,4 +1,4 @@
-export type FieldType = 'text' | 'color' | 'image' | 'select' | 'textarea' | 'number' | 'boolean';
+export type FieldType = 'text' | 'color' | 'image' | 'select' | 'textarea' | 'number' | 'boolean' | 'font';
 
 export interface FieldSchema {
   type: FieldType;
@@ -47,7 +47,7 @@ const commonTextSettings: FieldSchema[] = [
 
 const commonStyleSettings: FieldSchema[] = [
   { type: 'image', id: 'backgroundImageUrl', label: 'Ảnh nền / Ảnh chính' },
-  { type: 'select', id: 'fontFamily', label: 'Font chữ', options: GOOGLE_FONTS, default: 'Inter' },
+  { type: 'font', id: 'fontFamily', label: 'Font chữ', default: 'Inter' },
   { type: 'color', id: 'backgroundColor', label: 'Màu nền', default: '#ffffff' },
   { type: 'color', id: 'textColor', label: 'Màu chữ', default: '#000000' },
 ];

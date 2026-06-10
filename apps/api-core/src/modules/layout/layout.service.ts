@@ -163,16 +163,18 @@ export class LayoutService {
       ).exec();
     }
 
-    // Publish all page layouts for this shop
+    // Publish all page layouts for this shop in one round-trip
     const pageLayouts = await this.pageLayoutModel.find({ shopId }).exec();
-    for (const page of pageLayouts) {
-      if (page.draftData && Object.keys(page.draftData).length > 0) {
-        await this.pageLayoutModel.findOneAndUpdate(
-          { shopId, pageType: page.pageType },
-          { $set: { publishedData: page.draftData } },
-          { new: true },
-        ).exec();
-      }
+    const ops = pageLayouts
+      .filter((page) => page.draftData && Object.keys(page.draftData).length > 0)
+      .map((page) => ({
+        updateOne: {
+          filter: { shopId, pageType: page.pageType },
+          update: { $set: { publishedData: page.draftData } },
+        },
+      }));
+    if (ops.length > 0) {
+      await this.pageLayoutModel.bulkWrite(ops);
     }
 
     return { status: 'published', shopId };

@@ -5,14 +5,16 @@ import { useBuilderStore } from "../../store/builder-store";
 import { Settings } from "lucide-react";
 import { schemaRegistry } from "../../registry";
 import { UIComponentRef } from "@ecommerce/schema";
-import { 
-    SliderControl, 
-    SegmentedControl, 
-    PageSelectorControl, 
-    ColorPickerControl, 
-    ResourcePickerControl, 
-    TextControl, 
-    SelectControl 
+import {
+    SliderControl,
+    SegmentedControl,
+    PageSelectorControl,
+    ColorPickerControl,
+    ResourcePickerControl,
+    TextControl,
+    SelectControl,
+    ImagePickerControl,
+    FontPickerControl
 } from "./controls";
 
 function findComponentById(components: UIComponentRef[], id: string): UIComponentRef | null {
@@ -27,16 +29,14 @@ function findComponentById(components: UIComponentRef[], id: string): UIComponen
 }
 
 export function PropertiesEditor() {
-    const { 
-        globalComponents, 
-        pages, 
-        activePage, 
-        activeComponentId, 
-        activeBlockId,
-        setActiveComponent,
-        setActiveBlock,
-        updateBlockProp
-    } = useBuilderStore();
+    const globalComponents = useBuilderStore(s => s.globalComponents);
+    const pages = useBuilderStore(s => s.pages);
+    const activePage = useBuilderStore(s => s.activePage);
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+    const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
+    const updateBlockProp = useBuilderStore(s => s.updateBlockProp);
 
     const activeTargetId = activeBlockId || activeComponentId;
 
@@ -111,6 +111,10 @@ export function PropertiesEditor() {
                                 return <ColorPickerControl key={setting.id} label={setting.label} value={value} onChange={(v) => handlePropChange(setting.id, v)} />;
                             case 'resource_picker':
                                 return <ResourcePickerControl key={setting.id} label={setting.label} value={value} onChange={(v) => handlePropChange(setting.id, v)} />;
+                            case 'image':
+                                return <ImagePickerControl key={setting.id} label={setting.label} value={value} onChange={(v) => handlePropChange(setting.id, v)} />;
+                            case 'font':
+                                return <FontPickerControl key={setting.id} label={setting.label} value={value} onChange={(v) => handlePropChange(setting.id, v)} />;
                             case 'page_selector':
                                 return <PageSelectorControl key={setting.id} label={setting.label} value={value} onChange={(v) => handlePropChange(setting.id, v)} />;
                             default:

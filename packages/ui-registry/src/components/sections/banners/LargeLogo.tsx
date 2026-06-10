@@ -1,6 +1,10 @@
 import React from 'react';
+import { SmartImage } from '../../blocks/SmartImage';
+
+const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
 
 interface LargeLogoProps {
+    logoUrl?: string;
     title?: string;
     shopName?: string;
     backgroundColor?: string;
@@ -8,7 +12,7 @@ interface LargeLogoProps {
     fontFamily?: string;
 }
 
-export function LargeLogo({ title, shopName, backgroundColor, textColor, fontFamily }: LargeLogoProps) {
+export function LargeLogo({ logoUrl, title, shopName, backgroundColor, textColor, fontFamily }: LargeLogoProps) {
     const containerStyle = {
         backgroundColor: backgroundColor || '#ffffff',
         color: textColor || '#0f172a',
@@ -17,9 +21,20 @@ export function LargeLogo({ title, shopName, backgroundColor, textColor, fontFam
 
     return (
         <section className="w-full py-24 md:py-40 flex items-center justify-center" style={containerStyle}>
-            <h1 className="text-[15vw] md:text-[8rem] font-black tracking-tighter uppercase leading-none drop-shadow-xl select-none text-center">
-                {title || shopName || "BRAND"}
-            </h1>
+            {logoUrl ? (
+                <SmartImage
+                    src={logoUrl}
+                    fallbackSrc={DEFAULT_IMG}
+                    alt={shopName || title || 'Logo'}
+                    className="max-h-48 max-w-[80%] object-contain"
+                    sizes="80vw"
+                    priority
+                />
+            ) : (
+                <h1 className="text-[15vw] md:text-[8rem] font-black tracking-tighter uppercase leading-none drop-shadow-xl select-none text-center">
+                    {title || shopName || 'BRAND'}
+                </h1>
+            )}
         </section>
     );
 }

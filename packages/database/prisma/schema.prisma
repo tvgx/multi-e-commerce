@@ -293,6 +293,9 @@ model Product {
 
   @@unique([shopId, slug])
   @@index([shopId])
+  @@index([shopId, createdAt]) // paginated product lists sort by createdAt
+  @@index([shopId, status])    // status filter in findAllProducts
+  @@index([categoryId])        // category filter in findAllProducts
   @@map("products")
 }
 
@@ -430,6 +433,7 @@ model StockMovement {
 
   @@index([shopId])
   @@index([variantId])
+  @@index([orderId]) // restoreStock looks up movements by order
   @@map("stock_movements")
 }
 
@@ -465,6 +469,8 @@ model Order {
 
   @@index([shopId])
   @@index([number])
+  @@index([shopId, createdAt]) // order lists + analytics windows
+  @@index([shopId, state])     // state filter in findAllOrders
   @@map("orders")
 }
 
@@ -482,6 +488,7 @@ model LineItem {
   variant         Variant      @relation(fields: [variantId], references: [id])
 
   @@index([orderId])
+  @@index([variantId]) // top-products analytics groups by variantId
   @@map("line_items")
 }
 

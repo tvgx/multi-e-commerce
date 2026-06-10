@@ -8,17 +8,15 @@ import { UIComponentRef } from "@ecommerce/schema";
 import { ComponentSchemas } from "@ecommerce/ui-registry/src/component-schemas";
 
 export function Sidebar() {
-  const { 
-    globalComponents, 
-    pages, 
-    activePage, 
-    activeComponentId,
-    activeBlockId,
-    setActiveComponent,
-    setActiveBlock,
-    removePageSection,
-    reorderPageSections
-  } = useBuilderStore();
+  const globalComponents = useBuilderStore(s => s.globalComponents);
+  const pages = useBuilderStore(s => s.pages);
+  const activePage = useBuilderStore(s => s.activePage);
+  const activeComponentId = useBuilderStore(s => s.activeComponentId);
+  const activeBlockId = useBuilderStore(s => s.activeBlockId);
+  const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+  const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
+  const removePageSection = useBuilderStore(s => s.removePageSection);
+  const reorderPageSections = useBuilderStore(s => s.reorderPageSections);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [insertIndex, setInsertIndex] = useState<number | undefined>();

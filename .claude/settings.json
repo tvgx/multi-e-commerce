@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(node -e \"try{console.log\\(require.resolve\\('ts-jest'\\)\\)}catch\\(e\\){console.log\\('not resolvable from api-core'\\)}\")",
+      "Bash(npx jest *)",
+      "Bash(node -e \"const {createRequire}=require\\('module'\\); const r=createRequire\\('/home/lordfeeder/workspaces/multi-e-commerce/apps/api-core/jest.config.js'\\); try{console.log\\(r.resolve\\('ts-jest'\\)\\)}catch\\(e\\){console.log\\('ERR', e.message.split\\('\\\\n'\\)[0]\\)}\")",
+      "Bash(node -e \"require\\('/home/lordfeeder/workspaces/multi-e-commerce/node_modules/ts-jest/dist/index.js'\\); console.log\\('requires fine'\\)\")",
+      "Bash(node -e \"try{const r=require\\('unrs-resolver'\\); console.log\\('unrs loads'\\)}catch\\(e\\){console.log\\('unrs ERR:', e.message.split\\('\\\\n'\\)[0]\\)}\")",
+      "Bash(node -e \"require\\('unrs-resolver'\\); console.log\\('unrs ok'\\)\")",
+      "Bash(node -e \"console.log\\(require\\('@nestjs/swagger/package.json'\\).version\\)\")",
+      "Bash(curl -s http://localhost:3000/api/docs-json)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"http://localhost:3000/api/products?limit=2\" -H \"x-shop-id: test\" -o /dev/null -w \"sample API call -> %{http_code}\\\\n\")",
+      "Bash(fuser -k 3000/tcp)"
+    ]
+  }
+}

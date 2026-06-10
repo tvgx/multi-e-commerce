@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import { SmartImage } from '../../blocks/SmartImage';
 
 interface SlideBlock {
     id: string;
@@ -46,10 +47,11 @@ export function SlideshowFullFrame({
         <section className="relative w-full overflow-hidden" style={{ height, minHeight: 400 }}>
             {/* Background image */}
             <div className="absolute inset-0 z-0 transition-all duration-700">
-                <img
-                    src={slide.backgroundImageUrl || 'http://localhost:9000/assets/default-4.png'}
+                <SmartImage
+                    src={slide.backgroundImageUrl || 'http://localhost:9000/assets/default-component.png'}
                     alt="Slide"
                     className="w-full h-full object-cover"
+                    priority
                 />
                 <div
                     className="absolute inset-0"

@@ -26,7 +26,7 @@ import { GripVertical, Trash2, Layers, Lock, Box, Plus, ChevronDown, ChevronRigh
 // -----------------------------------------------------------------------
 function AddBlockInline({ parentId, parentComponentId }: { parentId: string; parentComponentId: string }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { addBlock } = useBuilderStore();
+    const addBlock = useBuilderStore(s => s.addBlock);
 
     const schema = schemaRegistry[parentComponentId];
     const allowedBlocks: string[] = schema?.allowedBlocks || [];
@@ -82,7 +82,9 @@ function BlockTree({ blocks, level = 0 }: { blocks: any[], level?: number }) {
 }
 
 function BlockItem({ block, level }: { block: any, level: number }) {
-    const { activeBlockId, setActiveBlock, removeBlock } = useBuilderStore();
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
+    const removeBlock = useBuilderStore(s => s.removeBlock);
     const isActive = activeBlockId === block.id;
     const schema = schemaRegistry[block.componentId];
     const title = schema?.title || block.componentId;
@@ -116,7 +118,10 @@ function BlockItem({ block, level }: { block: any, level: number }) {
 // -----------------------------------------------------------------------
 function GlobalSectionItem({ componentId }: { componentId: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const { globalComponents, activeComponentId, activeBlockId, setActiveComponent } = useBuilderStore();
+    const globalComponents = useBuilderStore(s => s.globalComponents);
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
     const section = globalComponents.find(c => c.componentId === componentId);
     if (!section) return null;
 
@@ -179,7 +184,11 @@ function SortableItem({ id, section }: { id: string, section: any }) {
     const {
         attributes, listeners, setNodeRef, transform, transition, isDragging,
     } = useSortable({ id });
-    const { activeComponentId, activeBlockId, setActiveComponent, removePageSection, activePage } = useBuilderStore();
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+    const removePageSection = useBuilderStore(s => s.removePageSection);
+    const activePage = useBuilderStore(s => s.activePage);
     const isActive = activeComponentId === id && !activeBlockId;
 
     const style = { transform: CSS.Transform.toString(transform), transition };
@@ -258,7 +267,9 @@ function SortableItem({ id, section }: { id: string, section: any }) {
 // SectionList – main left-panel component
 // -----------------------------------------------------------------------
 export function SectionList() {
-    const { pages, activePage, reorderPageSections } = useBuilderStore();
+    const pages = useBuilderStore(s => s.pages);
+    const activePage = useBuilderStore(s => s.activePage);
+    const reorderPageSections = useBuilderStore(s => s.reorderPageSections);
     const sections = pages[activePage] || [];
 
     const sensors = useSensors(

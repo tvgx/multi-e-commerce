@@ -42,28 +42,32 @@ export class InventoryService {
     const shopId = this.tenantService.getTenantId();
     if (!shopId) throw new BadRequestException('Shop context required');
 
-    const client = txPrisma || this.prisma;
+    const run = async (tx: any) => {
+      // Batch-load stock items for all variants in one query (the previous
+      // version ran up to two queries per line item, sequentially, while
+      // holding the checkout transaction open)
+      const variantIds = items.map((i) => i.variantId);
+      const stockItems = await tx.stockItem.findMany({
+        where: { variantId: { in: variantIds }, stockLocation: { shopId } },
+        include: { stockLocation: { select: { isDefault: true } } },
+      });
 
-    return client.$transaction(async (tx: any) => {
-      // Pre-fetch stock items to determine which row to lock
-      const stockItemTargets = [];
-      for (const item of items) {
-        let stockItem = await tx.stockItem.findFirst({
-           where: { variantId: item.variantId, stockLocation: { shopId, isDefault: true } }
-        });
-        
-        if (!stockItem) {
-           stockItem = await tx.stockItem.findFirst({
-             where: { variantId: item.variantId, stockLocation: { shopId } }
-           });
+      // Prefer the default location's stock item per variant
+      const byVariant = new Map<string, any>();
+      for (const si of stockItems) {
+        const current = byVariant.get(si.variantId);
+        if (!current || (si.stockLocation.isDefault && !current.stockLocation.isDefault)) {
+          byVariant.set(si.variantId, si);
         }
-        
+      }
+
+      const stockItemTargets = items.map((item) => {
+        const stockItem = byVariant.get(item.variantId);
         if (!stockItem) {
           throw new BadRequestException(`Variant ${item.variantId} has no stock locations`);
         }
-        
-        stockItemTargets.push({ stockItemId: stockItem.id, ...item });
-      }
+        return { stockItemId: stockItem.id, ...item };
+      });
 
       // Sort by stockItemId to prevent deadlocks when locking multiple rows
       stockItemTargets.sort((a, b) => a.stockItemId.localeCompare(b.stockItemId));
@@ -106,16 +110,19 @@ export class InventoryService {
         });
       }
       return true;
-    });
+    };
+
+    // Interactive transaction clients don't expose $transaction — when a tx
+    // is passed in (checkout flow) we must run on it directly.
+    if (txPrisma) return run(txPrisma);
+    return this.prisma.$transaction(run);
   }
 
   async restoreStock(orderId: string, txPrisma?: any) {
     const shopId = this.tenantService.getTenantId();
     if (!shopId) throw new BadRequestException('Shop context required');
 
-    const client = txPrisma || this.prisma;
-
-    return client.$transaction(async (tx: any) => {
+    const run = async (tx: any) => {
       const movements = await tx.stockMovement.findMany({
         where: { shopId, orderId, reason: 'order_fulfillment' }
       });
@@ -138,7 +145,10 @@ export class InventoryService {
          });
       }
       return true;
-    });
+    };
+
+    if (txPrisma) return run(txPrisma);
+    return this.prisma.$transaction(run);
   }
 
   async adjustStock(dto: AdjustStockDto, userId: string) {

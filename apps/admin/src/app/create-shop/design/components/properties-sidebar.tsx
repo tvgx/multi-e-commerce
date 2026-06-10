@@ -11,19 +11,17 @@ import { useSearchParams } from "next/navigation";
 export function PropertiesSidebar() {
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
-  const { 
-    activeComponentId,
-    activeBlockId,
-    setActiveBlock,
-    setActiveComponent,
-    globalComponents,
-    pages,
-    activePage,
-    updateComponentProp,
-    updateBlockProp,
-    addBlock,
-    removeBlock
-  } = useBuilderStore();
+  const activeComponentId = useBuilderStore(s => s.activeComponentId);
+  const activeBlockId = useBuilderStore(s => s.activeBlockId);
+  const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
+  const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+  const globalComponents = useBuilderStore(s => s.globalComponents);
+  const pages = useBuilderStore(s => s.pages);
+  const activePage = useBuilderStore(s => s.activePage);
+  const updateComponentProp = useBuilderStore(s => s.updateComponentProp);
+  const updateBlockProp = useBuilderStore(s => s.updateBlockProp);
+  const addBlock = useBuilderStore(s => s.addBlock);
+  const removeBlock = useBuilderStore(s => s.removeBlock);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 

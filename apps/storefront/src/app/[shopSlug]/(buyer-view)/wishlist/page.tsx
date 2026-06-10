@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getWishlist, getShopInfo } from '@/lib/api/storefront.api';
 import Link from 'next/link';
+import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 
 export default async function WishlistPage({ params }: { params: Promise<{ shopSlug: string }> }) {
     const { shopSlug } = await params;
@@ -37,10 +38,11 @@ export default async function WishlistPage({ params }: { params: Promise<{ shopS
                         <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden group hover:shadow-lg transition-all duration-300">
                             <Link href={`/${shopSlug}/product/${item.product.slug}`} className="block relative aspect-square bg-slate-100 overflow-hidden">
                                 {item.product.images?.[0] ? (
-                                    <img 
+                                    <SmartImage 
                                         src={item.product.images[0]} 
                                         alt={item.product.name} 
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        sizes="(min-width: 768px) 25vw, 50vw"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-slate-300">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Filter, ChevronDown, LayoutGrid, List } from 'lucide-react';
 import { ProductCard } from '../product-card';
+import { SmartImage } from '../blocks/SmartImage';
 
 interface Product {
     id: string;
@@ -109,7 +110,7 @@ export function StandardCategoryPage({
                                     <div key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-slate-100 transition-all group flex flex-col">
                                         <div className="aspect-square bg-slate-50 relative overflow-hidden">
                                             {product.images && product.images.length > 0 ? (
-                                                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                <SmartImage src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" sizes="(min-width: 768px) 25vw, 50vw" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-4xl text-slate-300">📦</div>
                                             )}

@@ -27,7 +27,8 @@ const ICONS: Record<string, React.ElementType> = {
 export function AddSectionModal({ onClose, insertIndex }: { onClose: () => void, insertIndex?: number }) {
   const [search, setSearch] = useState("");
   const [hoveredSection, setHoveredSection] = useState<SectionMeta | null>(null);
-  const { addPageSection, activePage } = useBuilderStore();
+  const addPageSection = useBuilderStore(s => s.addPageSection);
+  const activePage = useBuilderStore(s => s.activePage);
 
   const handleAdd = (componentId: string) => {
     addPageSection(activePage, componentId, insertIndex);

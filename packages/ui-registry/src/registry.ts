@@ -1,7 +1,3 @@
-import { AddSectionDropdown } from './components/builder/add-section-dropdown';
-import { CanvasRenderer } from './components/builder/canvas-renderer';
-import { PropertiesEditor } from './components/builder/properties-editor';
-import { SidebarSections } from './components/builder/sidebar-sections';
 import { AddToCartButton } from './components/cart/AddToCartButton';
 import { CartInitializer } from './components/cart/CartInitializer';
 import { CartSidebar } from './components/cart/CartSidebar';
@@ -65,10 +61,6 @@ import { ComponentSchemas } from './component-schemas';
 
 export const registry: Record<string, any> = {
   AnnouncementBar,
-  AddSectionDropdown,
-  CanvasRenderer,
-  PropertiesEditor,
-  SidebarSections,
   AddToCartButton,
   CartInitializer,
   CartSidebar,
@@ -150,10 +142,6 @@ export const schemaRegistry: Record<string, any> = {
   Media: mediaSchema
 };
 
-export * from './components/builder/add-section-dropdown';
-export * from './components/builder/canvas-renderer';
-export * from './components/builder/properties-editor';
-export * from './components/builder/sidebar-sections';
 export * from './components/cart/AddToCartButton';
 export * from './components/cart/CartInitializer';
 export * from './components/cart/CartSidebar';

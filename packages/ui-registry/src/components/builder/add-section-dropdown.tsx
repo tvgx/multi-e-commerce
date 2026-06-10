@@ -89,7 +89,9 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
     const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(['Banners']));
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
-    const { addPageSection, activePage, availableSchemas } = useBuilderStore();
+    const addPageSection = useBuilderStore(s => s.addPageSection);
+    const activePage = useBuilderStore(s => s.activePage);
+    const availableSchemas = useBuilderStore(s => s.availableSchemas);
 
     const enriched = useMemo(() => {
         const schemaMap = new Map(availableSchemas.map((s: any) => [s.componentId, s]));

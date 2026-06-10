@@ -71,14 +71,12 @@ function CanvasBlock({
 }
 
 export function Canvas() {
-  const { 
-    globalComponents, 
-    pages, 
-    activePage, 
-    activeComponentId,
-    setActiveComponent,
-    removePageSection
-  } = useBuilderStore();
+  const globalComponents = useBuilderStore(s => s.globalComponents);
+  const pages = useBuilderStore(s => s.pages);
+  const activePage = useBuilderStore(s => s.activePage);
+  const activeComponentId = useBuilderStore(s => s.activeComponentId);
+  const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+  const removePageSection = useBuilderStore(s => s.removePageSection);
 
   const pageComponents = pages[activePage] || [];
   const headerComp = globalComponents.find(c => c.id === "global-header");

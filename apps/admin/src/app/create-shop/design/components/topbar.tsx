@@ -9,7 +9,9 @@ import { useState } from "react";
 export function Topbar({ onSave }: { onSave?: () => void }) {
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
-  const { saveTemplate, deviceMode, setDeviceMode } = useBuilderStore();
+  const saveTemplate = useBuilderStore(s => s.saveTemplate);
+  const deviceMode = useBuilderStore(s => s.deviceMode);
+  const setDeviceMode = useBuilderStore(s => s.setDeviceMode);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {

@@ -55,5 +55,6 @@ model StockMovement {
 
   @@index([shopId])
   @@index([variantId])
+  @@index([orderId]) // restoreStock looks up movements by order
   @@map("stock_movements")
 }

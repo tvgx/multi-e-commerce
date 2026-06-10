@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 interface PreviewContextType {
     isPreview: boolean;
@@ -20,12 +19,22 @@ const PreviewContext = createContext<PreviewContextType>({
 export const usePreview = () => useContext(PreviewContext);
 
 export function StorefrontPreviewProvider({ children }: { children: React.ReactNode }) {
-    const searchParams = useSearchParams();
-    const isPreview = searchParams?.get('preview') === 'true';
+    // Read the preview flag from window.location instead of useSearchParams():
+    // this provider wraps every storefront page, and useSearchParams without a
+    // Suspense boundary opts the whole route out of static/ISR rendering.
+    // Preview mode only exists inside the builder iframe, so detecting it
+    // after hydration is fine.
+    const [isPreview, setIsPreview] = useState(false);
 
     const [globalComponents, setGlobalComponents] = useState<any[] | null>(null);
     const [theme, setTheme] = useState<any | null>(null);
     const [pageComponents, setPageComponents] = useState<any[] | null>(null);
+
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('preview') === 'true') {
+            setIsPreview(true);
+        }
+    }, []);
 
     useEffect(() => {
         if (!isPreview) return;

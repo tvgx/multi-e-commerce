@@ -1,6 +1,7 @@
 import React from 'react';
 import { ButtonBlock } from '../../blocks/button';
 import { HeadingBlock } from '../../blocks/heading';
+import { SmartImage } from '../../blocks/SmartImage';
 
 interface HeroBottomAlignedProps {
     title?: string;
@@ -29,14 +30,17 @@ export function HeroBottomAligned({
         fontFamily: fontFamily || 'inherit',
     };
 
+    const displayImage = backgroundImageUrl || "http://localhost:9000/assets/default-component.png";
+
     return (
         <section className="relative w-full h-[70vh] min-h-[500px] flex flex-col justify-end pb-20 px-8" style={containerStyle}>
-            {backgroundImageUrl && (
+            {displayImage && (
                 <div className="absolute inset-0 z-0">
-                    <img
-                        src={backgroundImageUrl}
+                    <SmartImage
+                        src={displayImage}
                         alt="Hero Background"
                         className="w-full h-full object-cover"
+                        priority
                     />
                     <div className="absolute inset-0 bg-black/20" />
                 </div>
@@ -70,11 +74,11 @@ export const heroBottomAlignedSchema = {
     name: 'Banner Hero (Căn dưới)',
     category: 'Banners',
     settings: [
-        { id: 'ctaText', type: 'text', label: 'Nút bấm (Text)' },
-        { id: 'ctaLink', type: 'page_selector', label: 'Nút bấm (Link)' },
-        { id: 'backgroundImageUrl', type: 'resource_picker', label: 'Ảnh nền / Ảnh chính' },
-        { id: 'fontFamily', type: 'text', label: 'Font chữ' },
+        { id: 'backgroundImageUrl', type: 'image', label: 'Ảnh nền / Ảnh chính' },
         { id: 'backgroundColor', type: 'color', label: 'Màu nền' },
-        { id: 'textColor', type: 'color', label: 'Màu chữ' }
+        { id: 'textColor', type: 'color', label: 'Màu chữ' },
+        { id: 'fontFamily', type: 'font', label: 'Font chữ' },
+        { id: 'ctaText', type: 'text', label: 'Nút bấm (Text)' },
+        { id: 'ctaLink', type: 'text', label: 'Nút bấm (Link)' }
     ]
 };

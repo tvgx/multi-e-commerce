@@ -165,6 +165,57 @@ Xem [escalation/](../escalation/) cho chi tiết.
 
 ---
 
+## 9. Không Dùng Cách Nhanh — Ưu Tiên Ổn Định, Hoàn Chỉnh, Lâu Dài
+
+**Rule**: **TUYỆT ĐỐI KHÔNG** chọn giải pháp nhanh (quick fix / shortcut) khi có giải pháp đúng đắn hơn. Mọi quyết định kỹ thuật phải đặt sự ổn định, tính hoàn chỉnh và tầm nhìn dài hạn của dự án lên trên tiện lợi nhất thời.
+
+**Các hành vi bị cấm**:
+
+- Hardcode giá trị tạm thời rồi "sẽ sửa sau" (`localhost:9000`, magic strings, mock data trong production code)
+- Bypass validation, auth guard, hoặc middleware "để test nhanh" rồi quên không revert
+- Trả về raw data từ API thay vì chuẩn hóa theo response format đã định nghĩa
+- Dùng `any` trong TypeScript để tránh phải xử lý type đúng cách
+- Tạo endpoint giả / stub function không có implementation thật
+- Copy-paste logic thay vì trừu tượng hóa đúng chỗ
+- Tắt error handling "tạm thời" (`try/catch` nuốt lỗi, bỏ qua validation)
+
+**Câu hỏi bắt buộc trước khi viết code**:
+
+> *"Giải pháp này có hoạt động đúng trong 6 tháng nữa, khi dự án scale lên và người khác maintain không?"*
+
+Nếu câu trả lời là **Không** hoặc **Không chắc** → **dừng lại, tìm giải pháp đúng đắn**.
+
+**Ví dụ đúng/sai**:
+
+```typescript
+// ❌ SAI — Quick fix: controller trả raw data, client tự đoán format
+async uploadFile(...) {
+  return this.mediaService.uploadFile(file, dto); // raw Prisma record
+}
+
+// ✅ ĐÚNG — Đúng contract: wrap trong BaseResponseDto như mọi endpoint khác
+async uploadFile(...) {
+  const media = await this.mediaService.uploadFile(file, dto);
+  return BaseResponseDto.success(media);
+}
+```
+
+```typescript
+// ❌ SAI — Hardcode URL môi trường dev vào source code
+const MINIO_BASE = 'http://localhost:9000/assets';
+
+// ✅ ĐÚNG — Đọc từ env, có fallback hợp lý
+const MINIO_BASE = process.env.STORAGE_BASE_URL;
+```
+
+**Why?**
+
+- Mỗi shortcut tạo ra **technical debt** — chồng đủ nhiều là cả hệ thống không thể maintain
+- Bug từ quick fix thường xuất hiện muộn, khó trace (như lỗi `data.data?.url` âm thầm fail)
+- Dự án SaaS multi-tenant không có chỗ cho code "chạy được nhưng sai"
+
+---
+
 ## 📋 Summary
 
 | Nguyên Tắc | Mục Đích | Exception |
@@ -177,6 +228,7 @@ Xem [escalation/](../escalation/) cho chi tiết.
 | Immutable audit logs | Evidence for incidents | Không (append-only) |
 | Clear escalation | Incident response | Không (đã định nghĩa) |
 | Collaborate | Team alignment | Không (async is OK) |
+| Không dùng quick fix | Stability + maintainability | Không |
 
 ---
 

@@ -5,7 +5,10 @@ import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store'
 
 export function PreviewIframe({ shopId }: { shopId: string }) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const { pages, theme, globalComponents, deviceMode } = useBuilderStore();
+    const pages = useBuilderStore(s => s.pages);
+    const theme = useBuilderStore(s => s.theme);
+    const globalComponents = useBuilderStore(s => s.globalComponents);
+    const deviceMode = useBuilderStore(s => s.deviceMode);
 
     const sendUpdate = () => {
         if (!iframeRef.current?.contentWindow) return;

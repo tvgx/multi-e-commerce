@@ -75,7 +75,29 @@ Files: kebab-case.
 
 Types: Ưu tiên interface hơn type. Cấm dùng any.
 
-🤖 6. VIBE-CODING COMMUNICATION PROTOCOL
+⛔ 6. KHÔNG DÙNG CÁCH NHANH — NGUYÊN TẮC BẮT BUỘC
+
+TUYỆT ĐỐI KHÔNG chọn giải pháp nhanh (quick fix / shortcut) khi có giải pháp đúng đắn và bền vững hơn. Mọi quyết định kỹ thuật phải ưu tiên tính ổn định, hoàn chỉnh và lâu dài của dự án.
+
+Trước khi viết bất kỳ dòng code nào, hỏi: "Giải pháp này có đúng và bền vững trong 6 tháng nữa không?"
+
+Nếu không → dừng lại, tìm giải pháp đúng.
+
+CẤM tuyệt đối:
+
+- Hardcode URL, credentials, hoặc config môi trường vào source code
+- Bỏ qua response format chuẩn (`BaseResponseDto`) dù chỉ "tạm thời"
+- Gửi shopId qua request body thay vì `x-shop-id` header (TenantMiddleware chỉ đọc header)
+- Dùng `any` trong TypeScript để né type checking
+- Tạo stub / mock endpoint không có implementation thật
+- Bỏ `credentials: 'include'` hoặc auth header "để test nhanh"
+- Tắt guard, middleware, hoặc validation pipe mà không có lý do kỹ thuật rõ ràng
+
+Xem chi tiết và ví dụ: [core-rules/principles.md — Nguyên tắc 9](../core-rules/principles.md)
+
+---
+
+🤖 7. VIBE-CODING COMMUNICATION PROTOCOL
 Context Awareness: Trước khi viết code, hãy tóm tắt lại: "Dựa trên kiến trúc Zero-file, tôi sẽ sửa JSON Schema tại package A và cập nhật logic Render tại app B".
 
 Proactive Warnings: Nếu tôi yêu cầu một tính năng làm tăng RAM đột biến hoặc vi phạm tính Multi-tenant, bạn phải CẢNH BÁO ngay lập tức.

@@ -8,7 +8,9 @@ module.exports = {
   modulePaths: ['<rootDir>/../../packages'],
   transform: {
     '^.+\\.tsx?$': [
-      'ts-jest',
+      // Absolute path: ts-jest is hoisted to the workspace root, which the
+      // jest resolver doesn't find from this package's rootDir
+      require.resolve('ts-jest'),
       {
         tsconfig: path.resolve(__dirname, 'tsconfig.jest.json'),
       },

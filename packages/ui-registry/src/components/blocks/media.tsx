@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { SmartImage } from './SmartImage';
 
 export interface MediaBlockProps {
     url?: string;
@@ -46,11 +47,10 @@ export function MediaBlock({
             {!url ? (
                 renderPlaceholder()
             ) : type === 'image' ? (
-                <img 
+                <SmartImage 
                     src={url} 
                     alt={altText}
                     className={cn("w-full h-full", fitClasses[fit])}
-                    loading="lazy"
                 />
             ) : (
                 <video 

@@ -1,6 +1,7 @@
 import { getShopProducts, getShopInfo } from '@/lib/api/storefront.api';
 import React from 'react';
 import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
+import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;
@@ -83,10 +84,11 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                                     <div className="relative h-52 bg-slate-50 overflow-hidden">
                                         {thumbnail ? (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img
+                                            <SmartImage
                                                 src={thumbnail}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                sizes="(min-width: 768px) 25vw, 50vw"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl">

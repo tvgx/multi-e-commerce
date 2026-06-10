@@ -80,8 +80,15 @@ export class OrderService {
     const orderNumber = `ORD-${Date.now()}`;
     const orderId = randomUUID(); // pre-generate ID for inventory service reference
 
+    // Validate payment method before opening the transaction — keeps the
+    // stock-locking window as short as possible.
+    const validPaymentMethod = await this.prisma.paymentMethod.findFirst({
+      where: { id: dto.paymentMethodId, shopId }
+    });
+    if (!validPaymentMethod) throw new BadRequestException('Invalid payment method for this shop');
+
     // 3. Transaction: Lock Stock -> Create Order -> Apply Promo
-    const finalOrder = await this.prisma.$transaction(async (tx) => {
+    const txOrder = await this.prisma.$transaction(async (tx) => {
       // 3.1 Decrement stock via InventoryService (pass tx)
       await this.inventoryService.decrementStock(dto.lineItems, orderId, tx);
       
@@ -119,12 +126,6 @@ export class OrderService {
       });
 
       // 3.4 Create Payment Record
-      const validPaymentMethod = await tx.paymentMethod.findFirst({
-         where: { id: dto.paymentMethodId, shopId }
-      });
-
-      if (!validPaymentMethod) throw new BadRequestException('Invalid payment method for this shop');
-
       const payment = await tx.payment.create({
         data: {
           orderId,
@@ -133,16 +134,15 @@ export class OrderService {
           state: 'checkout'
         }
       });
-      
-      let qrCodeUrl = null;
+
       let confirmUrl = null;
 
-      // 3.5 Bank Transfer QR Code generation
+      // 3.5 Bank Transfer confirm token (QR rendering happens after commit)
       if (validPaymentMethod.type === 'BankTransfer') {
          const token = randomUUID();
          const expiresAt = new Date();
          expiresAt.setHours(expiresAt.getHours() + 24); // 24h validity
-         
+
          await tx.paymentConfirmToken.create({
            data: {
              token,
@@ -152,19 +152,23 @@ export class OrderService {
              expiresAt
            }
          });
-         
-         const shop = await tx.shop.findUnique({ where: { id: shopId } });
+
          const STOREFRONT_BASE = process.env.STOREFRONT_URL || 'http://localhost:3002';
          confirmUrl = `${STOREFRONT_BASE}/payment/confirm/${token}`;
-         qrCodeUrl = await QRCode.toDataURL(confirmUrl);
       }
 
       return {
         ...order,
-        qrCodeUrl,
         confirmUrl
       };
     });
+
+    // Generate the QR code outside the transaction — it's pure CPU work and
+    // was extending the stock-row lock window for every bank-transfer order.
+    const finalOrder = {
+      ...txOrder,
+      qrCodeUrl: txOrder.confirmUrl ? await QRCode.toDataURL(txOrder.confirmUrl) : null,
+    };
 
     // Notify customer
     this.notificationsGateway.notifyUser(
@@ -249,18 +253,20 @@ export class OrderService {
       })
     ]);
     
-    // We might want to populate product info for top products
-    const populatedProducts = await Promise.all(topProducts.map(async (tp) => {
-      const variant = await this.prisma.variant.findUnique({
-        where: { id: tp.variantId },
-        include: { product: true }
-      });
+    // Populate product info for top products in a single query
+    const topVariants = await this.prisma.variant.findMany({
+      where: { id: { in: topProducts.map((tp) => tp.variantId) } },
+      include: { product: { select: { name: true } } },
+    });
+    const variantById = new Map(topVariants.map((v) => [v.id, v]));
+    const populatedProducts = topProducts.map((tp) => {
+      const variant = variantById.get(tp.variantId);
       return {
         variantId: tp.variantId,
         soldQuantity: tp._sum.quantity,
         name: variant?.product?.name || variant?.sku || tp.variantId
       };
-    }));
+    });
 
     // Revenue per day for chart
     // We group orders by day in JS as prisma doesn't support Date grouping natively easily across DBs

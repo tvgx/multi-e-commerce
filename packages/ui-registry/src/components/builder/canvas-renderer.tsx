@@ -6,11 +6,14 @@ import { UIComponentRef } from "@ecommerce/schema";
 import { registry } from "../../registry";
 
 export function CanvasRenderer() {
-    const {
-        globalComponents, pages, activePage,
-        activeComponentId, activeBlockId,
-        setActiveComponent, setActiveBlock,
-    } = useBuilderStore();
+    // Narrow selectors: subscribing to the whole store re-rendered the entire
+    // canvas on every store change (including history pushes).
+    const globalComponents = useBuilderStore((s) => s.globalComponents);
+    const pages = useBuilderStore((s) => s.pages);
+    const activePage = useBuilderStore((s) => s.activePage);
+    const activeComponentId = useBuilderStore((s) => s.activeComponentId);
+    const activeBlockId = useBuilderStore((s) => s.activeBlockId);
+    const setActiveComponent = useBuilderStore((s) => s.setActiveComponent);
 
     const headerComponent = globalComponents.find(c => c.componentId === 'Header') || { id: 'header-placeholder', componentId: 'Header', props: {} };
     const footerComponent = globalComponents.find(c => c.componentId === 'Footer') || { id: 'footer-placeholder', componentId: 'Footer', props: {} };
@@ -54,9 +57,7 @@ export function CanvasRenderer() {
                 component={headerComponent as UIComponentRef}
                 isActive={getIsActive(headerComponent.id)}
                 isBlockSelected={getIsBlockActive(headerComponent.id)}
-                onClick={() => {
-                    setActiveComponent(headerComponent.id);
-                }}
+                onSelect={setActiveComponent}
                 isLocked={true}
             />
 
@@ -76,7 +77,7 @@ export function CanvasRenderer() {
                             component={section}
                             isActive={getIsActive(section.id)}
                             isBlockSelected={getIsBlockActive(section.id)}
-                            onClick={() => setActiveComponent(section.id)}
+                            onSelect={setActiveComponent}
                         />
                     ))
                 )}
@@ -87,24 +88,26 @@ export function CanvasRenderer() {
                 component={footerComponent as UIComponentRef}
                 isActive={getIsActive(footerComponent.id)}
                 isBlockSelected={getIsBlockActive(footerComponent.id)}
-                onClick={() => setActiveComponent(footerComponent.id)}
+                onSelect={setActiveComponent}
                 isLocked={true}
             />
         </div>
     );
 }
 
-function CanvasBlock({
+// Memoized with a stable onSelect so editing one section's props only
+// re-renders that section, not the whole canvas.
+const CanvasBlock = React.memo(function CanvasBlock({
     component,
     isActive,
     isBlockSelected,
-    onClick,
+    onSelect,
     isLocked = false,
 }: {
     component: UIComponentRef;
     isActive: boolean;
     isBlockSelected?: boolean;
-    onClick: () => void;
+    onSelect: (id: string) => void;
     isLocked?: boolean;
 }) {
     const Component = registry[component.componentId];
@@ -127,7 +130,7 @@ function CanvasBlock({
         <div
             data-canvas-id={component.id}
             className={`relative w-full group transition-all duration-150 cursor-pointer ${ringClass}`}
-            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            onClick={(e) => { e.stopPropagation(); onSelect(component.id); }}
         >
             {/* Active indicator badge */}
             {(isActive || isBlockSelected) && (
@@ -150,4 +153,4 @@ function CanvasBlock({
             </div>
         </div>
     );
-}
+});

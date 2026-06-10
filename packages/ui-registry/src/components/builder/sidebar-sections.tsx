@@ -8,18 +8,16 @@ import { AddSectionDropdown } from "./add-section-dropdown";
 import { BlockTreeItem } from "./block-tree-item";
 
 export function SidebarSections() {
-    const { 
-        globalComponents, 
-        pages, 
-        activePage, 
-        reorderPageSections, 
-        activeComponentId, 
-        setActiveComponent, 
-        removePageSection 
-    } = useBuilderStore();
+    const globalComponents = useBuilderStore(s => s.globalComponents);
+    const pages = useBuilderStore(s => s.pages);
+    const activePage = useBuilderStore(s => s.activePage);
+    const reorderPageSections = useBuilderStore(s => s.reorderPageSections);
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+    const removePageSection = useBuilderStore(s => s.removePageSection);
 
     const sections = pages[activePage] || [];
-    
+
     // Separate Header and Footer from globalComponents
     const headerComponent = globalComponents.find(c => c.componentId === 'Header') || { id: 'header-placeholder', componentId: 'Header', props: {} };
     const footerComponent = globalComponents.find(c => c.componentId === 'Footer') || { id: 'footer-placeholder', componentId: 'Footer', props: {} };
@@ -27,13 +25,12 @@ export function SidebarSections() {
     const handleDragEnd = (result: DropResult) => {
         if (!result.destination) return;
         const { source, destination, type } = result;
-        
+
         if (source.droppableId === destination.droppableId) {
             if (source.droppableId === "builder-sections") {
                 reorderPageSections(activePage, source.index, destination.index);
             } else {
                 // Nested block reordering
-                // We assume store handles block reordering by parentId (which is the droppableId)
                 const { reorderBlocks } = useBuilderStore.getState();
                 reorderBlocks(source.droppableId, source.index, destination.index);
             }
@@ -77,11 +74,11 @@ export function SidebarSections() {
                                 className="space-y-1 min-h-[50px] py-1"
                             >
                                 {sections.map((section, index) => (
-                                    <BlockTreeItem 
-                                        key={section.id} 
-                                        component={section} 
-                                        index={index} 
-                                        depth={0} 
+                                    <BlockTreeItem
+                                        key={section.id}
+                                        component={section}
+                                        index={index}
+                                        depth={0}
                                     />
                                 ))}
                                 {provided.placeholder}

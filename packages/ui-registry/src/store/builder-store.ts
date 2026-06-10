@@ -12,6 +12,7 @@ interface HistorySnapshot {
 }
 
 interface BuilderStoreState extends BuilderState {
+    shopId: string | null;
     activeComponentId: string | null;
     activeBlockId: string | null;
     activePage: string;
@@ -79,15 +80,42 @@ function filterRecursive(components: UIComponentRef[], targetId: string): UIComp
 // -----------------------------------------------------------------------
 // History helpers
 // -----------------------------------------------------------------------
+// All store updates are immutable (objects are replaced, never mutated), so
+// snapshots can hold references — no deep clone needed. Cloning the entire
+// layout per keystroke was the builder's main performance bottleneck.
 function snapshot(state: BuilderStoreState): HistorySnapshot {
     return {
-        globalComponents: JSON.parse(JSON.stringify(state.globalComponents)),
-        pages: JSON.parse(JSON.stringify(state.pages)),
-        theme: { ...state.theme },
+        globalComponents: state.globalComponents,
+        pages: state.pages,
+        theme: state.theme,
     };
 }
 
-function pushHistory(state: BuilderStoreState): Pick<BuilderStoreState, 'history'> {
+// Rapid edits to the same target (typing in a text field, dragging a color
+// picker) are coalesced into a single history entry, so undo reverts the
+// whole burst instead of one character at a time.
+const COALESCE_WINDOW_MS = 800;
+let lastPushAt = 0;
+let lastPushKey = '';
+
+function resetHistoryBurst() {
+    lastPushAt = 0;
+    lastPushKey = '';
+}
+
+function pushHistory(state: BuilderStoreState, coalesceKey?: string): Pick<BuilderStoreState, 'history'> {
+    const now = Date.now();
+    if (
+        coalesceKey &&
+        coalesceKey === lastPushKey &&
+        now - lastPushAt < COALESCE_WINDOW_MS &&
+        state.history.past.length > 0
+    ) {
+        lastPushAt = now; // extend the burst while edits keep coming
+        return { history: { past: state.history.past, future: [] } };
+    }
+    lastPushAt = now;
+    lastPushKey = coalesceKey ?? '';
     return {
         history: {
             past: [...state.history.past.slice(-49), snapshot(state)],
@@ -96,13 +124,6 @@ function pushHistory(state: BuilderStoreState): Pick<BuilderStoreState, 'history
     };
 }
 
-// Default MinIO images used when defaultImages hasn't been fetched yet
-const MINIO_DEFAULTS = [
-    'http://localhost:9000/assets/default-1.png',
-    'http://localhost:9000/assets/default-2.png',
-    'http://localhost:9000/assets/default-3.png',
-    'http://localhost:9000/assets/default-4.png',
-];
 
 // -----------------------------------------------------------------------
 // Store
@@ -112,6 +133,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     pages: { home: [] },
     theme: {},
 
+    shopId: null,
     activeComponentId: null,
     activeBlockId: null,
     activePage: 'home',
@@ -123,12 +145,12 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
 
     // -----------------------------------------------------------------------
     setTheme: (themePatch) => set((state) => ({
-        ...pushHistory(state),
+        ...pushHistory(state, `theme:${Object.keys(themePatch).join(',')}`),
         theme: { ...state.theme, ...themePatch },
     })),
 
     updateGlobalComponent: (id, props) => set((state) => {
-        const hist = pushHistory(state);
+        const hist = pushHistory(state, `global:${id}:${Object.keys(props).join(',')}`);
         if (props.shopName !== undefined) {
             return {
                 ...hist,
@@ -153,9 +175,11 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         const pages = { ...state.pages };
         if (!pages[pageType]) pages[pageType] = [];
 
-        const imgs = state.defaultImages.length > 0 ? state.defaultImages : MINIO_DEFAULTS;
+        const imgs = state.defaultImages;
         let props: any = {};
-        props.backgroundImageUrl = imgs[Math.floor(Math.random() * imgs.length)];
+        if (imgs.length > 0) {
+            props.backgroundImageUrl = imgs[Math.floor(Math.random() * imgs.length)];
+        }
 
         const schema = ComponentSchemas[componentId];
         let defaultBlocks: UIComponentRef[] = [];
@@ -187,8 +211,8 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         if (insertIndex !== undefined && insertIndex >= 0 && insertIndex <= pages[pageType].length) {
             const newArray = [...pages[pageType]];
             newArray.splice(insertIndex, 0, newNode);
-            newArray.forEach((c, i) => c.order = i);
-            pages[pageType] = newArray;
+            // Copy instead of mutating: history snapshots share references
+            pages[pageType] = newArray.map((c, i) => (c.order === i ? c : { ...c, order: i }));
         } else {
             newNode.order = pages[pageType].length;
             pages[pageType] = [...pages[pageType], newNode];
@@ -211,7 +235,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     }),
 
     updatePageSection: (pageType, id, newProps) => set((state) => {
-        const hist = pushHistory(state);
+        const hist = pushHistory(state, `section:${id}:${Object.keys(newProps).join(',')}`);
         const pages = { ...state.pages };
         if (!pages[pageType]) return state;
         pages[pageType] = pages[pageType].map((c) =>
@@ -227,8 +251,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         const arr = Array.from(pages[pageType]);
         const [removed] = arr.splice(startIndex, 1);
         arr.splice(endIndex, 0, removed);
-        arr.forEach((c, i) => c.order = i);
-        pages[pageType] = arr;
+        pages[pageType] = arr.map((c, i) => (c.order === i ? c : { ...c, order: i }));
         return { ...hist, pages };
     }),
 
@@ -238,7 +261,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     setDeviceMode: (mode) => set({ deviceMode: mode }),
 
     updateComponentProp: (id, propKey, value) => set((state) => {
-        const hist = pushHistory(state);
+        const hist = pushHistory(state, `prop:${id}:${propKey}`);
         const isGlobal = state.globalComponents.some(c => c.id === id);
         if (isGlobal) {
             return {
@@ -257,7 +280,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     }),
 
     updateBlockProp: (blockId, propKey, value) => set((state) => {
-        const hist = pushHistory(state);
+        const hist = pushHistory(state, `block:${blockId}:${propKey}`);
         const pages = { ...state.pages };
         const list = pages[state.activePage] || [];
         return {
@@ -329,8 +352,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             const arr = Array.from(c.blocks);
             const [removed] = arr.splice(startIndex, 1);
             arr.splice(endIndex, 0, removed);
-            arr.forEach((b, i) => b.order = i);
-            return { ...c, blocks: arr };
+            return { ...c, blocks: arr.map((b, i) => (b.order === i ? b : { ...b, order: i })) };
         };
         const pages = { ...state.pages };
         const list = pages[state.activePage] || [];
@@ -346,6 +368,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     // -----------------------------------------------------------------------
     undo: () => set((state) => {
         if (state.history.past.length === 0) return state;
+        resetHistoryBurst();
         const prev = state.history.past[state.history.past.length - 1];
         const newPast = state.history.past.slice(0, -1);
         const current = snapshot(state);
@@ -360,6 +383,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
 
     redo: () => set((state) => {
         if (state.history.future.length === 0) return state;
+        resetHistoryBurst();
         const next = state.history.future[0];
         const newFuture = state.history.future.slice(1);
         const current = snapshot(state);
@@ -374,21 +398,13 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
 
     // -----------------------------------------------------------------------
     fetchDefaultImages: async () => {
-        if (get().defaultImages.length > 0) return;
-        const MINIO_BASE = 'http://localhost:9000/assets';
-        set({
-            defaultImages: [
-                `${MINIO_BASE}/default-1.png`,
-                `${MINIO_BASE}/default-2.png`,
-                `${MINIO_BASE}/default-3.png`,
-                `${MINIO_BASE}/default-4.png`,
-            ],
-        });
+        // defaultImages will be populated from the shop's actual media library
+        // when the builder loads a saved template via loadTemplate
     },
 
     // -----------------------------------------------------------------------
     loadTemplate: async (shopId, token) => {
-        set({ isLoading: true });
+        set({ isLoading: true, shopId });
         try {
             const headers: any = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;

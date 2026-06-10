@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import { SmartImage } from '../../blocks/SmartImage';
 
 interface SlideBlock {
     id: string;
@@ -44,10 +45,11 @@ export function SlideshowInset({
             <div className="max-w-7xl mx-auto rounded-[2rem] overflow-hidden shadow-2xl relative h-[70vh] min-h-[500px]">
                 {/* Slide image */}
                 <div className="absolute inset-0 transition-all duration-700">
-                    <img
-                        src={slide.backgroundImageUrl || 'http://localhost:9000/assets/default-1.png'}
+                    <SmartImage
+                        src={slide.backgroundImageUrl || 'http://localhost:9000/assets/default-component.png'}
                         alt="Slide"
                         className="w-full h-full object-cover"
+                        priority
                     />
                     <div
                         className="absolute inset-0"

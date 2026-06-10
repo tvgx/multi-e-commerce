@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart, ShieldCheck, Truck, RefreshCcw } from 'lucide-react';
 import { AddToCartButton } from '../cart/AddToCartButton';
+import { SmartImage } from '../blocks/SmartImage';
 
 interface ProductVariant {
     id: string;
@@ -62,7 +63,7 @@ export function StandardProductDetail({ product, relatedProducts = [] }: Standar
                     <div className="w-full lg:w-1/2 flex flex-col gap-4">
                         <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 relative group">
                             {activeImage ? (
-                                <img src={activeImage} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                <SmartImage src={activeImage} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" sizes="(min-width: 1024px) 50vw, 100vw" priority />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>
                             )}
@@ -79,7 +80,7 @@ export function StandardProductDetail({ product, relatedProducts = [] }: Standar
                                         onClick={() => setActiveImage(img)}
                                         className={`w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'}`}
                                     >
-                                        <img src={img} alt={`${product.name} view ${idx + 1}`} className="w-full h-full object-cover" />
+                                        <SmartImage src={img} alt={`${product.name} view ${idx + 1}`} className="w-full h-full object-cover" sizes="96px" />
                                     </button>
                                 ))}
                             </div>
@@ -169,7 +170,7 @@ export function StandardProductDetail({ product, relatedProducts = [] }: Standar
                             {relatedProducts.map((rp, idx) => (
                                 <a key={idx} href={`/products/${rp.id}`} className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-md border border-slate-100 transition-all">
                                     <div className="aspect-square bg-slate-50 rounded-xl mb-4 overflow-hidden">
-                                        <img src={rp.images?.[0]} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <SmartImage src={rp.images?.[0]} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 768px) 25vw, 50vw" />
                                     </div>
                                     <h3 className="font-medium text-slate-900 mb-1 truncate">{rp.name}</h3>
                                     <div className="text-primary font-semibold">${rp.basePrice.toFixed(2)}</div>

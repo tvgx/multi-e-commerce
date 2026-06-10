@@ -14,6 +14,7 @@ import { DynamicPageContent } from '@/components/preview/DynamicPageContent';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ChatWidget } from '@ecommerce/ui-registry/src/components/chat/ChatWidget';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 
 interface Props {
     children: React.ReactNode;
@@ -22,12 +23,15 @@ interface Props {
 
 export default async function BuyerLayout({ children, params }: Props) {
     const { shopSlug } = await params;
-    const token = await getCustomerSession(shopSlug);
-    const customerData = await getCustomerData(shopSlug);
-    const customerId = customerData?.sub || customerData?.id;
 
-    // Combined fetch via Bootstrap API (Reduces 4 round-trips to 1)
-    const bootstrapData = await getShopBootstrapData(shopSlug);
+    // These are independent — run them in parallel instead of serially
+    // (this layout runs on every storefront page view).
+    const [token, customerData, bootstrapData] = await Promise.all([
+        getCustomerSession(shopSlug),
+        getCustomerData(shopSlug),
+        getShopBootstrapData(shopSlug),
+    ]);
+    const customerId = customerData?.sub || customerData?.id;
 
     const shopInfo = bootstrapData?.shop;
     const globalLayout = bootstrapData?.globalLayout;
@@ -62,7 +66,7 @@ export default async function BuyerLayout({ children, params }: Props) {
                         <a href={`/${shopSlug}`} className="flex items-center gap-2 font-bold text-xl text-slate-800 hover:opacity-80 transition-opacity">
                             {shopInfo?.logoUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={shopInfo.logoUrl} alt={shopName} className="h-8 w-auto object-contain" />
+                                <SmartImage src={shopInfo.logoUrl} alt={shopName} className="h-8 w-auto object-contain" sizes="200px" priority />
                             ) : (
                                 <span>{shopName}</span>
                             )}

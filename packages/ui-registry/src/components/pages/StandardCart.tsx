@@ -1,5 +1,6 @@
 import React from 'react';
 import { Minus, Plus, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
+import { SmartImage } from '../blocks/SmartImage';
 
 interface CartItem {
     id: string;
@@ -57,7 +58,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                             <div className="col-span-1 md:col-span-6 flex gap-4 items-center">
                                                 <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-100">
                                                     {item.image ? (
-                                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                        <SmartImage src={item.image} alt={item.name} className="w-full h-full object-cover" sizes="96px" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
                                                     )}

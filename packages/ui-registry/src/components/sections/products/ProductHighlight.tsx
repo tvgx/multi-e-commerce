@@ -2,15 +2,24 @@ import React from 'react';
 import { HeadingBlock } from '../../blocks/heading';
 import { ButtonBlock } from '../../blocks/button';
 import { cn } from '../../../lib/utils';
+import { SmartImage } from '../../blocks/SmartImage';
+
+const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
 
 interface ProductHighlightProps {
     productId?: string;
     mediaLayout?: string;
+    backgroundImageUrl?: string;
+    title?: string;
+    subtitle?: string;
 }
 
 export function ProductHighlight({
     productId,
-    mediaLayout = 'right'
+    mediaLayout = 'right',
+    backgroundImageUrl,
+    title,
+    subtitle,
 }: ProductHighlightProps) {
     const isRight = mediaLayout === 'right';
 
@@ -22,39 +31,17 @@ export function ProductHighlight({
                 </div>
 
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                    <div className={cn("space-y-8", isRight ? "order-2 lg:order-1" : "order-2 lg:order-2")}>
+                    <div className={cn('space-y-8', isRight ? 'order-2 lg:order-1' : 'order-2 lg:order-2')}>
                         <span className="text-emerald-500 font-bold tracking-widest uppercase">Spotlight</span>
-                        <HeadingBlock 
-                            content="Artisan Crafted Leather Tote." 
-                            level="h2" 
+                        <HeadingBlock
+                            content={title || 'Artisan Crafted Leather Tote.'}
+                            level="h2"
                             alignment="left"
                             className="text-4xl md:text-6xl font-bold text-slate-900 leading-tight"
                         />
-                        <ul className="space-y-6">
-                            <li className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">✦</div>
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Full-Grain Italian Leather</h4>
-                                    <p className="text-slate-600">Sourced from sustainable tanneries, develops a unique patina over time.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">✦</div>
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Solid Brass Hardware</h4>
-                                    <p className="text-slate-600">Custom cast hardware that won&apos;t rust, bend, or break under pressure.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">✦</div>
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Lifetime Guarantee</h4>
-                                    <p className="text-slate-600">We stand by our craftsmanship. Repairs are on us, forever.</p>
-                                </div>
-                            </li>
-                        </ul>
+                        <p className="text-lg text-slate-600 leading-relaxed">{subtitle || 'Sourced from sustainable tanneries, develops a unique patina over time.'}</p>
                         <div className="pt-6">
-                            <ButtonBlock 
+                            <ButtonBlock
                                 label="Discover Details - $285"
                                 style="primary"
                                 size="lg"
@@ -63,12 +50,15 @@ export function ProductHighlight({
                         </div>
                     </div>
 
-                    <div className={cn("relative", isRight ? "order-1 lg:order-2" : "order-1 lg:order-1")}>
+                    <div className={cn('relative', isRight ? 'order-1 lg:order-2' : 'order-1 lg:order-1')}>
                         <div className="aspect-[4/5] bg-slate-100 rounded-3xl overflow-hidden shadow-2xl z-10 relative">
-                            <img src="http://localhost:9000/assets/default-2.png" alt="Leather Tote" className="w-full h-full object-cover" />
+                            <SmartImage
+                                src={backgroundImageUrl || DEFAULT_IMG}
+                                alt="Product"
+                                className="w-full h-full object-cover"
+                            />
                         </div>
-                        {/* Decorative background element */}
-                        <div className="absolute -bottom-8 -right-8 w-full h-full border-2 border-emerald-500 rounded-3xl z-0"></div>
+                        <div className="absolute -bottom-8 -right-8 w-full h-full border-2 border-emerald-500 rounded-3xl z-0" />
                     </div>
                 </div>
             </div>
@@ -80,7 +70,9 @@ export const productHighlightSchema = {
     name: 'Product Highlight',
     category: 'Products',
     settings: [
-        { id: 'productId', type: 'resource_picker', label: 'Sản phẩm nổi bật' },
-        { id: 'mediaLayout', type: 'segmented', label: 'Vị trí hình ảnh', options: ['left', 'right'] }
-    ]
+        { id: 'backgroundImageUrl', type: 'image', label: 'Ảnh sản phẩm' },
+        { id: 'title', type: 'text', label: 'Tiêu đề sản phẩm' },
+        { id: 'subtitle', type: 'textarea', label: 'Mô tả ngắn' },
+        { id: 'mediaLayout', type: 'segmented', label: 'Vị trí hình ảnh', options: ['left', 'right'] },
+    ],
 };

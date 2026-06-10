@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from './common/exceptions/custom-exception.filter';
 import { ResponseLoggerInterceptor } from './common/interceptors/response-logger.interceptor';
@@ -29,6 +31,9 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-type', 'x-shop-id', 'x-tenant-id', 'x-request-id'],
   });
 
+  // Gzip responses — layout/product JSON payloads compress well
+  app.use(compression());
+
   // Global prefix /api cho tất cả NestJS controllers.
   // NOTE: Better Auth được mount thủ công qua app.use() bên dưới,
   // không cần exclude ở đây vì Express xử lý app.use() trước NestJS routing.
@@ -45,6 +50,35 @@ async function bootstrap() {
   // Customer Auth: /api/auth/customer/* (dành cho storefront)
   app.use('/api/auth/customer', toNodeHandler(customerAuth));
 
+  // Swagger UI — liệt kê và chạy thử API tại /api/docs
+  // (các route Better Auth mount qua app.use() ở trên không xuất hiện ở đây)
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('API Core')
+    .setDescription('Multi-tenant e-commerce API. Hầu hết endpoint cần header x-shop-id (tenant context).')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Customer/Owner session token' },
+      'bearer',
+    )
+    .addGlobalParameters({
+      name: 'x-shop-id',
+      in: 'header',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Shop ID (tenant context) — bắt buộc với các endpoint theo shop',
+    })
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, swaggerDocument, {
+    customSiteTitle: 'API Core Docs',
+    swaggerOptions: {
+      persistAuthorization: true, // giữ token khi reload trang
+      requestCredentials: 'include', // gửi cookie session (better-auth) khi Try it out
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
+
   // Global Exception Filter
   app.useGlobalFilters(new CustomExceptionFilter());
 
@@ -60,6 +94,7 @@ async function bootstrap() {
   const logger = new Logger('Infrastructure');
   logger.log(`=================================================`);
   logger.log(`🚀 API Core running on: http://localhost:${port}`);
+  logger.log(`📖 Swagger UI: http://localhost:${port}/api/docs`);
   logger.log(`🔐 Owner Auth: http://localhost:${port}/api/auth/owner`);
   logger.log(`👤 Customer Auth: http://localhost:${port}/api/auth/customer`);
 

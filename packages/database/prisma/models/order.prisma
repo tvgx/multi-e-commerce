@@ -30,6 +30,8 @@ model Order {
 
   @@index([shopId])
   @@index([number])
+  @@index([shopId, createdAt]) // order lists + analytics windows
+  @@index([shopId, state])     // state filter in findAllOrders
   @@map("orders")
 }
 
@@ -47,5 +49,6 @@ model LineItem {
   variant         Variant      @relation(fields: [variantId], references: [id])
 
   @@index([orderId])
+  @@index([variantId]) // top-products analytics groups by variantId
   @@map("line_items")
 }

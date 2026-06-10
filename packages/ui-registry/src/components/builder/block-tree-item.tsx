@@ -25,14 +25,12 @@ const getIcon = (id: string, isLocked: boolean) => {
 };
 
 export function BlockTreeItem({ component, index, depth = 0, parentId = null }: BlockTreeItemProps) {
-    const { 
-        activeComponentId, 
-        activeBlockId, 
-        setActiveComponent, 
-        setActiveBlock,
-        removeBlock,
-        toggleBlockVisibility
-    } = useBuilderStore();
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const setActiveComponent = useBuilderStore(s => s.setActiveComponent);
+    const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
+    const removeBlock = useBuilderStore(s => s.removeBlock);
+    const toggleBlockVisibility = useBuilderStore(s => s.toggleBlockVisibility);
 
     const [isHovered, setIsHovered] = useState(false);
     const [showDragHandle, setShowDragHandle] = useState(false);

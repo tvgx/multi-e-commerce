@@ -53,7 +53,9 @@ services:
       /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
       /usr/bin/mc mb myminio/shop-public || true;
       /usr/bin/mc mb myminio/shop-private || true;
+      /usr/bin/mc mb myminio/shop-images || true;
       /usr/bin/mc anonymous set public myminio/shop-public;
+      /usr/bin/mc anonymous set public myminio/shop-images;
       exit 0;
       "
 
@@ -69,6 +71,8 @@ services:
       IMGPROXY_S3_REGION: "us-east-1"
       IMGPROXY_S3_USE_SSL: "false"
       IMGPROXY_BASE_URL: "http://minio:9000"
+      IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_AUTO_AVIF: "true"
 
 volumes:
   pgdata_shard1:

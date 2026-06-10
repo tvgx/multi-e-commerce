@@ -1,6 +1,9 @@
 import React from 'react';
 import { HeadingBlock } from '../../blocks/heading';
 import { ButtonBlock } from '../../blocks/button';
+import { SmartImage } from '../../blocks/SmartImage';
+
+const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
 
 interface CollectionListsEditorialProps {
     title?: string;
@@ -11,13 +14,13 @@ interface CollectionListsEditorialProps {
 }
 
 export function CollectionListsEditorial({
-    title = "Curated For You",
-    showViewAll = "yes",
-    viewAllLink = "#",
+    title = 'Curated For You',
+    showViewAll = 'yes',
+    viewAllLink = '#',
     collectionId,
-    mainImage
+    mainImage,
 }: CollectionListsEditorialProps) {
-    const finalImage = mainImage || "http://localhost:9000/assets/default-4.png";
+    const finalImage = mainImage || DEFAULT_IMG;
     const items = [1, 2];
 
     return (
@@ -26,21 +29,21 @@ export function CollectionListsEditorial({
                 <div className="order-2 lg:order-1">
                     <div className="flex flex-col gap-12">
                         {title && (
-                            <HeadingBlock 
-                                content={title} 
-                                level="h2" 
+                            <HeadingBlock
+                                content={title}
+                                level="h2"
                                 alignment="left"
                                 className="text-4xl font-bold mb-4"
                             />
                         )}
-                        
+
                         {items.map((i) => (
                             <div key={i} className="flex flex-col border-b border-emerald-800 pb-12 group">
                                 <span className="text-emerald-500 font-mono mb-2">0{i}</span>
                                 <a href="#" className="text-4xl md:text-5xl font-bold hover:text-emerald-400 transition-colors mb-4">Collection {i}</a>
                                 <p className="text-emerald-200/80 max-w-sm mb-6">Lightweight fabrics and vibrant patterns for the warmer days ahead.</p>
-                                <ButtonBlock 
-                                    label="Shop Now" 
+                                <ButtonBlock
+                                    label="Shop Now"
                                     link="#"
                                     style="link"
                                     className="text-emerald-400 hover:text-white uppercase tracking-widest text-sm font-bold"
@@ -50,8 +53,8 @@ export function CollectionListsEditorial({
 
                         {showViewAll === 'yes' && (
                             <div className="pt-4">
-                                <ButtonBlock 
-                                    label="Xem tất cả bộ sưu tập" 
+                                <ButtonBlock
+                                    label="Xem tất cả bộ sưu tập"
                                     link={viewAllLink}
                                     style="outline"
                                     className="border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white"
@@ -63,7 +66,11 @@ export function CollectionListsEditorial({
 
                 <div className="order-1 lg:order-2">
                     <div className="w-full aspect-[4/5] overflow-hidden rounded-t-full relative bg-emerald-900">
-                        <img src={finalImage} alt="Editorial" className="absolute inset-0 w-full h-full object-cover" />
+                        <SmartImage
+                            src={finalImage}
+                            alt="Editorial"
+                            className="absolute inset-0 w-full h-full object-cover"
+                        />
                     </div>
                 </div>
             </div>
@@ -78,7 +85,6 @@ export const collectionListsEditorialSchema = {
         { id: 'title', type: 'text', label: 'Tiêu đề' },
         { id: 'showViewAll', type: 'segmented', label: 'Nút Xem tất cả', options: ['yes', 'no'] },
         { id: 'viewAllLink', type: 'page_selector', label: 'Link Xem tất cả' },
-        { id: 'collectionId', type: 'resource_picker', label: 'Nguồn dữ liệu (Collection)' },
-        { id: 'mainImage', type: 'resource_picker', label: 'Ảnh Editorial chính' }
-    ]
+        { id: 'mainImage', type: 'image', label: 'Ảnh Editorial chính' },
+    ],
 };

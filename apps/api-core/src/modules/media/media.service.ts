@@ -76,7 +76,7 @@ export class MediaService {
            shopId,
            url: publicUrl,
            key,
-           bucket: 'shop-images', // match the minio bucket config
+           bucket: this.minioService.getBucketName(),
            mimeType,
            size: file.size,
            width,

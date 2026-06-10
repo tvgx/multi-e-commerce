@@ -69,7 +69,8 @@ function FontRow({ label, value, onChange }: { label: string; value: string; onC
 }
 
 function ThemeSettingsPanel() {
-    const { theme: rawTheme, setTheme } = useBuilderStore();
+    const rawTheme = useBuilderStore(s => s.theme);
+    const setTheme = useBuilderStore(s => s.setTheme);
     const theme = rawTheme as Record<string, string>;
 
     return (
@@ -139,10 +140,14 @@ function ThemeSettingsPanel() {
 // PropEditor – shows properties for selected element, or Theme Settings
 // -----------------------------------------------------------------------
 export function PropEditor() {
-    const {
-        pages, activePage, activeComponentId, activeBlockId,
-        globalComponents, updatePageSection, updateGlobalComponent, updateBlockProp,
-    } = useBuilderStore();
+    const pages = useBuilderStore(s => s.pages);
+    const activePage = useBuilderStore(s => s.activePage);
+    const activeComponentId = useBuilderStore(s => s.activeComponentId);
+    const activeBlockId = useBuilderStore(s => s.activeBlockId);
+    const globalComponents = useBuilderStore(s => s.globalComponents);
+    const updatePageSection = useBuilderStore(s => s.updatePageSection);
+    const updateGlobalComponent = useBuilderStore(s => s.updateGlobalComponent);
+    const updateBlockProp = useBuilderStore(s => s.updateBlockProp);
     const [isUploading, setIsUploading] = React.useState(false);
     const { shopId } = useParams() as { shopId: string };
 
@@ -187,19 +192,18 @@ export function PropEditor() {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('entityType', 'shop_logo');
-            const token = localStorage.getItem('accessToken') || '';
-            const res = await fetch('http://localhost:3000/api/media/upload', {
+
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${API_BASE}/api/media/upload`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    'x-shop-id': shopId,
-                },
+                headers: { 'x-shop-id': shopId },
                 body: formData,
             });
             if (res.ok) {
                 const json = await res.json();
                 if (json.data?.url) handlePropChange(fieldId, json.data.url);
+                else alert('Upload failed');
             } else {
                 alert('Upload failed');
             }

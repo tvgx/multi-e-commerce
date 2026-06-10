@@ -8,9 +8,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 // We use next/dynamic to ensure chunks are only loaded if they exist in the user's layout.
 
 const ComponentRegistry: Record<string, React.ComponentType<any>> = {
-    // Global
-    Header: dynamic(() => import('@ecommerce/ui-registry').then(m => m.Header)),
-    Footer: dynamic(() => import('@ecommerce/ui-registry').then(m => m.Footer)),
+    // Global — deep imports: pulling these from the package barrel dragged
+    // every section component into the header chunk on every page.
+    Header: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/header/Header').then(m => m.Header)),
+    Footer: dynamic(() => import('@ecommerce/ui-registry/src/components/footer').then(m => m.Footer)),
 
     // Banners
     Hero: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/banners/Hero').then(m => m.Hero)),

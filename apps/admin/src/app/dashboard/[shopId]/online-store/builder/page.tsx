@@ -10,11 +10,15 @@ import Link from 'next/link';
 
 export default function BuilderPage({ params }: { params: Promise<{ shopId: string }> }) {
     const { shopId } = use(params);
-    const {
-        loadTemplate, saveTemplate, publishTemplate,
-        isLoading, deviceMode, setDeviceMode,
-        undo, redo, history,
-    } = useBuilderStore();
+    const loadTemplate = useBuilderStore(s => s.loadTemplate);
+    const saveTemplate = useBuilderStore(s => s.saveTemplate);
+    const publishTemplate = useBuilderStore(s => s.publishTemplate);
+    const isLoading = useBuilderStore(s => s.isLoading);
+    const deviceMode = useBuilderStore(s => s.deviceMode);
+    const setDeviceMode = useBuilderStore(s => s.setDeviceMode);
+    const undo = useBuilderStore(s => s.undo);
+    const redo = useBuilderStore(s => s.redo);
+    const history = useBuilderStore(s => s.history);
 
     const [saving, setSaving] = React.useState(false);
     const [publishing, setPublishing] = React.useState(false);
