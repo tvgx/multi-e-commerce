@@ -71,20 +71,17 @@ export default function PlatformOverviewPage() {
               </Link>
             </div>
 
-            {/* Analytics (Soon) */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 flex flex-col h-full relative overflow-hidden opacity-80">
-              <div className="absolute top-4 right-4 px-2 py-1 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
-                Coming Soon
-              </div>
+            {/* Analytics (Active) */}
+            <div className="rounded-xl border border-zinc-700 bg-zinc-800/80 p-5 shadow-sm hover:border-blue-500/50 transition-all group flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
                   <BarChart3 size={20} />
                 </div>
               </div>
-              <h3 className="text-base font-bold text-zinc-300 mb-2">Analytics Hub</h3>
-              <p className="text-sm text-zinc-500 mb-6 flex-1">Aggregated insights across all your storefronts. Track revenue, traffic, and sales funnels.</p>
-              <Link href="/dashboard/analytics" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 hover:text-white">
-                Learn More <ArrowRight size={16} />
+              <h3 className="text-base font-bold text-white mb-2">Analytics Hub</h3>
+              <p className="text-sm text-zinc-400 mb-6 flex-1">Aggregated insights across all your storefronts. Track revenue, orders, and top shops.</p>
+              <Link href="/dashboard/analytics" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 group-hover:text-blue-300">
+                View Analytics <ArrowRight size={16} />
               </Link>
             </div>
 

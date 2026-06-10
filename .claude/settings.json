@@ -12,7 +12,9 @@
       "Bash(curl -s http://localhost:3000/api/docs-json)",
       "Bash(python3 -c ' *)",
       "Bash(curl -s \"http://localhost:3000/api/products?limit=2\" -H \"x-shop-id: test\" -o /dev/null -w \"sample API call -> %{http_code}\\\\n\")",
-      "Bash(fuser -k 3000/tcp)"
+      "Bash(fuser -k 3000/tcp)",
+      "Bash(cd /home/lordfeeder/workspaces/multi-e-commerce/apps/api-core && npm run build 2>&1 | tail -5 && cd ../admin && npx tsc --noEmit -p tsconfig.json 2>&1 | head -20)",
+      "Read(//home/lordfeeder/workspaces/**)"
     ]
   }
 }

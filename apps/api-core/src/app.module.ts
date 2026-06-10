@@ -27,6 +27,7 @@ import { LayoutModule } from './modules/layout/layout.module';
 import { MediaModule } from './modules/media/media.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { EmailModule } from './modules/email/email.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { EmailModule } from './modules/email/email.module';
     MediaModule,
     TemplatesModule,
     PromotionsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

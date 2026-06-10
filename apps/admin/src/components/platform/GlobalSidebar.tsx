@@ -16,7 +16,7 @@ import {
 
 const PLATFORM_ITEMS = [
   { icon: <Store size={20} />, label: "My Shops", href: "/dashboard/shops" },
-  { icon: <BarChart3 size={20} />, label: "Analytics Hub", href: "/dashboard/analytics", badge: "Soon" },
+  { icon: <BarChart3 size={20} />, label: "Analytics Hub", href: "/dashboard/analytics" },
   { icon: <Package size={20} />, label: "Product Catalog", href: "/dashboard/catalog", badge: "Soon" },
   { icon: <Palette size={20} />, label: "Theme Market", href: "/dashboard/themes", badge: "Soon" },
 ];
