@@ -73,7 +73,10 @@ export class LayoutService {
 
   async publishLayout() {
     const shopId = this.getShopId();
-    const layout = await this.globalLayoutModel.findOne({ shopId }).exec();
+    const layout = await this.globalLayoutModel
+      .findOne({ shopId }, { draftData: 1 })
+      .lean()
+      .exec();
     if (!layout) throw new BadRequestException('No layout draft found');
     
     const published = await this.globalLayoutModel.findOneAndUpdate(
@@ -88,13 +91,18 @@ export class LayoutService {
   // ─── Public storefront endpoints (by shopId directly) ─────────────────
 
   async getGlobalLayout(shopId: string) {
-    let globalLayout = await this.globalLayoutModel.findOne({ shopId }).exec();
+    // lean + projection: endpoint nóng nhất của storefront, chỉ cần publishedData
+    const globalLayout = await this.globalLayoutModel
+      .findOne({ shopId }, { publishedData: 1 })
+      .lean()
+      .exec();
     if (!globalLayout) {
-      globalLayout = await this.globalLayoutModel.create({
+      const created = await this.globalLayoutModel.create({
         shopId,
         publishedData: {},
         draftData: {},
       });
+      return created.publishedData;
     }
     return globalLayout.publishedData;
   }
@@ -102,7 +110,10 @@ export class LayoutService {
   // ─── Builder draft endpoints ────────────────────────────────────────────
 
   async getBuilderGlobal(shopId: string) {
-    let doc = await this.globalLayoutModel.findOne({ shopId }).exec();
+    let doc = await this.globalLayoutModel
+      .findOne({ shopId }, { draftData: 1, publishedData: 1 })
+      .lean()
+      .exec();
     if (!doc) {
       doc = await this.globalLayoutModel.create({ shopId, publishedData: {}, draftData: {} });
     }
@@ -115,7 +126,10 @@ export class LayoutService {
 
   async getBuilderPage(shopId: string, pageType: string) {
     const query: any = { shopId, pageType };
-    const doc = await this.pageLayoutModel.findOne(query).exec();
+    const doc = await this.pageLayoutModel
+      .findOne(query, { draftData: 1, publishedData: 1 })
+      .lean()
+      .exec();
     if (!doc) return null;
     return (doc.draftData && Object.keys(doc.draftData).length > 0)
       ? doc.draftData
@@ -146,7 +160,10 @@ export class LayoutService {
     const query: any = { shopId, pageType };
     if (slug) query.slug = slug;
 
-    const pageLayout = await this.pageLayoutModel.findOne(query).exec();
+    const pageLayout = await this.pageLayoutModel
+      .findOne(query, { publishedData: 1 })
+      .lean()
+      .exec();
     return pageLayout ? pageLayout.publishedData : null;
   }
 
@@ -154,7 +171,10 @@ export class LayoutService {
 
   async publishLayoutByShopId(shopId: string) {
     // Publish global layout
-    const globalDoc = await this.globalLayoutModel.findOne({ shopId }).exec();
+    const globalDoc = await this.globalLayoutModel
+      .findOne({ shopId }, { draftData: 1 })
+      .lean()
+      .exec();
     if (globalDoc?.draftData && Object.keys(globalDoc.draftData).length > 0) {
       await this.globalLayoutModel.findOneAndUpdate(
         { shopId },
@@ -164,7 +184,11 @@ export class LayoutService {
     }
 
     // Publish all page layouts for this shop in one round-trip
-    const pageLayouts = await this.pageLayoutModel.find({ shopId }).exec();
+    // (chỉ cần pageType + draftData, không kéo publishedData về)
+    const pageLayouts = await this.pageLayoutModel
+      .find({ shopId }, { pageType: 1, draftData: 1 })
+      .lean()
+      .exec();
     const ops = pageLayouts
       .filter((page) => page.draftData && Object.keys(page.draftData).length > 0)
       .map((page) => ({

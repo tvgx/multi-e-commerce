@@ -34,13 +34,13 @@ export default async function WishlistPage({ params }: { params: Promise<{ shopS
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {wishlist.map((item: any) => (
+                    {wishlist.filter((item: any) => item.product).map((item: any) => (
                         <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden group hover:shadow-lg transition-all duration-300">
-                            <Link href={`/${shopSlug}/product/${item.product.slug}`} className="block relative aspect-square bg-slate-100 overflow-hidden">
-                                {item.product.images?.[0] ? (
-                                    <SmartImage 
-                                        src={item.product.images[0]} 
-                                        alt={item.product.name} 
+                            <Link href={`/${shopSlug}/products/${item.product.id}`} className="block relative aspect-square bg-slate-100 overflow-hidden">
+                                {item.product.imageUrl ? (
+                                    <SmartImage
+                                        src={item.product.imageUrl}
+                                        alt={item.product.name}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         sizes="(min-width: 768px) 25vw, 50vw"
                                     />
@@ -51,11 +51,11 @@ export default async function WishlistPage({ params }: { params: Promise<{ shopS
                                 )}
                             </Link>
                             <div className="p-4">
-                                <Link href={`/${shopSlug}/product/${item.product.slug}`} className="block">
+                                <Link href={`/${shopSlug}/products/${item.product.id}`} className="block">
                                     <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">{item.product.name}</h3>
                                 </Link>
                                 <div className="mt-2 text-lg font-bold text-slate-900">
-                                    {Number(item.product.basePrice).toLocaleString('vi-VN')}đ
+                                    {Number(item.product.variants?.[0]?.price ?? 0).toLocaleString('vi-VN')}đ
                                 </div>
                             </div>
                         </div>

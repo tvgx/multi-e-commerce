@@ -77,6 +77,14 @@ export class CatalogService {
     });
   }
 
+  // ProductCollection xoá theo qua FK cascade
+  async deleteCollection(id: string) {
+    const shopId = this.getShopId();
+    const existing = await this.prisma.collection.findFirst({ where: { id, shopId } });
+    if (!existing) throw new NotFoundException('Collection not found');
+    return this.prisma.collection.delete({ where: { id } });
+  }
+
   async getCollectionBySlug(slug: string, shopId: string) {
     const collection = await this.prisma.collection.findFirst({
       where: { slug, shopId },

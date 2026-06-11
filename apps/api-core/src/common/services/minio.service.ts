@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
+  DeleteObjectCommand,
   HeadObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
@@ -104,6 +105,18 @@ export class MinioService implements OnModuleInit {
       return publicUrl;
     } catch (error) {
       this.logger.error(`Upload failed: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async deleteFile(key: string, bucket?: string): Promise<void> {
+    try {
+      await this.s3Client.send(
+        new DeleteObjectCommand({ Bucket: bucket || this.bucketName, Key: key }),
+      );
+      this.logger.log(`File deleted: ${bucket || this.bucketName}/${key}`);
+    } catch (error) {
+      this.logger.error(`Delete failed for ${key}: ${error.message}`, error.stack);
       throw error;
     }
   }

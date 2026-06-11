@@ -33,6 +33,7 @@ model Shop {
   customers Customer[]
   orders    Order[]
   products  Product[]
+  categories Category[]
   stockLocations StockLocation[]
   promotions Promotion[]
   paymentMethods PaymentMethod[]
@@ -48,6 +49,7 @@ model Shop {
   shippingMethods    ShippingMethod[]
   shipments          Shipment[]
   wallets            Wallet[]
+  carts              Cart[]
 
   @@index([ownerId]) // BetterAuthGuard + getMyShops look up shops by owner
   @@map("shops")
@@ -81,6 +83,7 @@ model Customer {
   orders           Order[]
   addresses        CustomerAddress[]
   wallet           Wallet?
+  carts            Cart[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

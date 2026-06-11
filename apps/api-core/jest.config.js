@@ -4,6 +4,13 @@ module.exports = {
   moduleNameMapper: {
     '^@ecommerce/(.*)$': '<rootDir>/../../packages/$1',
     '^@thallesp/nestjs-better-auth$': '<rootDir>/src/__mocks__/@thallesp/nestjs-better-auth.js',
+    // Replace better-auth's ESM (.mjs) entrypoints with CommonJS stubs so
+    // ts-jest can load any module that transitively imports them. The auth
+    // session machinery is mocked at the AuthService boundary in tests.
+    '^better-auth/node$': '<rootDir>/test/stubs/better-auth-node.js',
+    '^better-auth/adapters/prisma$':
+      '<rootDir>/test/stubs/better-auth-prisma-adapter.js',
+    '^better-auth$': '<rootDir>/test/stubs/better-auth.js',
   },
   modulePaths: ['<rootDir>/../../packages'],
   transform: {

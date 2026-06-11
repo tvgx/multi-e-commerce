@@ -58,6 +58,13 @@ export class CatalogController {
   }
 
   @RequireRoles('ADMIN', 'OWNER')
+  @Delete('collections/:id')
+  async deleteCollection(@Param('id') id: string) {
+    const result = await this.catalogService.deleteCollection(id);
+    return BaseResponseDto.success(result);
+  }
+
+  @RequireRoles('ADMIN', 'OWNER')
   @Delete('collections/:collectionId/products/:productId')
   async removeProductFromCollection(
     @Param('collectionId') collectionId: string,

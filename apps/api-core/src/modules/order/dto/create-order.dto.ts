@@ -41,10 +41,12 @@ export class CheckoutDto {
   @IsNotEmpty()
   paymentMethodId: string;
 
+  // Không truyền lineItems => checkout toàn bộ giỏ hàng server-side
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LineItemDto)
-  lineItems: LineItemDto[];
+  lineItems?: LineItemDto[];
 
   @IsString()
   @IsOptional()
@@ -58,4 +60,9 @@ export class CheckoutDto {
   @Type(() => ShippingAddressDto)
   @IsOptional()
   shippingAddress?: ShippingAddressDto;
+
+  // Dùng địa chỉ đã lưu trong sổ địa chỉ thay cho shippingAddress inline
+  @IsString()
+  @IsOptional()
+  shippingAddressId?: string;
 }

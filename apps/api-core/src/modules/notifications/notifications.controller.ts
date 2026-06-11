@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Req, Query, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Req, Query, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { GetNotificationsDto } from './dto/notifications.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -32,6 +32,13 @@ export class NotificationsController {
     const userId = req.user?.id;
     if (!userId) throw new UnauthorizedException('Authentication required');
     return this.notificationsService.markAllAsRead(userId);
+  }
+
+  @Delete(':id')
+  deleteNotification(@Req() req: any, @Param('id') id: string) {
+    const userId = req.user?.id;
+    if (!userId) throw new UnauthorizedException('Authentication required');
+    return this.notificationsService.deleteNotification(userId, id);
   }
 }
 

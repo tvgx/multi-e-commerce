@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { TenantService } from '../../common/services/tenant.service';
 import { UploadMediaDto } from './dto/media.dto';
 import { MinioService } from '../../common/services/minio.service';
@@ -97,6 +97,36 @@ export class MediaService {
     });
 
     return media;
+  }
+
+  async deleteMedia(id: string) {
+    const shopId = this.getShopId();
+
+    const media = await this.prisma.media.findFirst({
+      where: { id, shopId },
+    });
+    if (!media) throw new NotFoundException('Media not found');
+
+    // Xoá record + hoàn quota trước, xoá object MinIO sau khi commit —
+    // nếu MinIO lỗi thì chỉ còn file mồ côi, không bao giờ có record treo
+    await this.prisma.$transaction(async (tx) => {
+      await tx.media.delete({ where: { id: media.id } });
+
+      // Clamp về 0 để quota không âm nếu accounting từng bị lệch
+      await tx.$executeRaw`
+        UPDATE "shops"
+        SET "storageUsedBytes" = GREATEST("storageUsedBytes" - ${media.size}, 0)
+        WHERE "id" = ${shopId}
+      `;
+    });
+
+    try {
+      await this.minioService.deleteFile(media.key, media.bucket);
+    } catch (err) {
+      console.warn(`Media ${id} deleted from DB but MinIO object ${media.bucket}/${media.key} could not be removed`, err);
+    }
+
+    return { status: 'deleted', id: media.id };
   }
 }
 

@@ -4,7 +4,6 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { randomUUID } from 'crypto';
-import * as QRCode from 'qrcode';
 import { TopupRequestDto, AdjustWalletDto } from './dto/wallet.dto';
 
 /** Loại PaymentMethod dùng cho thanh toán bằng ví */
@@ -108,6 +107,8 @@ export class WalletService {
     const pendingTopups = await this.prisma.walletTopupRequest.findMany({
       where: { walletId: wallet.id, status: 'pending', expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
+      // KHÔNG select token — đây là capability, không lộ ra client.
+      select: { id: true, amount: true, status: true, expiresAt: true, createdAt: true },
     });
     return { ...wallet, pendingTopups };
   }
@@ -131,56 +132,37 @@ export class WalletService {
 
   async requestTopup(customerId: string, dto: TopupRequestDto) {
     const shopId = this.getShopId();
+
+    // App không có global ValidationPipe → @Min(1000) trên DTO không chạy. Validate tay,
+    // đồng thời chặn NaN/Infinity mà decorator-less path cho lọt qua.
+    const amount = dto?.amount;
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 1000) {
+      throw new BadRequestException('Số tiền nạp tối thiểu là 1.000đ');
+    }
+
     const wallet = await this.getOrCreate(customerId, shopId);
 
+    // token được lưu để định danh duy nhất nhưng KHÔNG bao giờ trả về cho người mua:
+    // nó là capability, và việc xác nhận đã nhận tiền là hành động của merchant
+    // (chỉ thực hiện qua route admin có guard). Người mua giữ token sẽ không tự credit được.
     const token = randomUUID();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const topup = await this.prisma.walletTopupRequest.create({
-      data: { walletId: wallet.id, shopId, customerId, amount: dto.amount, token, expiresAt },
+      data: { walletId: wallet.id, shopId, customerId, amount, token, expiresAt },
     });
-
-    const STOREFRONT_BASE = process.env.STOREFRONT_URL || 'http://localhost:3002';
-    const confirmUrl = `${STOREFRONT_BASE}/wallet/topup/${token}`;
-    const qrCodeUrl = await QRCode.toDataURL(confirmUrl);
 
     const bankAccount = await this.prisma.shopBankAccount.findUnique({ where: { shopId } });
 
-    return { ...topup, confirmUrl, qrCodeUrl, bankAccount };
+    // Loại token khỏi response — không lộ capability ra client.
+    const { token: _token, ...safeTopup } = topup;
+    return { ...safeTopup, bankAccount };
   }
 
   // ==========================================
-  // Topup confirm theo token (QR — giống PaymentConfirmToken flow)
+  // Resolve topup (chỉ gọi từ route admin có guard ADMIN/OWNER + scope theo shop)
   // ==========================================
-
-  async getTopupInfo(token: string) {
-    const topup = await this.prisma.walletTopupRequest.findUnique({ where: { token } });
-    if (!topup) throw new NotFoundException('Invalid topup token');
-    if (topup.status !== 'pending') throw new BadRequestException('Topup request already resolved');
-    if (topup.expiresAt < new Date()) throw new BadRequestException('Topup request expired');
-
-    const [shop, bankAccount, customer] = await Promise.all([
-      this.prisma.shop.findUnique({ where: { id: topup.shopId }, select: { name: true, domain: true } }),
-      this.prisma.shopBankAccount.findUnique({ where: { shopId: topup.shopId } }),
-      this.prisma.customer.findUnique({ where: { id: topup.customerId }, select: { name: true, email: true } }),
-    ]);
-
-    return {
-      id: topup.id,
-      amount: topup.amount,
-      shopName: shop?.name,
-      bankAccount,
-      customer,
-      expiresAt: topup.expiresAt,
-    };
-  }
-
-  async resolveTopupByToken(token: string, action: 'confirm' | 'reject') {
-    const topup = await this.prisma.walletTopupRequest.findUnique({ where: { token } });
-    if (!topup) throw new NotFoundException('Invalid topup token');
-    return this.resolveTopup(topup.id, topup.shopId, action, 'system');
-  }
 
   private async resolveTopup(id: string, shopId: string, action: 'confirm' | 'reject', createdBy: string) {
     const result = await this.prisma.$transaction(async (tx) => {

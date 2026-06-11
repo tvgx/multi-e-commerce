@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Post, Delete, Param, Body, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
 import { UploadMediaDto } from './dto/media.dto';
@@ -18,6 +18,12 @@ export class MediaController {
   async uploadFile(@UploadedFile() file: any, @Body() dto: UploadMediaDto) {
     const media = await this.mediaService.uploadFile(file, dto);
     return BaseResponseDto.success(media);
+  }
+
+  @Delete(':id')
+  async deleteFile(@Param('id') id: string) {
+    const result = await this.mediaService.deleteMedia(id);
+    return BaseResponseDto.success(result);
   }
 }
 

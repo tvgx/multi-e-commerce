@@ -48,13 +48,6 @@ export class OrderController {
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
-  @Get('analytics')
-  getAnalytics(@Query('period') period: '7d' | '30d' = '30d') {
-    return this.orderService.getAnalytics(period);
-  }
-
-  @UseGuards(BetterAuthGuard, RolesGuard)
-  @RequireRoles('ADMIN', 'OWNER')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderService.findOneOrder(id);

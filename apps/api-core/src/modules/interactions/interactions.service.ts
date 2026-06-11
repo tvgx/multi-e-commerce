@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
-import { ToggleWishlistDto, AddSearchHistoryDto, CreateReviewDto, GetReviewsDto } from './dto/interactions.dto';
+import { ToggleWishlistDto, AddSearchHistoryDto, CreateReviewDto, UpdateReviewDto, GetReviewsDto, GetAdminReviewsDto, UpdateReviewStatusDto, REVIEW_STATUSES } from './dto/interactions.dto';
 
 @Injectable()
 export class InteractionsService {
@@ -51,7 +51,34 @@ export class InteractionsService {
       where: { shopId, customerId },
       orderBy: { createdAt: 'desc' }
     });
-    return { data: items };
+    if (items.length === 0) return { data: [] };
+
+    // WishlistItem không có relation Prisma tới Product (chỉ lưu productId),
+    // nên join thủ công bằng một query `in` — UI cần render card sản phẩm,
+    // tránh để client gọi N request chi tiết sản phẩm
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: items.map((i) => i.productId) }, shopId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        imageUrl: true,
+        status: true,
+        variants: {
+          where: { isMaster: true },
+          select: { price: true, currency: true },
+          take: 1,
+        },
+      },
+    });
+    const productById = new Map(products.map((p) => [p.id, p]));
+
+    return {
+      data: items.map((item) => ({
+        ...item,
+        product: productById.get(item.productId) ?? null,
+      })),
+    };
   }
 
   async addSearchHistory(customerId: string, dto: AddSearchHistoryDto) {
@@ -111,6 +138,52 @@ export class InteractionsService {
     return { status: 'created', review };
   }
 
+  async updateReview(customerId: string, id: string, dto: UpdateReviewDto) {
+    const shopId = this.getShopId();
+    const existing = await this.prisma.productReview.findFirst({
+      where: { id, shopId, customerId },
+    });
+    if (!existing) throw new NotFoundException('Review not found');
+
+    const review = await this.prisma.productReview.update({
+      where: { id },
+      data: {
+        rating: dto.rating,
+        title: dto.title,
+        body: dto.body,
+      },
+    });
+    return { status: 'updated', review };
+  }
+
+  async deleteReview(customerId: string, id: string) {
+    const shopId = this.getShopId();
+    const existing = await this.prisma.productReview.findFirst({
+      where: { id, shopId, customerId },
+    });
+    if (!existing) throw new NotFoundException('Review not found');
+
+    await this.prisma.productReview.delete({ where: { id } });
+    return { status: 'deleted', id };
+  }
+
+  async clearSearchHistory(customerId: string) {
+    const shopId = this.getShopId();
+    const { count } = await this.prisma.searchHistory.deleteMany({
+      where: { shopId, customerId },
+    });
+    return { status: 'cleared', count };
+  }
+
+  async removeWishlistItem(customerId: string, productId: string) {
+    const shopId = this.getShopId();
+    const { count } = await this.prisma.wishlistItem.deleteMany({
+      where: { shopId, customerId, productId },
+    });
+    if (count === 0) throw new NotFoundException('Wishlist item not found');
+    return { status: 'removed', productId };
+  }
+
   async getReviews(query: GetReviewsDto) {
     const shopId = this.getShopId();
     const { productId, page = 1, limit = 20 } = query;
@@ -129,10 +202,73 @@ export class InteractionsService {
       this.prisma.productReview.count({ where })
     ]);
 
-    return { 
-      data: items, 
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) } 
+    return {
+      data: items,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
+  }
+
+  /** Seller: liệt kê review của shop, mọi trạng thái — phục vụ moderation. */
+  async getAdminReviews(query: GetAdminReviewsDto) {
+    const shopId = this.getShopId();
+    const { productId, status, page = 1, limit = 20 } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = { shopId };
+    if (productId) where.productId = productId;
+    if (status) where.status = status;
+
+    const [items, total] = await Promise.all([
+      this.prisma.productReview.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.productReview.count({ where }),
+    ]);
+
+    // Review không có FK Prisma tới Product/Customer — join thủ công như wishlist
+    const [products, customers] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { id: { in: [...new Set(items.map((r) => r.productId))] }, shopId },
+        select: { id: true, name: true, slug: true, imageUrl: true },
+      }),
+      this.prisma.customer.findMany({
+        where: { id: { in: [...new Set(items.map((r) => r.customerId))] }, shopId },
+        select: { id: true, name: true, email: true },
+      }),
+    ]);
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const customerById = new Map(customers.map((c) => [c.id, c]));
+
+    return {
+      data: items.map((review) => ({
+        ...review,
+        product: productById.get(review.productId) ?? null,
+        customer: customerById.get(review.customerId) ?? null,
+      })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  /** Seller: ẩn / công khai / đưa về pending một review. */
+  async updateReviewStatus(id: string, dto: UpdateReviewStatusDto) {
+    const shopId = this.getShopId();
+    // App không bật global ValidationPipe nên @IsIn trong DTO không chạy — check tay
+    if (!REVIEW_STATUSES.includes(dto.status as any)) {
+      throw new BadRequestException(`Status must be one of: ${REVIEW_STATUSES.join(', ')}`);
+    }
+    const existing = await this.prisma.productReview.findFirst({
+      where: { id, shopId },
+    });
+    if (!existing) throw new NotFoundException('Review not found');
+
+    const review = await this.prisma.productReview.update({
+      where: { id },
+      data: { status: dto.status },
+    });
+    return { status: 'updated', review };
   }
 }
 

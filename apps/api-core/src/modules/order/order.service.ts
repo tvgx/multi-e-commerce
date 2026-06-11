@@ -31,19 +31,34 @@ export class OrderService {
 
   async createOrder(customerId: string, dto: CheckoutDto) {
     const shopId = this.getShopId();
-    
+
+    // 0. Không truyền lineItems => checkout từ giỏ hàng server-side
+    let checkoutLineItems = dto.lineItems;
+    let cartId: string | null = null;
+    if (!checkoutLineItems || checkoutLineItems.length === 0) {
+      const cart = await this.prisma.cart.findUnique({
+        where: { shopId_customerId: { shopId, customerId } },
+        include: { items: true },
+      });
+      if (!cart || cart.items.length === 0) {
+        throw new BadRequestException('Cart is empty — provide lineItems or add items to your cart');
+      }
+      cartId = cart.id;
+      checkoutLineItems = cart.items.map(i => ({ variantId: i.variantId, quantity: i.quantity }));
+    }
+
     // 1. Load variant prices from DB
-    const variantIds = dto.lineItems.map(li => li.variantId);
+    const variantIds = checkoutLineItems.map(li => li.variantId);
     const variants = await this.prisma.variant.findMany({
       where: { id: { in: variantIds }, shopId }
     });
-    
+
     if (variants.length !== variantIds.length) {
       throw new BadRequestException('One or more variants not found in this shop');
     }
-    
+
     let subtotal = 0;
-    const lineItemsData = dto.lineItems.map(li => {
+    const lineItemsData = checkoutLineItems.map(li => {
       const variant = variants.find(v => v.id === li.variantId);
       const price = variant!.price;
       subtotal += price * li.quantity;
@@ -92,7 +107,21 @@ export class OrderService {
       totalAmount += shipmentTotal;
     }
 
-    const addr = dto.shippingAddress;
+    // Địa chỉ: inline ưu tiên, không có thì lấy từ sổ địa chỉ đã lưu
+    let addr = dto.shippingAddress;
+    if (!addr && dto.shippingAddressId) {
+      const saved = await this.prisma.customerAddress.findFirst({
+        where: { id: dto.shippingAddressId, customerId, shopId },
+      });
+      if (!saved) throw new BadRequestException('Saved address not found');
+      addr = {
+        fullName: saved.fullName,
+        phone: saved.phone,
+        addressLine1: saved.addressLine1,
+        city: saved.city,
+        province: saved.province,
+      };
+    }
 
     const orderNumber = `ORD-${Date.now()}`;
     const orderId = randomUUID(); // pre-generate ID for inventory service reference
@@ -108,7 +137,7 @@ export class OrderService {
     // 3. Transaction: Lock Stock -> Create Order -> Apply Promo
     const txOrder = await this.prisma.$transaction(async (tx) => {
       // 3.1 Decrement stock via InventoryService (pass tx)
-      await this.inventoryService.decrementStock(dto.lineItems, orderId, tx);
+      await this.inventoryService.decrementStock(checkoutLineItems, orderId, tx);
       
       // 3.2 Update Promotion Usage
       if (promo) {
@@ -175,7 +204,12 @@ export class OrderService {
         }
       });
 
-      // 3.6 Tạo shipment ban đầu cho đơn (admin sẽ cập nhật tracking sau)
+      // 3.6 Checkout từ giỏ server-side: clear giỏ trong cùng transaction
+      if (cartId) {
+        await tx.cartItem.deleteMany({ where: { cartId } });
+      }
+
+      // 3.7 Tạo shipment ban đầu cho đơn (admin sẽ cập nhật tracking sau)
       await tx.shipment.create({
         data: {
           orderId,
@@ -187,7 +221,7 @@ export class OrderService {
 
       let confirmUrl = null;
 
-      // 3.7 Bank Transfer confirm token (QR rendering happens after commit)
+      // 3.8 Bank Transfer confirm token (QR rendering happens after commit)
       if (validPaymentMethod.type === 'BankTransfer') {
          const token = randomUUID();
          const expiresAt = new Date();
@@ -295,73 +329,6 @@ export class OrderService {
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
-  }
-
-  async getAnalytics(period: string) {
-    const shopId = this.getShopId();
-    const days = period === '7d' ? 7 : 30;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    
-    const [revenueRaw, ordersByState, topProducts] = await Promise.all([
-      this.prisma.order.aggregate({
-        where: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } },
-        _sum: { totalAmount: true },
-        _count: true
-      }),
-      this.prisma.order.groupBy({
-        by: ['state'],
-        where: { shopId, createdAt: { gte: since } },
-        _count: true
-      }),
-      this.prisma.lineItem.groupBy({
-        by: ['variantId'],
-        where: { order: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } } },
-        _sum: { quantity: true },
-        orderBy: { _sum: { quantity: 'desc' } },
-        take: 5
-      })
-    ]);
-    
-    // Populate product info for top products in a single query
-    const topVariants = await this.prisma.variant.findMany({
-      where: { id: { in: topProducts.map((tp) => tp.variantId) } },
-      include: { product: { select: { name: true } } },
-    });
-    const variantById = new Map(topVariants.map((v) => [v.id, v]));
-    const populatedProducts = topProducts.map((tp) => {
-      const variant = variantById.get(tp.variantId);
-      return {
-        variantId: tp.variantId,
-        soldQuantity: tp._sum.quantity,
-        name: variant?.product?.name || variant?.sku || tp.variantId
-      };
-    });
-
-    // Revenue per day for chart
-    // We group orders by day in JS as prisma doesn't support Date grouping natively easily across DBs
-    const ordersForChart = await this.prisma.order.findMany({
-      where: { shopId, state: { notIn: ['canceled'] }, createdAt: { gte: since } },
-      select: { createdAt: true, totalAmount: true }
-    });
-
-    const revenueByDay: Record<string, number> = {};
-    ordersForChart.forEach(o => {
-      const dateStr = o.createdAt.toISOString().split('T')[0];
-      revenueByDay[dateStr] = (revenueByDay[dateStr] || 0) + o.totalAmount;
-    });
-
-    const chartData = Object.entries(revenueByDay)
-      .map(([date, revenue]) => ({ date, revenue }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    return { 
-      revenue: revenueRaw._sum.totalAmount || 0,
-      orderCount: revenueRaw._count || 0,
-      ordersByState: ordersByState.reduce((acc, curr) => ({...acc, [curr.state]: curr._count}), {}), 
-      topProducts: populatedProducts,
-      chartData
-    };
   }
 
   async updateOrderStatus(id: string, dto: UpdateOrderStatusDto) {

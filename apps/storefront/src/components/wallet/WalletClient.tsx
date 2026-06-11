@@ -151,9 +151,6 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                             Vui lòng chuyển khoản theo thông tin dưới đây, sau đó cửa hàng sẽ xác nhận và cộng tiền vào ví.
                         </div>
                         <div className="flex flex-col md:flex-row gap-6 items-center">
-                            {topupResult.qrCodeUrl && (
-                                <img src={topupResult.qrCodeUrl} alt="Topup QR" className="w-48 h-48 border rounded-xl shadow-sm" />
-                            )}
                             <div className="flex-1 bg-slate-50 p-5 rounded-xl space-y-2 text-sm w-full">
                                 <p><strong>Ngân hàng:</strong> {topupResult.bankAccount?.bankName || 'Liên hệ cửa hàng'}</p>
                                 <p><strong>Chủ tài khoản:</strong> {topupResult.bankAccount?.accountHolder || 'N/A'}</p>

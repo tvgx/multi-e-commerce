@@ -32,6 +32,7 @@ const MODEL_FILES = [
   'content.prisma',
   'media.prisma',
   'interactions.prisma',
+  'cart.prisma',
   'notifications.prisma',
 ];
 

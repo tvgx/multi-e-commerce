@@ -138,6 +138,7 @@ model Shop {
   customers Customer[]
   orders    Order[]
   products  Product[]
+  categories Category[]
   stockLocations StockLocation[]
   promotions Promotion[]
   paymentMethods PaymentMethod[]
@@ -153,6 +154,7 @@ model Shop {
   shippingMethods    ShippingMethod[]
   shipments          Shipment[]
   wallets            Wallet[]
+  carts              Cart[]
 
   @@index([ownerId]) // BetterAuthGuard + getMyShops look up shops by owner
   @@map("shops")
@@ -186,6 +188,7 @@ model Customer {
   orders           Order[]
   addresses        CustomerAddress[]
   wallet           Wallet?
+  carts            Cart[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -293,7 +296,8 @@ model Product {
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId  String?
   imageUrl    String?  // Ảnh đại diện sản phẩm
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants      Variant[]
   optionTypes   ProductOptionType[]
   collections   ProductCollection[]
@@ -306,7 +310,36 @@ model Product {
   @@index([shopId, createdAt]) // paginated product lists sort by createdAt
   @@index([shopId, status])    // status filter in findAllProducts
   @@index([categoryId])        // category filter in findAllProducts
+  // Trigram GIN: search `contains` (ILIKE '%term%') trong findAllProducts — cần pg_trgm
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("products")
+}
+
+// Danh mục sản phẩm dạng cây (parentId), riêng theo từng shop
+model Category {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String   // URL thân thiện (vd: ao-nam)
+  description String?
+  imageUrl    String?
+  parentId    String?
+  position    Int      @default(0) // Thứ tự hiển thị giữa các danh mục cùng cấp
+  isActive    Boolean  @default(true)
+
+  shop        Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@index([parentId])
+  @@map("categories")
 }
 
 model Variant {
@@ -324,6 +357,7 @@ model Variant {
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
   lineItems   LineItem[]
+  cartItems   CartItem[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -331,6 +365,8 @@ model Variant {
   @@unique([shopId, sku])
   @@index([shopId])
   @@index([productId])
+  // Trigram GIN: search theo SKU (ILIKE '%term%') trong findAllProducts
+  @@index([sku(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("product_variants")
 }
 
@@ -863,6 +899,45 @@ model SearchHistory {
   @@index([customerId])
   @@index([shopId])
   @@map("search_history")
+}
+
+// ==========================================
+// Server-side Cart Models
+// ==========================================
+// Giỏ hàng lưu server cho khách đã đăng nhập — đồng bộ giữa thiết bị.
+// Checkout vẫn nhận lineItems trực tiếp (cart client/guest); nếu không
+// truyền lineItems thì OrderService đọc từ cart này và clear sau khi đặt.
+
+model Cart {
+  id         String   @id @default(uuid())
+  shopId     String
+  customerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shop     Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items    CartItem[]
+
+  @@unique([shopId, customerId]) // Mỗi khách một giỏ trên mỗi shop
+  @@index([shopId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  variantId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId]) // Thêm trùng variant thì tăng quantity
+  @@index([variantId])
+  @@map("cart_items")
 }
 
 // ==========================================

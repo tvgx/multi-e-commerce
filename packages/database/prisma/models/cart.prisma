@@ -1,0 +1,38 @@
+// ==========================================
+// Server-side Cart Models
+// ==========================================
+// Giỏ hàng lưu server cho khách đã đăng nhập — đồng bộ giữa thiết bị.
+// Checkout vẫn nhận lineItems trực tiếp (cart client/guest); nếu không
+// truyền lineItems thì OrderService đọc từ cart này và clear sau khi đặt.
+
+model Cart {
+  id         String   @id @default(uuid())
+  shopId     String
+  customerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shop     Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items    CartItem[]
+
+  @@unique([shopId, customerId]) // Mỗi khách một giỏ trên mỗi shop
+  @@index([shopId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  variantId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId]) // Thêm trùng variant thì tăng quantity
+  @@index([variantId])
+  @@map("cart_items")
+}

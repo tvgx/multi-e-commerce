@@ -51,11 +51,72 @@ export class AnalyticsService {
     return Math.min(Math.max(parsed, 1), 20);
   }
 
+  /** Điều kiện SQL theo phạm vi shop: 1 shop, danh sách shop, hoặc toàn sàn */
+  private scopeSql(shopIds?: string[] | string): Prisma.Sql {
+    if (shopIds === undefined) return Prisma.sql`TRUE`;
+    if (typeof shopIds === 'string') return Prisma.sql`o."shopId" = ${shopIds}`;
+    if (shopIds.length === 0) return Prisma.sql`FALSE`;
+    return Prisma.sql`o."shopId" IN (${Prisma.join(shopIds)})`;
+  }
+
+  /**
+   * Đếm COUNT(DISTINCT cột) trực tiếp trong Postgres — trước đây dùng
+   * findMany({ distinct }) nên phải kéo một row mỗi giá trị về Node.
+   */
+  private async countDistinctOrders(
+    column: 'customerId' | 'shopId',
+    scope: Prisma.Sql,
+    from: Date,
+    to?: Date,
+  ): Promise<number> {
+    const col = column === 'customerId' ? Prisma.sql`o."customerId"` : Prisma.sql`o."shopId"`;
+    const rows = await this.prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+      SELECT COUNT(DISTINCT ${col})::int AS count
+      FROM orders o
+      WHERE ${scope}
+        AND o.state NOT IN (${Prisma.join(NON_REVENUE_STATES)})
+        AND o."createdAt" >= ${from}
+        ${to ? Prisma.sql`AND o."createdAt" < ${to}` : Prisma.empty}
+    `);
+    return rows[0]?.count ?? 0;
+  }
+
+  /**
+   * Doanh thu + số đơn theo ngày, gộp bằng date_trunc trong Postgres rồi
+   * điền 0 cho ngày trống. Trước đây findMany toàn bộ đơn trong kỳ rồi
+   * cộng dồn trong Node — O(số đơn) bộ nhớ cho mỗi request dashboard.
+   */
+  private async revenueSeriesByDay(scope: Prisma.Sql, since: Date, days: number) {
+    const rows = await this.prisma.$queryRaw<
+      { date: string; revenue: number; orders: number }[]
+    >(Prisma.sql`
+      SELECT to_char(date_trunc('day', o."createdAt"), 'YYYY-MM-DD') AS date,
+             SUM(o."totalAmount")::float AS revenue,
+             COUNT(*)::int AS orders
+      FROM orders o
+      WHERE ${scope}
+        AND o.state NOT IN (${Prisma.join(NON_REVENUE_STATES)})
+        AND o."createdAt" >= ${since}
+      GROUP BY 1
+    `);
+    const byDay = new Map(rows.map((r) => [r.date, r]));
+
+    const series: { date: string; revenue: number; orders: number }[] = [];
+    const cursor = new Date(since);
+    for (let i = 0; i < days; i++) {
+      const dateStr = cursor.toISOString().split('T')[0];
+      const entry = byDay.get(dateStr);
+      series.push({ date: dateStr, revenue: entry?.revenue ?? 0, orders: entry?.orders ?? 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return series;
+  }
+
   /** KPI của một khoảng thời gian [from, to) — to bỏ trống nghĩa là đến hiện tại */
   private async collectKpis(shopId: string, from: Date, to?: Date) {
     const createdAt = { gte: from, ...(to ? { lt: to } : {}) };
 
-    const [revenueAgg, totalOrders, canceledOrders, newCustomers, buyers] = await Promise.all([
+    const [revenueAgg, totalOrders, canceledOrders, newCustomers, uniqueBuyers] = await Promise.all([
       this.prisma.order.aggregate({
         where: { shopId, state: { notIn: NON_REVENUE_STATES }, createdAt },
         _sum: { totalAmount: true },
@@ -68,11 +129,7 @@ export class AnalyticsService {
         where: { shopId, state: 'canceled', createdAt },
       }),
       this.prisma.customer.count({ where: { shopId, createdAt } }),
-      this.prisma.order.findMany({
-        where: { shopId, state: { notIn: NON_REVENUE_STATES }, createdAt },
-        distinct: ['customerId'],
-        select: { customerId: true },
-      }),
+      this.countDistinctOrders('customerId', this.scopeSql(shopId), from, to),
     ]);
 
     const revenue = revenueAgg._sum.totalAmount || 0;
@@ -83,7 +140,7 @@ export class AnalyticsService {
       orderCount,
       aov: orderCount > 0 ? revenue / orderCount : 0,
       newCustomers,
-      uniqueBuyers: buyers.length,
+      uniqueBuyers,
       canceledOrders,
       cancelRate: totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0,
     };
@@ -123,31 +180,7 @@ export class AnalyticsService {
   async getRevenueSeries(period?: string) {
     const shopId = this.getShopId();
     const { since, days } = this.resolveRange(period);
-
-    const orders = await this.prisma.order.findMany({
-      where: { shopId, state: { notIn: NON_REVENUE_STATES }, createdAt: { gte: since } },
-      select: { createdAt: true, totalAmount: true },
-    });
-
-    const byDay = new Map<string, { revenue: number; orders: number }>();
-    for (const order of orders) {
-      const dateStr = order.createdAt.toISOString().split('T')[0];
-      const entry = byDay.get(dateStr) ?? { revenue: 0, orders: 0 };
-      entry.revenue += order.totalAmount;
-      entry.orders += 1;
-      byDay.set(dateStr, entry);
-    }
-
-    const series: { date: string; revenue: number; orders: number }[] = [];
-    const cursor = new Date(since);
-    for (let i = 0; i < days; i++) {
-      const dateStr = cursor.toISOString().split('T')[0];
-      const entry = byDay.get(dateStr);
-      series.push({ date: dateStr, revenue: entry?.revenue ?? 0, orders: entry?.orders ?? 0 });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return series;
+    return this.revenueSeriesByDay(this.scopeSql(shopId), since, days);
   }
 
   /** Phân bố đơn hàng theo trạng thái xử lý và trạng thái thanh toán */
@@ -305,11 +338,7 @@ export class AnalyticsService {
       this.prisma.order.count({ where: { ...scope, state: { not: 'cart' }, createdAt } }),
       this.prisma.order.count({ where: { ...scope, state: 'canceled', createdAt } }),
       this.prisma.customer.count({ where: { ...scope, createdAt } }),
-      this.prisma.order.findMany({
-        where: { ...scope, state: { notIn: NON_REVENUE_STATES }, createdAt },
-        distinct: ['shopId'],
-        select: { shopId: true },
-      }),
+      this.countDistinctOrders('shopId', this.scopeSql(shopIds), from, to),
     ]);
 
     const revenue = revenueAgg._sum.totalAmount || 0;
@@ -320,7 +349,7 @@ export class AnalyticsService {
       orderCount,
       aov: orderCount > 0 ? revenue / orderCount : 0,
       newCustomers,
-      activeShops: activeShops.length,
+      activeShops,
       canceledOrders,
       cancelRate: totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0,
     };
@@ -354,31 +383,7 @@ export class AnalyticsService {
 
   async getPlatformRevenueSeries(shopIds: string[] | undefined, period?: string) {
     const { since, days } = this.resolveRange(period);
-
-    const orders = await this.prisma.order.findMany({
-      where: { ...this.shopScope(shopIds), state: { notIn: NON_REVENUE_STATES }, createdAt: { gte: since } },
-      select: { createdAt: true, totalAmount: true },
-    });
-
-    const byDay = new Map<string, { revenue: number; orders: number }>();
-    for (const order of orders) {
-      const dateStr = order.createdAt.toISOString().split('T')[0];
-      const entry = byDay.get(dateStr) ?? { revenue: 0, orders: 0 };
-      entry.revenue += order.totalAmount;
-      entry.orders += 1;
-      byDay.set(dateStr, entry);
-    }
-
-    const series: { date: string; revenue: number; orders: number }[] = [];
-    const cursor = new Date(since);
-    for (let i = 0; i < days; i++) {
-      const dateStr = cursor.toISOString().split('T')[0];
-      const entry = byDay.get(dateStr);
-      series.push({ date: dateStr, revenue: entry?.revenue ?? 0, orders: entry?.orders ?? 0 });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return series;
+    return this.revenueSeriesByDay(this.scopeSql(shopIds), since, days);
   }
 
   /** Xếp hạng shop theo doanh thu kèm tỷ trọng đóng góp */

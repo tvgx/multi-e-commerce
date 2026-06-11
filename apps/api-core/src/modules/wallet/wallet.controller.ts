@@ -40,19 +40,10 @@ export class WalletController {
     return this.walletService.requestTopup(this.requireCustomerId(req), dto);
   }
 
-  // ===== Public (token là capability — giống payment confirm) =====
-
-  @Get('topup/token/:token')
-  getTopupInfo(@Param('token') token: string) {
-    return this.walletService.getTopupInfo(token);
-  }
-
-  @Post('topup/confirm/:token')
-  resolveTopupByToken(@Param('token') token: string, @Body() dto: ResolveTopupDto) {
-    return this.walletService.resolveTopupByToken(token, dto.action);
-  }
-
   // ===== Admin =====
+  // Xác nhận "đã nhận tiền" là hành động của merchant → chỉ qua route admin có guard
+  // (POST /wallet/admin/topups/:id/resolve). KHÔNG có đường confirm-bằng-token công khai:
+  // token nằm trong tay người mua nên không thể dùng nó để uỷ quyền hành động merchant.
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')

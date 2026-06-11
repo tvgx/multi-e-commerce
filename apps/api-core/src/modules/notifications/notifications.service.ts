@@ -70,6 +70,17 @@ export class NotificationsService {
     return { status: 'all_marked_as_read' };
   }
 
+  async deleteNotification(userId: string, notificationId: string) {
+    const shopId = this.getShopId();
+    const { count } = await this.prisma.notification.deleteMany({
+      where: { id: notificationId, shopId, recipientId: userId },
+    });
+    if (count === 0) {
+      throw new BadRequestException('Notification not found or access denied');
+    }
+    return { status: 'deleted', id: notificationId };
+  }
+
   async createNotification(data: {
     shopId: string;
     recipientId: string;

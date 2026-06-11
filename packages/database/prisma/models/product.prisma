@@ -11,7 +11,8 @@ model Product {
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId  String?
   imageUrl    String?  // Ảnh đại diện sản phẩm
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants      Variant[]
   optionTypes   ProductOptionType[]
   collections   ProductCollection[]
@@ -24,7 +25,36 @@ model Product {
   @@index([shopId, createdAt]) // paginated product lists sort by createdAt
   @@index([shopId, status])    // status filter in findAllProducts
   @@index([categoryId])        // category filter in findAllProducts
+  // Trigram GIN: search `contains` (ILIKE '%term%') trong findAllProducts — cần pg_trgm
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("products")
+}
+
+// Danh mục sản phẩm dạng cây (parentId), riêng theo từng shop
+model Category {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String   // URL thân thiện (vd: ao-nam)
+  description String?
+  imageUrl    String?
+  parentId    String?
+  position    Int      @default(0) // Thứ tự hiển thị giữa các danh mục cùng cấp
+  isActive    Boolean  @default(true)
+
+  shop        Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@index([parentId])
+  @@map("categories")
 }
 
 model Variant {
@@ -42,6 +72,7 @@ model Variant {
   optionValues VariantOptionValue[]
   stockItems  StockItem[]
   lineItems   LineItem[]
+  cartItems   CartItem[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -49,6 +80,8 @@ model Variant {
   @@unique([shopId, sku])
   @@index([shopId])
   @@index([productId])
+  // Trigram GIN: search theo SKU (ILIKE '%term%') trong findAllProducts
+  @@index([sku(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("product_variants")
 }
 
