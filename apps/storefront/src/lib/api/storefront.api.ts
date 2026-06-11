@@ -251,11 +251,25 @@ export async function getShopProducts(
         if (!res.ok) return { products: [], hasMore: false };
 
         const body = await res.json();
-        const products: ProductCard[] = body.data || body || [];
+        // BaseResponseDto bọc kết quả phân trang: { data: { data: [...], meta } }
+        const payload = body.data?.data ? body.data : body;
+        const items: any[] = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const meta = payload.meta;
+
+        // Chuẩn hoá Prisma product → ProductCard mà các trang đang dùng
+        const products: ProductCard[] = items.map((p) => ({
+            _id: p._id ?? p.id,
+            name: p.name,
+            title: p.title,
+            basePrice: p.basePrice ?? Math.min(...(p.variants?.map((v: any) => v.price) ?? [0])),
+            images: p.images ?? (p.imageUrl ? [p.imageUrl] : []),
+            category: p.category,
+            variants: p.variants,
+        }));
 
         return {
             products,
-            hasMore: products.length === limit,
+            hasMore: meta ? meta.page < meta.totalPages : products.length === limit,
         };
     } catch (err) {
         console.error(`[storefront.api] getShopProducts failed for shopIdentifier=${shopIdentifier}`, err);
@@ -322,6 +336,33 @@ export async function getMyOrders(shopIdentifier: string, token: string) {
     } catch (err) {
         console.error(`[storefront.api] getMyOrders failed`, err);
         return [];
+    }
+}
+
+/**
+ * Records a product search for the authenticated customer (fire-and-forget).
+ *
+ * @param shopIdentifier - the shop's ID (slug)
+ * @param token - customer's session token
+ * @param query - search query the customer typed
+ */
+export async function recordSearchHistory(shopIdentifier: string, token: string, query: string) {
+    try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return;
+
+        await fetch(`${API_BASE_URL}/api/interactions/search-history`, {
+            method: 'POST',
+            headers: {
+                ...getTenantHeaders(resolvedShop.id),
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ query }),
+            cache: 'no-store',
+        });
+    } catch (err) {
+        console.error(`[storefront.api] recordSearchHistory failed`, err);
     }
 }
 

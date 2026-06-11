@@ -101,19 +101,38 @@ export class CatalogService {
 
   async findAllProducts(query: GetProductsDto) {
     const shopId = query.shopId || this.getShopId();
-    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC', search, categoryId, inStockOnly, status } = query;
+    const { sortBy = 'createdAt', sortOrder = 'DESC', search, categoryId, inStockOnly, status } = query;
+    // Query string không qua transform pipe nên phải tự ép kiểu số
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const minPrice = query.minPrice !== undefined ? Number(query.minPrice) : undefined;
+    const maxPrice = query.maxPrice !== undefined ? Number(query.maxPrice) : undefined;
     const skip = (page - 1) * limit;
 
     const where: any = { shopId };
-    
+
     if (status) where.status = status;
     if (categoryId) where.categoryId = categoryId;
     if (search) {
-      where.name = { contains: search, mode: 'insensitive' };
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+      ];
     }
-    // Simplistic stock check on variants for example purposes
+
+    // Lọc theo giá / tồn kho trên cùng một điều kiện variants.some
+    const variantFilter: any = {};
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      variantFilter.price = {};
+      if (minPrice !== undefined) variantFilter.price.gte = minPrice;
+      if (maxPrice !== undefined) variantFilter.price.lte = maxPrice;
+    }
     if (inStockOnly) {
-      where.variants = { some: { stockItems: { some: { countOnHand: { gt: 0 } } } } };
+      variantFilter.stockItems = { some: { countOnHand: { gt: 0 } } };
+    }
+    if (Object.keys(variantFilter).length > 0) {
+      where.variants = { some: variantFilter };
     }
 
     const [items, total] = await Promise.all([

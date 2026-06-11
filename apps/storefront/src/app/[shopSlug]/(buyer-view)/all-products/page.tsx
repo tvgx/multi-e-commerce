@@ -1,4 +1,5 @@
-import { getShopProducts, getShopInfo } from '@/lib/api/storefront.api';
+import { getShopProducts, getShopInfo, recordSearchHistory } from '@/lib/api/storefront.api';
+import { cookies } from 'next/headers';
 import React from 'react';
 import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
@@ -41,15 +42,25 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
     });
 
+    // Khách đăng nhập + có từ khoá → lưu lịch sử tìm kiếm (fire-and-forget)
+    if (finalSearch) {
+        const token = (await cookies()).get(`shop_session_${shopSlug}`)?.value;
+        if (token) void recordSearchHistory(shopSlug, token, finalSearch);
+    }
+
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
 
     return (
         <div className="container mx-auto px-4 py-12">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">All Products</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                {finalSearch ? `Kết quả cho "${finalSearch}"` : 'All Products'}
+            </h1>
             <p className="text-slate-500 mb-8">
                 {products.length > 0
                     ? `${products.length} products found`
-                    : `No products yet in ${shopName}`}
+                    : finalSearch
+                        ? `Không tìm thấy sản phẩm nào cho "${finalSearch}"`
+                        : `No products yet in ${shopName}`}
             </p>
 
             <div className="flex flex-col md:flex-row gap-8">

@@ -82,8 +82,8 @@ export class CatalogController {
   }
 
   @Get('products/shop/:shopId')
-  async findShopProducts(@Param('shopId') shopId: string) {
-    const result = await this.catalogService.findAllProducts({ shopId });
+  async findShopProducts(@Param('shopId') shopId: string, @Query() query: GetProductsDto) {
+    const result = await this.catalogService.findAllProducts({ ...query, shopId });
     return BaseResponseDto.success(result);
   }
 

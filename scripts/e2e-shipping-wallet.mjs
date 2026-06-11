@@ -75,9 +75,36 @@ const login = await req('POST', '/storefront-auth/login', {
 const buyerToken = login.json?.data?.token || login.json?.data?.accessToken || login.json?.token;
 check('buyer login token', !!buyerToken, JSON.stringify(login.json));
 
+// ===== 3b. Product search (storefront public + admin) =====
+console.log('\n== 3b. Product search ==');
+const draftProduct = await prisma.product.create({
+  data: { shopId: shop.id, name: 'Quần jean DRAFT', slug: `quan-jean-${stamp}`, status: 'DRAFT' },
+});
+
+const pubByName = await req('GET', `/products/shop/${shop.id}?search=thun`, { shopId: shop.id });
+check('public search by name', (pubByName.json?.data?.data || []).length === 1, JSON.stringify(pubByName.json)?.slice(0, 200));
+
+const pubBySku = await req('GET', `/products/shop/${shop.id}?search=E2E-SKU`, { shopId: shop.id });
+check('public search by SKU', (pubBySku.json?.data?.data || []).length === 1);
+
+const pubMiss = await req('GET', `/products/shop/${shop.id}?search=khongtontai`, { shopId: shop.id });
+check('public search no match', (pubMiss.json?.data?.data || []).length === 0);
+
+const pubDraftHidden = await req('GET', `/products/shop/${shop.id}?search=jean`, { shopId: shop.id });
+check('public search hides DRAFT', (pubDraftHidden.json?.data?.data || []).length === 0);
+
+const pubAll = await req('GET', `/products/shop/${shop.id}`, { shopId: shop.id });
+check('public list only PUBLISHED', (pubAll.json?.data?.data || []).length === 1);
+
+const pubDetail = await req('GET', `/products/${draftProduct.id}`, { shopId: shop.id });
+check('public DRAFT detail 404', pubDetail.status === 404, `got ${pubDetail.status}`);
+
 // ===== 4. Admin: shipping methods CRUD =====
 console.log('\n== 4. Admin shipping methods ==');
 const adminOpts = { cookie: ownerCookie, shopId: shop.id };
+
+const adminSearch = await req('GET', `/catalog/products/shop/${shop.id}?search=jean`, adminOpts);
+check('admin search sees DRAFT', (adminSearch.json?.data?.data || []).length === 1, JSON.stringify(adminSearch.json)?.slice(0, 200));
 const smCreate = await req('POST', '/shipping/methods', {
   ...adminOpts,
   body: { name: 'Giao tiêu chuẩn', baseFee: 30000, freeThreshold: 500000, estimatedDays: '2-4 ngày' },

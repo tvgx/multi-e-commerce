@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
       "Bash(npm test *)",
       "Bash(node -e \"try{console.log\\(require.resolve\\('ts-jest'\\)\\)}catch\\(e\\){console.log\\('not resolvable from api-core'\\)}\")",
       "Bash(npx jest *)",
@@ -16,7 +17,11 @@
       "Bash(cd /home/lordfeeder/workspaces/multi-e-commerce/apps/api-core && npm run build 2>&1 | tail -5 && cd ../admin && npx tsc --noEmit -p tsconfig.json 2>&1 | head -20)",
       "Read(//home/lordfeeder/workspaces/**)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git -C /home/lordfeeder/workspaces/multi-e-commerce diff --stat)"
+      "Bash(git -C /home/lordfeeder/workspaces/multi-e-commerce diff --stat)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow\\)\\)\")",
+      "Bash(node -e \"const a = require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow; console.log\\('valid JSON, first rule:', a[0], '| total:', a.length\\)\")"
     ]
   }
 }

@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Search, User, ShoppingCart, Menu } from 'lucide-react';
+import { User, ShoppingCart, Menu } from 'lucide-react';
 import { AnnouncementBar } from './AnnouncementBar';
+import { HeaderSearch } from './HeaderSearch';
 import { SmartImage } from '../../blocks/SmartImage';
 
 export interface HeaderProps {
@@ -109,9 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                             </nav>
                         )}
                         <div className="flex items-center space-x-2 sm:space-x-4">
-                            <button className="p-2 text-inherit opacity-80 hover:opacity-100" title="Search">
-                                <Search className="h-5 w-5" />
-                            </button>
+                            <HeaderSearch />
                             <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100" title="Account">
                                 <User className="h-5 w-5" />
                             </Link>

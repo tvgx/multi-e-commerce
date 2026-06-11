@@ -10,14 +10,13 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
   const { products, loading, fetchProducts } = useProducts(shopId);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Search server-side (tên/mô tả/SKU) với debounce 300ms
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    const timer = setTimeout(() => fetchProducts(searchQuery.trim()), searchQuery ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [fetchProducts, searchQuery]);
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.status.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products;
 
   return (
     <div className="space-y-6">
@@ -41,7 +40,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               type="text" 
-              placeholder="Search products..." 
+              placeholder="Search products (name, description, SKU)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
