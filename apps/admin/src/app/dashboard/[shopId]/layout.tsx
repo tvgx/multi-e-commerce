@@ -18,7 +18,9 @@ import {
   LogOut,
   Zap,
   HelpCircle,
-  Moon
+  Moon,
+  Wallet,
+  Truck
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -36,6 +38,8 @@ const SIDEBAR_ITEMS = [
   { icon: <Tag size={20} />, label: "Promotions", href: "/promotions" },
   { icon: <BarChart3 size={20} />, label: "Analytics", href: "/analytics" },
   { icon: <CreditCard size={20} />, label: "Payments", href: "/payments" },
+  { icon: <Wallet size={20} />, label: "Wallets", href: "/wallets" },
+  { icon: <Truck size={20} />, label: "Shipping", href: "/settings/shipping" },
   { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
 ];
 

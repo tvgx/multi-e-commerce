@@ -45,7 +45,11 @@ model Shop {
   stockMovements     StockMovement[]
   customerAddresses  CustomerAddress[]
   shopFeatures       ShopFeature[]
+  shippingMethods    ShippingMethod[]
+  shipments          Shipment[]
+  wallets            Wallet[]
 
+  @@index([ownerId]) // BetterAuthGuard + getMyShops look up shops by owner
   @@map("shops")
 }
 
@@ -76,6 +80,7 @@ model Customer {
   customerAccounts CustomerAccount[]
   orders           Order[]
   addresses        CustomerAddress[]
+  wallet           Wallet?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -83,6 +88,7 @@ model Customer {
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, email]) // Mỗi shop có tập khách hàng riêng
+  @@index([shopId, createdAt]) // analytics đếm khách mới theo khoảng thời gian
   @@map("customers")
 }
 
@@ -118,6 +124,7 @@ model CustomerAccount {
   createdAt             DateTime
   updatedAt             DateTime
 
+  @@index([customerId]) // better-auth tra account theo customer khi login
   @@map("customer_accounts")
 }
 
@@ -129,6 +136,7 @@ model CustomerVerification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
+  @@index([identifier]) // better-auth tra verification theo identifier
   @@map("customer_verifications")
 }
 

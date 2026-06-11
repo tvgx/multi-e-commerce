@@ -20,13 +20,26 @@ model Order {
   shipmentTotal   Float    @default(0)
 
   currency      String   @default("VND")
+
+  // Snapshot địa chỉ giao hàng tại thời điểm đặt (không FK sang CustomerAddress
+  // vì khách có thể sửa/xoá địa chỉ sau này)
+  shippingMethodId String?
+  recipientName    String?
+  recipientPhone   String?
+  shippingAddress  String?
+  shippingCity     String?
+  shippingProvince String?
+  shippingNote     String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  shop          Shop          @relation(fields: [shopId], references: [id])
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  lineItems     LineItem[]
-  payments      Payment[]
+  shop           Shop            @relation(fields: [shopId], references: [id])
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  lineItems      LineItem[]
+  payments       Payment[]
+  shipments      Shipment[]
 
   @@index([shopId])
   @@index([number])

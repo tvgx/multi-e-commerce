@@ -22,6 +22,13 @@ export function createCustomerAuth(prisma: PrismaService) {
       fields: {
         userId: 'customerId',
       },
+      // Lưu session data trong signed cookie 5 phút — tránh query DB
+      // (customer_sessions + customers) trên mỗi request. Trade-off:
+      // revoke session có hiệu lực trễ tối đa maxAge giây.
+      cookieCache: {
+        enabled: true,
+        maxAge: 300,
+      },
     },
     account: {
       modelName: 'customerAccount',

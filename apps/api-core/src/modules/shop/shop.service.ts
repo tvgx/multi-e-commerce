@@ -1,4 +1,6 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { UpdateShopDto } from './dto/update-shop.dto';
@@ -16,6 +18,7 @@ export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   private getShopId(): string {
@@ -34,7 +37,7 @@ export class ShopService {
 
   async createShop(ownerId: string, dto: CreateShopDto) {
     if (!ownerId) throw new BadRequestException('Owner context is missing');
-    return this.prisma.shop.create({
+    const shop = await this.prisma.shop.create({
       data: {
         name: dto.name,
         domain: dto.domain,
@@ -42,6 +45,10 @@ export class ShopService {
         ownerId,
       },
     });
+    // BetterAuthGuard cache danh sách shopIds theo user — xoá để shop mới
+    // có hiệu lực ngay thay vì đợi TTL.
+    await this.cacheManager.del(`user:${ownerId}:shopIds`).catch(() => undefined);
+    return shop;
   }
 
   async getShopById(shopId: string) {

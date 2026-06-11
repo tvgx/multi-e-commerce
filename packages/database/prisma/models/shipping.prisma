@@ -1,0 +1,47 @@
+// ==========================================
+// Shipping & Fulfillment Models
+// ==========================================
+
+model ShippingMethod {
+  id            String   @id @default(uuid())
+  shopId        String
+  name          String   // vd: "Giao hàng tiêu chuẩn", "Giao hàng nhanh"
+  description   String?
+  baseFee       Float    @default(0)
+  freeThreshold Float?   // Miễn phí ship nếu subtotal >= ngưỡng này (null = không áp dụng)
+  estimatedDays String?  // vd: "2-4 ngày"
+  active        Boolean  @default(true)
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orders    Order[]
+  shipments Shipment[]
+
+  @@index([shopId])
+  @@map("shipping_methods")
+}
+
+model Shipment {
+  id               String    @id @default(uuid())
+  orderId          String
+  shopId           String
+  shippingMethodId String?
+  state            String    @default("pending") // pending, ready, shipped, delivered, returned, canceled
+  carrier          String?   // vd: "GHN", "GHTK", "Viettel Post"
+  trackingNumber   String?
+  note             String?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+
+  @@index([orderId])
+  @@index([shopId, state]) // admin lọc shipment theo trạng thái
+  @@map("shipments")
+}

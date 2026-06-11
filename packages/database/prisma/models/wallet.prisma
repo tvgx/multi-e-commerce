@@ -1,0 +1,59 @@
+// ==========================================
+// Customer Wallet Models
+// ==========================================
+
+model Wallet {
+  id         String   @id @default(uuid())
+  shopId     String
+  customerId String   @unique // Customer đã scoped theo shop nên ví là 1-1 với customer
+  balance    Float    @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shop          Shop                 @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customer      Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+  topupRequests WalletTopupRequest[]
+
+  @@index([shopId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id           String   @id @default(uuid())
+  walletId     String
+  shopId       String
+  type         String   // deposit, payment, refund, adjustment
+  amount       Float    // Dương = cộng tiền, âm = trừ tiền
+  balanceAfter Float    // Số dư sau giao dịch (audit trail)
+  orderId      String?  // Đơn hàng liên quan (payment/refund)
+  note         String?
+  createdBy    String   @default("system") // customer, admin, system
+  createdAt    DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt]) // lịch sử giao dịch của ví
+  @@index([shopId, createdAt])   // admin xem giao dịch toàn shop
+  @@map("wallet_transactions")
+}
+
+model WalletTopupRequest {
+  id         String    @id @default(uuid())
+  walletId   String
+  shopId     String
+  customerId String
+  amount     Float
+  token      String    @unique // Token cho confirm URL/QR (giống PaymentConfirmToken)
+  status     String    @default("pending") // pending, confirmed, rejected, expired
+  expiresAt  DateTime
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, status]) // admin lọc yêu cầu nạp đang chờ
+  @@index([walletId])
+  @@map("wallet_topup_requests")
+}

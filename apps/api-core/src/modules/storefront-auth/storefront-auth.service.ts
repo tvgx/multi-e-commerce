@@ -6,30 +6,51 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcryptjs';
+import { signJwt } from './jwt.utils';
+import { TenantService } from '../../common/services/tenant.service';
 
 /**
  * StorefrontAuthService
  *
- * @deprecated Luồng auth chính cho Customer hiện được xử lý bởi Better Auth
- * thông qua endpoint /api/auth/customer/* (customer-auth.config.ts).
+ * Luồng auth chính cho Customer của storefront: email/password với JWT
+ * (HS256, xem jwt.utils.ts). Token được StorefrontAuthGuard kiểm tra.
+ * Password lưu bcrypt trong CustomerAccount (providerId 'credential').
  *
- * Service này giữ lại cho compatibility với các endpoint cũ.
- * Password hiện được lưu trong CustomerAccount (thay vì trực tiếp trên Customer).
+ * shopId lấy từ tenant context (header x-shop-id) hoặc body.shopId.
  */
 @Injectable()
 export class StorefrontAuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly tenantService: TenantService,
   ) {}
 
-  async register(body: any): Promise<BaseResponseDto<any>> {
-    const { email, shopId, name } = body;
-
-    if (!email || !shopId) {
+  private resolveShopId(body: any): string {
+    const shopId = this.tenantService.getTenantId() || body?.shopId;
+    if (!shopId) {
       throw new CustomException(
         ResponseCodes.PARAM_VALUE_INVALID,
-        'Email and shopId are required. For password auth, use /api/auth/customer/sign-up/email',
+        'Shop context is missing (x-shop-id header or shopId required)',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return shopId;
+  }
+
+  private issueToken(customer: { id: string; email: string; shopId: string }) {
+    return signJwt({ sub: customer.id, email: customer.email, shopId: customer.shopId });
+  }
+
+  async register(body: any): Promise<BaseResponseDto<any>> {
+    const { email, password } = body;
+    const name = body.fullName || body.name;
+    const shopId = this.resolveShopId(body);
+
+    if (!email || !password) {
+      throw new CustomException(
+        ResponseCodes.PARAM_VALUE_INVALID,
+        'Email and password are required',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -57,28 +78,45 @@ export class StorefrontAuthService {
       );
     }
 
-    const customer = await this.prisma.customer.create({
-      data: { email, name, shopId },
+    const passwordHash = await bcrypt.hash(password, 10);
+    const now = new Date();
+
+    const customer = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.customer.create({
+        data: { email, name, shopId },
+      });
+      await tx.customerAccount.create({
+        data: {
+          id: randomUUID(),
+          accountId: email,
+          providerId: 'credential',
+          customerId: created.id,
+          password: passwordHash,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      return created;
     });
 
     return BaseResponseDto.success({
+      token: this.issueToken(customer),
       customer: {
         id: customer.id,
         email: customer.email,
         name: customer.name,
       },
-      message:
-        'Customer created. Use /api/auth/customer/sign-in/email to authenticate.',
     });
   }
 
   async login(body: any): Promise<BaseResponseDto<any>> {
-    const { email, shopId } = body;
+    const { email, password } = body;
+    const shopId = this.resolveShopId(body);
 
-    if (!email || !shopId) {
+    if (!email || !password) {
       throw new CustomException(
         ResponseCodes.PARAM_VALUE_INVALID,
-        'Use /api/auth/customer/sign-in/email for authentication',
+        'Email and password are required',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -87,18 +125,31 @@ export class StorefrontAuthService {
       where: { shopId_email: { shopId, email } },
     });
 
-    if (!customer) {
-      throw new CustomException(
+    // Thông báo chung để không lộ email nào tồn tại trong shop
+    const invalidCredentials = () =>
+      new CustomException(
         ResponseCodes.PASSWORD_NOT_CORRECT,
-        'Customer not found',
+        'Invalid email or password',
         HttpStatus.UNAUTHORIZED,
       );
-    }
+
+    if (!customer) throw invalidCredentials();
+
+    const account = await this.prisma.customerAccount.findFirst({
+      where: { customerId: customer.id, password: { not: null } },
+    });
+    if (!account?.password) throw invalidCredentials();
+
+    const ok = await bcrypt.compare(password, account.password);
+    if (!ok) throw invalidCredentials();
 
     return BaseResponseDto.success({
-      message:
-        'Use /api/auth/customer/sign-in/email for session-based authentication.',
-      customerId: customer.id,
+      token: this.issueToken(customer),
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+      },
     });
   }
 

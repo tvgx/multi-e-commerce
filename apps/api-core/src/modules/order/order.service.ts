@@ -9,6 +9,8 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 import * as QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
+import { WalletService, WALLET_PAYMENT_TYPE } from '../wallet/wallet.service';
+import { ShippingService } from '../shipping/shipping.service';
 
 @Injectable()
 export class OrderService {
@@ -18,6 +20,7 @@ export class OrderService {
     private readonly inventoryService: InventoryService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly emailService: EmailService,
+    private readonly walletService: WalletService,
   ) {}
 
   private getShopId(): string {
@@ -77,6 +80,20 @@ export class OrderService {
       totalAmount = Math.max(0, subtotal - discountAmount);
     }
 
+    // Shipping: tính phí và snapshot địa chỉ trước khi mở transaction
+    let shippingMethod = null;
+    let shipmentTotal = 0;
+    if (dto.shippingMethodId) {
+      shippingMethod = await this.prisma.shippingMethod.findFirst({
+        where: { id: dto.shippingMethodId, shopId, active: true }
+      });
+      if (!shippingMethod) throw new BadRequestException('Invalid shipping method for this shop');
+      shipmentTotal = ShippingService.computeFee(shippingMethod, subtotal);
+      totalAmount += shipmentTotal;
+    }
+
+    const addr = dto.shippingAddress;
+
     const orderNumber = `ORD-${Date.now()}`;
     const orderId = randomUUID(); // pre-generate ID for inventory service reference
 
@@ -86,6 +103,7 @@ export class OrderService {
       where: { id: dto.paymentMethodId, shopId }
     });
     if (!validPaymentMethod) throw new BadRequestException('Invalid payment method for this shop');
+    const isWalletPayment = validPaymentMethod.type === WALLET_PAYMENT_TYPE;
 
     // 3. Transaction: Lock Stock -> Create Order -> Apply Promo
     const txOrder = await this.prisma.$transaction(async (tx) => {
@@ -109,7 +127,18 @@ export class OrderService {
         });
       }
       
-      // 3.3 Create Order
+      // 3.3 Thanh toán bằng ví: trừ tiền trước khi tạo đơn — nếu không đủ
+      // số dư thì rollback toàn bộ (kể cả stock đã trừ)
+      if (isWalletPayment) {
+        const wallet = await this.walletService.getOrCreate(customerId, shopId, tx);
+        await this.walletService.debit(tx, wallet.id, shopId, totalAmount, 'payment', {
+          orderId,
+          note: `Thanh toán đơn hàng ${orderNumber}`,
+          createdBy: 'customer',
+        });
+      }
+
+      // 3.4 Create Order
       const order = await tx.order.create({
         data: {
           id: orderId,
@@ -117,7 +146,18 @@ export class OrderService {
           shopId,
           customerId,
           totalAmount,
-          state: 'checkout',
+          itemTotal: subtotal,
+          promoTotal: discountAmount,
+          shipmentTotal,
+          state: isWalletPayment ? 'confirmed' : 'checkout',
+          paymentState: isWalletPayment ? 'paid' : 'balance_due',
+          shippingMethodId: shippingMethod?.id,
+          recipientName: addr?.fullName,
+          recipientPhone: addr?.phone,
+          shippingAddress: addr?.addressLine1,
+          shippingCity: addr?.city,
+          shippingProvince: addr?.province,
+          shippingNote: addr?.note,
           lineItems: {
             create: lineItemsData
           },
@@ -125,19 +165,29 @@ export class OrderService {
         include: { lineItems: true }
       });
 
-      // 3.4 Create Payment Record
+      // 3.5 Create Payment Record
       const payment = await tx.payment.create({
         data: {
           orderId,
           paymentMethodId: validPaymentMethod.id,
           amount: totalAmount,
-          state: 'checkout'
+          state: isWalletPayment ? 'completed' : 'checkout'
+        }
+      });
+
+      // 3.6 Tạo shipment ban đầu cho đơn (admin sẽ cập nhật tracking sau)
+      await tx.shipment.create({
+        data: {
+          orderId,
+          shopId,
+          shippingMethodId: shippingMethod?.id,
+          state: 'pending',
         }
       });
 
       let confirmUrl = null;
 
-      // 3.5 Bank Transfer confirm token (QR rendering happens after commit)
+      // 3.7 Bank Transfer confirm token (QR rendering happens after commit)
       if (validPaymentMethod.type === 'BankTransfer') {
          const token = randomUUID();
          const expiresAt = new Date();
@@ -177,7 +227,9 @@ export class OrderService {
       'CUSTOMER',
       'ORDER_CREATED',
       'Order Received',
-      `Your order ${finalOrder.number} has been received and is pending payment.`,
+      isWalletPayment
+        ? `Your order ${finalOrder.number} has been received and paid with your wallet.`
+        : `Your order ${finalOrder.number} has been received and is pending payment.`,
       { orderId: finalOrder.id }
     ).catch(err => console.error('Notification error', err));
 
@@ -199,6 +251,8 @@ export class OrderService {
     if (state) where.state = state;
     if (paymentState) where.paymentState = paymentState;
     if (shipmentState) where.shipmentState = shipmentState;
+    // /orders/my truyền customerId — bắt buộc lọc để khách chỉ thấy đơn của mình
+    if ((query as any).customerId) where.customerId = (query as any).customerId;
 
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
@@ -206,7 +260,15 @@ export class OrderService {
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder.toLowerCase() },
-        include: { customer: true, payments: true },
+        include: {
+          customer: true,
+          payments: true,
+          shippingMethod: { select: { id: true, name: true } },
+          shipments: true,
+          lineItems: {
+            include: { variant: { include: { product: { select: { name: true } } } } },
+          },
+        },
       }),
       this.prisma.order.count({ where }),
     ]);
@@ -221,7 +283,15 @@ export class OrderService {
     const shopId = this.getShopId();
     const order = await this.prisma.order.findFirst({
       where: { id, shopId },
-      include: { lineItems: true, payments: true, customer: true },
+      include: {
+        lineItems: {
+          include: { variant: { include: { product: { select: { name: true } } } } },
+        },
+        payments: { include: { paymentMethod: { select: { name: true, type: true } } } },
+        customer: true,
+        shippingMethod: { select: { id: true, name: true, estimatedDays: true } },
+        shipments: true,
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -314,9 +384,45 @@ export class OrderService {
        throw new BadRequestException(`Cannot transition order state from ${order.state} to ${dto.status}`);
     }
 
-    const updatedOrder = await this.prisma.order.update({
-      where: { id, shopId },
-      data: { state: dto.status },
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      // Đồng bộ shipment khi admin chuyển trạng thái đơn ở cấp order
+      if (dto.status === 'shipped') {
+        await tx.shipment.updateMany({
+          where: { orderId: id, shopId, state: { in: ['pending', 'ready'] } },
+          data: { state: 'shipped', shippedAt: new Date() },
+        });
+      } else if (dto.status === 'delivered') {
+        await tx.shipment.updateMany({
+          where: { orderId: id, shopId, state: 'shipped' },
+          data: { state: 'delivered', deliveredAt: new Date() },
+        });
+      } else if (dto.status === 'returned') {
+        await tx.shipment.updateMany({
+          where: { orderId: id, shopId, state: { in: ['shipped', 'delivered'] } },
+          data: { state: 'returned' },
+        });
+      } else if (dto.status === 'canceled') {
+        await tx.shipment.updateMany({
+          where: { orderId: id, shopId, state: { in: ['pending', 'ready'] } },
+          data: { state: 'canceled' },
+        });
+      }
+
+      const shipmentStateByOrderStatus: Record<string, string> = {
+        shipped: 'shipped',
+        delivered: 'delivered',
+        returned: 'returned',
+      };
+
+      return tx.order.update({
+        where: { id, shopId },
+        data: {
+          state: dto.status,
+          ...(shipmentStateByOrderStatus[dto.status]
+            ? { shipmentState: shipmentStateByOrderStatus[dto.status] }
+            : {}),
+        },
+      });
     });
 
     // Notify customer about status change
@@ -352,26 +458,98 @@ export class OrderService {
        throw new BadRequestException(`Cannot cancel order in ${order.state} state`);
     }
 
-    return this.prisma.$transaction(async (tx) => {
-       const canceledOrder = await tx.order.update({
+    const wasPaid = order.paymentState === 'paid';
+
+    const canceledOrder = await this.prisma.$transaction(async (tx) => {
+       const updated = await tx.order.update({
           where: { id },
-          data: { state: 'canceled' }
+          data: {
+            state: 'canceled',
+            ...(wasPaid ? { paymentState: 'refunded' } : {}),
+          }
        });
 
        // Restore stock
        await this.inventoryService.restoreStock(id, tx);
-       
-       return canceledOrder;
+
+       // Huỷ shipment chưa giao
+       await tx.shipment.updateMany({
+         where: { orderId: id, shopId, state: { in: ['pending', 'ready'] } },
+         data: { state: 'canceled' },
+       });
+
+       // Đơn đã thanh toán: hoàn tiền vào ví khách (store credit)
+       if (wasPaid) {
+         await this.refundToWallet(tx, order, 'system');
+       }
+
+       return updated;
     });
+
+    if (wasPaid) {
+      this.notifyWalletRefund(shopId, order);
+    }
+
+    return canceledOrder;
   }
 
   async refundOrder(id: string) {
     const shopId = this.getShopId();
-    await this.findOneOrder(id);
-    return this.prisma.order.update({
-      where: { id },
-      data: { paymentState: 'refunded', state: 'canceled' },
+    const order = await this.findOneOrder(id);
+
+    if (order.paymentState === 'refunded') {
+      throw new BadRequestException('Order has already been refunded');
+    }
+    const wasPaid = order.paymentState === 'paid';
+
+    const refunded = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id },
+        data: { paymentState: 'refunded', state: 'canceled' },
+      });
+
+      await tx.payment.updateMany({
+        where: { orderId: id, state: 'completed' },
+        data: { state: 'refunded' },
+      });
+
+      // Đơn đã thu tiền: hoàn vào ví khách (store credit)
+      if (wasPaid) {
+        await this.refundToWallet(tx, order, 'admin');
+      }
+
+      return updated;
     });
+
+    if (wasPaid) {
+      this.notifyWalletRefund(shopId, order);
+    }
+
+    return refunded;
+  }
+
+  /** Cộng lại tiền đơn hàng vào ví khách. Gọi bên trong transaction. */
+  private async refundToWallet(tx: any, order: { id: string; number: string; customerId: string; totalAmount: number }, createdBy: string) {
+    const shopId = this.getShopId();
+    if (order.totalAmount <= 0) return;
+    const wallet = await this.walletService.getOrCreate(order.customerId, shopId, tx);
+    await this.walletService.credit(tx, wallet.id, shopId, order.totalAmount, 'refund', {
+      orderId: order.id,
+      note: `Hoàn tiền đơn hàng ${order.number}`,
+      createdBy,
+    });
+  }
+
+  private notifyWalletRefund(shopId: string, order: { id: string; number: string; customerId: string; totalAmount: number }) {
+    this.notificationsGateway.notifyUser(
+      shopId,
+      order.customerId,
+      'CUSTOMER',
+      'ORDER_REFUNDED',
+      'Order Refunded',
+      `${order.totalAmount.toLocaleString('vi-VN')}đ for order ${order.number} has been refunded to your wallet.`,
+      { orderId: order.id }
+    ).catch(err => console.error('Notification error', err));
   }
 }
 

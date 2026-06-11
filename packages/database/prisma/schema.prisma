@@ -87,6 +87,7 @@ model Account {
   createdAt             DateTime
   updatedAt             DateTime
 
+  @@index([userId]) // better-auth tra account theo user khi login
   @@map("accounts")
 }
 
@@ -98,6 +99,7 @@ model Verification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
+  @@index([identifier]) // better-auth tra verification theo identifier
   @@map("verifications")
 }
 
@@ -148,7 +150,11 @@ model Shop {
   stockMovements     StockMovement[]
   customerAddresses  CustomerAddress[]
   shopFeatures       ShopFeature[]
+  shippingMethods    ShippingMethod[]
+  shipments          Shipment[]
+  wallets            Wallet[]
 
+  @@index([ownerId]) // BetterAuthGuard + getMyShops look up shops by owner
   @@map("shops")
 }
 
@@ -179,6 +185,7 @@ model Customer {
   customerAccounts CustomerAccount[]
   orders           Order[]
   addresses        CustomerAddress[]
+  wallet           Wallet?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -186,6 +193,7 @@ model Customer {
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, email]) // Mỗi shop có tập khách hàng riêng
+  @@index([shopId, createdAt]) // analytics đếm khách mới theo khoảng thời gian
   @@map("customers")
 }
 
@@ -221,6 +229,7 @@ model CustomerAccount {
   createdAt             DateTime
   updatedAt             DateTime
 
+  @@index([customerId]) // better-auth tra account theo customer khi login
   @@map("customer_accounts")
 }
 
@@ -232,6 +241,7 @@ model CustomerVerification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
+  @@index([identifier]) // better-auth tra verification theo identifier
   @@map("customer_verifications")
 }
 
@@ -459,13 +469,26 @@ model Order {
   shipmentTotal   Float    @default(0)
 
   currency      String   @default("VND")
+
+  // Snapshot địa chỉ giao hàng tại thời điểm đặt (không FK sang CustomerAddress
+  // vì khách có thể sửa/xoá địa chỉ sau này)
+  shippingMethodId String?
+  recipientName    String?
+  recipientPhone   String?
+  shippingAddress  String?
+  shippingCity     String?
+  shippingProvince String?
+  shippingNote     String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  shop          Shop          @relation(fields: [shopId], references: [id])
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  lineItems     LineItem[]
-  payments      Payment[]
+  shop           Shop            @relation(fields: [shopId], references: [id])
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  lineItems      LineItem[]
+  payments       Payment[]
+  shipments      Shipment[]
 
   @@index([shopId])
   @@index([number])
@@ -490,6 +513,54 @@ model LineItem {
   @@index([orderId])
   @@index([variantId]) // top-products analytics groups by variantId
   @@map("line_items")
+}
+
+// ==========================================
+// Shipping & Fulfillment Models
+// ==========================================
+
+model ShippingMethod {
+  id            String   @id @default(uuid())
+  shopId        String
+  name          String   // vd: "Giao hàng tiêu chuẩn", "Giao hàng nhanh"
+  description   String?
+  baseFee       Float    @default(0)
+  freeThreshold Float?   // Miễn phí ship nếu subtotal >= ngưỡng này (null = không áp dụng)
+  estimatedDays String?  // vd: "2-4 ngày"
+  active        Boolean  @default(true)
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orders    Order[]
+  shipments Shipment[]
+
+  @@index([shopId])
+  @@map("shipping_methods")
+}
+
+model Shipment {
+  id               String    @id @default(uuid())
+  orderId          String
+  shopId           String
+  shippingMethodId String?
+  state            String    @default("pending") // pending, ready, shipped, delivered, returned, canceled
+  carrier          String?   // vd: "GHN", "GHTK", "Viettel Post"
+  trackingNumber   String?
+  note             String?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+
+  @@index([orderId])
+  @@index([shopId, state]) // admin lọc shipment theo trạng thái
+  @@map("shipments")
 }
 
 // ==========================================
@@ -542,6 +613,66 @@ model PaymentConfirmToken {
   @@index([shopId])
   @@index([orderId])
   @@map("payment_confirm_tokens")
+}
+
+// ==========================================
+// Customer Wallet Models
+// ==========================================
+
+model Wallet {
+  id         String   @id @default(uuid())
+  shopId     String
+  customerId String   @unique // Customer đã scoped theo shop nên ví là 1-1 với customer
+  balance    Float    @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shop          Shop                 @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customer      Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+  topupRequests WalletTopupRequest[]
+
+  @@index([shopId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id           String   @id @default(uuid())
+  walletId     String
+  shopId       String
+  type         String   // deposit, payment, refund, adjustment
+  amount       Float    // Dương = cộng tiền, âm = trừ tiền
+  balanceAfter Float    // Số dư sau giao dịch (audit trail)
+  orderId      String?  // Đơn hàng liên quan (payment/refund)
+  note         String?
+  createdBy    String   @default("system") // customer, admin, system
+  createdAt    DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt]) // lịch sử giao dịch của ví
+  @@index([shopId, createdAt])   // admin xem giao dịch toàn shop
+  @@map("wallet_transactions")
+}
+
+model WalletTopupRequest {
+  id         String    @id @default(uuid())
+  walletId   String
+  shopId     String
+  customerId String
+  amount     Float
+  token      String    @unique // Token cho confirm URL/QR (giống PaymentConfirmToken)
+  status     String    @default("pending") // pending, confirmed, rejected, expired
+  expiresAt  DateTime
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, status]) // admin lọc yêu cầu nạp đang chờ
+  @@index([walletId])
+  @@map("wallet_topup_requests")
 }
 
 // ==========================================

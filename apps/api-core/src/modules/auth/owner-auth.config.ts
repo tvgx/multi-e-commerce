@@ -20,6 +20,15 @@ export function createOwnerAuth(prisma: PrismaService) {
       // Có thể bật email verification sau:
       // requireEmailVerification: true,
     },
+    session: {
+      // Lưu session data trong signed cookie 5 phút — tránh query DB
+      // (sessions + users) trên mỗi request. Trade-off: revoke session
+      // có hiệu lực trễ tối đa maxAge giây.
+      cookieCache: {
+        enabled: true,
+        maxAge: 300,
+      },
+    },
     // Thêm social providers tại đây nếu cần:
     // socialProviders: {
     //   google: {

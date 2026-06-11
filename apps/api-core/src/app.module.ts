@@ -28,6 +28,8 @@ import { MediaModule } from './modules/media/media.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { EmailModule } from './modules/email/email.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
+import { WalletModule } from './modules/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -77,6 +79,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     TemplatesModule,
     PromotionsModule,
     AnalyticsModule,
+    ShippingModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

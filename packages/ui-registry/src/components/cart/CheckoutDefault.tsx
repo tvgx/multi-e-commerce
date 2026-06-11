@@ -27,6 +27,16 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
     const [orderId, setOrderId] = useState<string | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
+    // Shipping state
+    const [shippingMethods, setShippingMethods] = useState<any[]>([]);
+    const [shippingMethodId, setShippingMethodId] = useState<string>('');
+
+    // Wallet state
+    const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+    // Tổng đã thanh toán — chốt trước khi clearCart để màn hình success không hiển thị 0đ
+    const [paidAmount, setPaidAmount] = useState<number>(0);
+
     // Coupon state
     const [couponCode, setCouponCode] = useState('');
     const [couponStatus, setCouponStatus] = useState<{
@@ -41,11 +51,16 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
         }
     }, [items, router, shopSlug, orderId]);
 
-    // Fetch payment methods
+    const getSessionToken = () => document.cookie.split(';')
+        .find(c => c.trim().startsWith(`shop_session_${shopSlug}=`))
+        ?.split('=')[1];
+
+    // Fetch payment + shipping methods
     useEffect(() => {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
         const fetchPaymentMethods = async () => {
             try {
-                const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
                 const res = await fetch(`${API_BASE}/api/payments/methods`, {
                     headers: { 'x-shop-id': shopInfo.id }
                 });
@@ -58,7 +73,43 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                 console.error('Failed to fetch payment methods', err);
             }
         };
+
+        const fetchShippingMethods = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/shipping/methods`, {
+                    headers: { 'x-shop-id': shopInfo.id }
+                });
+                const data = await res.json();
+                const methods = data.data || [];
+                setShippingMethods(methods);
+                if (methods.length > 0) setShippingMethodId(methods[0].id);
+            } catch (err) {
+                console.error('Failed to fetch shipping methods', err);
+            }
+        };
+
+        const fetchWalletBalance = async () => {
+            try {
+                const token = getSessionToken();
+                if (!token) return;
+                const res = await fetch(`${API_BASE}/api/wallet/me`, {
+                    headers: {
+                        'x-shop-id': shopInfo.id,
+                        'Authorization': `Bearer ${token}`,
+                    }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (typeof data.balance === 'number') setWalletBalance(data.balance);
+            } catch (err) {
+                console.error('Failed to fetch wallet balance', err);
+            }
+        };
+
         fetchPaymentMethods();
+        fetchShippingMethods();
+        fetchWalletBalance();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopInfo.id]);
 
     const handleValidateCoupon = async () => {
@@ -105,11 +156,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
         try {
             const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            
-            // Get token from cookie
-            const token = document.cookie.split(';')
-              .find(c => c.trim().startsWith(`shop_session_${shopSlug}=`))
-              ?.split('=')[1];
+            const token = getSessionToken();
 
             // Format order payload
             const payload = {
@@ -118,9 +165,15 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                     variantId: item.variantId,
                     quantity: item.quantity
                 })),
-                customerInfo,
-                shippingFee: 0,
                 promotionCode: couponStatus?.valid ? couponCode : undefined,
+                shippingMethodId: shippingMethodId || undefined,
+                shippingAddress: {
+                    fullName: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
+                    phone: customerInfo.phone,
+                    addressLine1: customerInfo.address,
+                    city: customerInfo.city,
+                    note: customerInfo.note || undefined,
+                },
             };
 
             const res = await fetch(`${API_BASE}/api/orders/checkout`, {
@@ -135,14 +188,21 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
             const data = await res.json();
 
-            if (!res.ok || !data.success) {
+            if (!res.ok) {
                 throw new Error(data.message || 'Checkout failed');
             }
 
-            setOrderId(data.data.id);
-            setQrCodeUrl(data.data.qrCodeUrl || null);
+            // API trả thẳng object order (một số bản cũ bọc trong { data })
+            const order = data.id ? data : data.data;
+            if (!order?.id) {
+                throw new Error(data.message || 'Checkout failed');
+            }
+
+            setOrderId(order.id);
+            setQrCodeUrl(order.qrCodeUrl || null);
+            setPaidAmount(order.totalAmount ?? 0);
             clearCart();
-            
+
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -151,6 +211,15 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
     };
 
     const selectedPaymentMethod = paymentMethods.find(pm => pm.id === paymentMethodId);
+    const selectedShippingMethod = shippingMethods.find(sm => sm.id === shippingMethodId);
+    const shippingFee = selectedShippingMethod
+        ? (selectedShippingMethod.freeThreshold != null && totalAmount >= selectedShippingMethod.freeThreshold
+            ? 0
+            : selectedShippingMethod.baseFee)
+        : 0;
+    const grandTotal = Math.max(0, totalAmount - (couponStatus?.discount || 0)) + shippingFee;
+    const isWalletSelected = selectedPaymentMethod?.type === 'Wallet';
+    const walletInsufficient = isWalletSelected && walletBalance != null && walletBalance < grandTotal;
 
     if (orderId) {
         return (
@@ -173,7 +242,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             <p><strong>Bank:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
                             <p><strong>Account Name:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
                             <p><strong>Account Number:</strong> <span className="font-mono font-bold text-emerald-600">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
-                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{totalAmount.toLocaleString('vi-VN')}đ</span></p>
+                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{paidAmount.toLocaleString('vi-VN')}đ</span></p>
                         </div>
                     </div>
                 )}
@@ -185,7 +254,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             <p><strong>Bank:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
                             <p><strong>Account Name:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
                             <p><strong>Account Number:</strong> <span className="font-mono font-bold text-emerald-600">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
-                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{totalAmount.toLocaleString('vi-VN')}đ</span></p>
+                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{paidAmount.toLocaleString('vi-VN')}đ</span></p>
                             <p><strong>Transfer Note:</strong> <span className="font-mono bg-yellow-100 px-2 py-1">ORDER {orderId.substring(0, 8)}</span></p>
                         </div>
                     </div>
@@ -287,6 +356,37 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                         </div>
                     </div>
 
+                    {shippingMethods.length > 0 && (
+                        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                            <h2 className="text-xl font-bold mb-6">Shipping Method</h2>
+                            <div className="space-y-4">
+                                {shippingMethods.map(sm => {
+                                    const fee = sm.freeThreshold != null && totalAmount >= sm.freeThreshold ? 0 : sm.baseFee;
+                                    return (
+                                        <label key={sm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${shippingMethodId === sm.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                            <input
+                                                type="radio"
+                                                name="shipping"
+                                                value={sm.id}
+                                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                                                checked={shippingMethodId === sm.id}
+                                                onChange={() => setShippingMethodId(sm.id)}
+                                            />
+                                            <span className="ml-4 flex-1">
+                                                <span className="font-medium">{sm.name}</span>
+                                                {sm.estimatedDays && <span className="ml-2 text-sm text-slate-500">({sm.estimatedDays})</span>}
+                                                {sm.description && <span className="block text-sm text-slate-500">{sm.description}</span>}
+                                            </span>
+                                            <span className={`font-bold ${fee === 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                                {fee === 0 ? 'Miễn phí' : `${fee.toLocaleString('vi-VN')}đ`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                         <h2 className="text-xl font-bold mb-6">Payment Method</h2>
                         <div className="space-y-4">
@@ -295,18 +395,33 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             ) : (
                                 paymentMethods.map(pm => (
                                     <label key={pm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${paymentMethodId === pm.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-                                        <input 
-                                            type="radio" 
-                                            name="payment" 
-                                            value={pm.id} 
+                                        <input
+                                            type="radio"
+                                            name="payment"
+                                            value={pm.id}
                                             className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
                                             checked={paymentMethodId === pm.id}
                                             onChange={() => setPaymentMethodId(pm.id)}
                                         />
                                         <span className="ml-4 font-medium">{pm.name}</span>
                                         {pm.description && <span className="ml-2 text-sm text-slate-500">({pm.description})</span>}
+                                        {pm.type === 'Wallet' && walletBalance != null && (
+                                            <span className="ml-auto text-sm font-bold text-emerald-600">
+                                                Số dư: {walletBalance.toLocaleString('vi-VN')}đ
+                                            </span>
+                                        )}
                                     </label>
                                 ))
+                            )}
+                            {walletInsufficient && (
+                                <div className="bg-amber-50 text-amber-700 p-3 rounded-xl text-sm border border-amber-200">
+                                    Số dư ví không đủ để thanh toán đơn này. Vui lòng nạp thêm hoặc chọn phương thức khác.
+                                </div>
+                            )}
+                            {isWalletSelected && walletBalance == null && (
+                                <div className="bg-slate-50 text-slate-600 p-3 rounded-xl text-sm border border-slate-200">
+                                    Đăng nhập để sử dụng ví của bạn.
+                                </div>
                             )}
                         </div>
                     </div>
@@ -373,18 +488,18 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                                 </div>
                             )}
                             <div className="flex justify-between text-slate-600">
-                                <span>Shipping</span>
-                                <span>Free</span>
+                                <span>Shipping{selectedShippingMethod ? ` (${selectedShippingMethod.name})` : ''}</span>
+                                <span>{shippingFee === 0 ? 'Free' : `${shippingFee.toLocaleString('vi-VN')}đ`}</span>
                             </div>
                             <div className="flex justify-between font-bold text-xl pt-3 border-t border-slate-200">
                                 <span>Total</span>
-                                <span className="text-emerald-600">{Math.max(0, totalAmount - (couponStatus?.discount || 0)).toLocaleString('vi-VN')}đ</span>
+                                <span className="text-emerald-600">{grandTotal.toLocaleString('vi-VN')}đ</span>
                             </div>
                         </div>
 
-                        <button 
-                            type="submit" 
-                            disabled={loading || paymentMethods.length === 0}
+                        <button
+                            type="submit"
+                            disabled={loading || paymentMethods.length === 0 || walletInsufficient}
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-70 flex items-center justify-center"
                         >
                             {loading ? (
@@ -392,7 +507,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                                     <span className="animate-spin text-xl">◌</span> Processing...
                                 </span>
                             ) : (
-                                `Pay ${Math.max(0, totalAmount - (couponStatus?.discount || 0)).toLocaleString('vi-VN')}đ`
+                                `Pay ${grandTotal.toLocaleString('vi-VN')}đ`
                             )}
                         </button>
                     </div>

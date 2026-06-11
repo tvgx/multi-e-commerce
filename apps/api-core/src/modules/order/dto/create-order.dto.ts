@@ -10,6 +10,32 @@ class LineItemDto {
   quantity: number;
 }
 
+export class ShippingAddressDto {
+  @IsString()
+  @IsNotEmpty()
+  fullName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
+  @IsString()
+  @IsNotEmpty()
+  addressLine1: string;
+
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @IsString()
+  @IsOptional()
+  province?: string;
+
+  @IsString()
+  @IsOptional()
+  note?: string;
+}
+
 export class CheckoutDto {
   @IsString()
   @IsNotEmpty()
@@ -23,4 +49,13 @@ export class CheckoutDto {
   @IsString()
   @IsOptional()
   promotionCode?: string;
+
+  @IsString()
+  @IsOptional()
+  shippingMethodId?: string;
+
+  @ValidateNested()
+  @Type(() => ShippingAddressDto)
+  @IsOptional()
+  shippingAddress?: ShippingAddressDto;
 }

@@ -1,11 +1,14 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { AuthService } from '../auth.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { PrismaService } from '../../../database/prisma.service';
@@ -29,6 +32,7 @@ export class BetterAuthGuard implements CanActivate {
     private readonly authService: AuthService,
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,13 +71,34 @@ export class BetterAuthGuard implements CanActivate {
     (request as any).session = session.session;
     (request as any).authType = authType || 'owner';
 
-    // Lấy danh sách shopIds mà user làm owner
+    // Lấy danh sách shopIds mà user làm owner.
+    // Cache 5 phút để tránh query shops trên mỗi request — invalidate
+    // khi tạo shop mới (xem ShopService.createShop).
     if ((request as any).authType === 'owner') {
-      const shops = await this.prisma.shop.findMany({
-        where: { ownerId: session.user.id as string },
-        select: { id: true },
-      });
-      (request as any).shopIds = shops.map((s: { id: string }) => s.id);
+      const userId = session.user.id as string;
+      const cacheKey = `user:${userId}:shopIds`;
+      let shopIds: string[] | undefined;
+
+      try {
+        shopIds = await this.cacheManager.get<string[]>(cacheKey);
+      } catch {
+        shopIds = undefined;
+      }
+
+      if (!shopIds) {
+        const shops = await this.prisma.shop.findMany({
+          where: { ownerId: userId },
+          select: { id: true },
+        });
+        shopIds = shops.map((s: { id: string }) => s.id);
+        try {
+          await this.cacheManager.set(cacheKey, shopIds, 300000);
+        } catch {
+          // Cache failure không được chặn request
+        }
+      }
+
+      (request as any).shopIds = shopIds;
     }
 
     return true;
