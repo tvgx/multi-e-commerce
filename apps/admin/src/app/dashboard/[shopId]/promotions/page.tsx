@@ -3,6 +3,8 @@
 import React, { useEffect, useState, use } from 'react';
 import { usePromotions, Promotion } from '@/hooks/usePromotions';
 import { Loader2, Ticket, Plus, Save, X, Trash2, Edit } from 'lucide-react';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function PromotionsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
@@ -56,7 +58,14 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this promotion?')) {
+    if (
+      await confirmDialog({
+        title: 'Xoá khuyến mãi',
+        message: 'Bạn có chắc muốn xoá khuyến mãi này?',
+        confirmText: 'Xoá',
+        danger: true,
+      })
+    ) {
       await deletePromotion(id);
     }
   };
@@ -109,7 +118,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                     {promo.code}
                   </span>
                   <div className="text-emerald-400 font-medium mt-3">
-                    {promo.type === 'PERCENTAGE' ? `${promo.value}% OFF` : `${promo.value.toLocaleString('vi-VN')}đ OFF`}
+                    {promo.type === 'PERCENTAGE' ? `${promo.value}% OFF` : `${formatPrice(promo.value)} OFF`}
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -124,7 +133,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
               <div className="space-y-2 text-sm text-slate-400">
                 <p>Status: <span className={promo.isActive ? 'text-emerald-400' : 'text-slate-500'}>{promo.isActive ? 'Active' : 'Inactive'}</span></p>
                 <p>Used: {promo.usedCount || 0} times</p>
-                {promo.minOrderValue && <p>Min order: {promo.minOrderValue.toLocaleString('vi-VN')}đ</p>}
+                {promo.minOrderValue && <p>Min order: {formatPrice(promo.minOrderValue)}</p>}
                 {promo.usageLimit && <p>Limit: {promo.usageLimit} uses</p>}
               </div>
             </div>

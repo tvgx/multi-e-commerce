@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations, useLocale } from '@ecommerce/i18n/src/react';
 
 interface WalletData {
     id: string;
@@ -18,16 +21,13 @@ interface TxRow {
     createdAt: string;
 }
 
-const TX_TYPE_LABELS: Record<string, string> = {
-    deposit: 'Nạp tiền',
-    payment: 'Thanh toán đơn hàng',
-    refund: 'Hoàn tiền',
-    adjustment: 'Điều chỉnh từ cửa hàng',
-};
-
 const QUICK_AMOUNTS = [100000, 200000, 500000];
 
 export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: string }) {
+    const t = useTranslations('shop');
+    const locale = useLocale();
+    const intlLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
+
     const [wallet, setWallet] = useState<WalletData | null>(null);
     const [txs, setTxs] = useState<TxRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
             ]);
             if (!walletRes.ok) {
                 const body = await walletRes.json().catch(() => ({}));
-                throw new Error(body.message || 'Không tải được thông tin ví');
+                throw new Error(body.message || t('wallet.loadFailed'));
             }
             const walletData = await walletRes.json();
             setWallet(walletData);
@@ -71,7 +71,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE, authHeaders, t]);
 
     useEffect(() => {
         fetchWallet();
@@ -81,7 +81,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
         e.preventDefault();
         const amount = Number(topupAmount);
         if (!amount || amount < 1000) {
-            alert('Số tiền nạp tối thiểu là 1.000đ');
+            toast.error(t('wallet.minAmount'));
             return;
         }
         setRequesting(true);
@@ -92,12 +92,12 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                 body: JSON.stringify({ amount }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Không tạo được yêu cầu nạp tiền');
+            if (!res.ok) throw new Error(data.message || t('wallet.topupFailed'));
             setTopupResult(data);
             setTopupAmount('');
             await fetchWallet();
         } catch (err: any) {
-            alert(err.message);
+            toast.error(err.message);
         } finally {
             setRequesting(false);
         }
@@ -106,7 +106,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-20 text-center text-slate-500">
-                Đang tải ví của bạn...
+                {t('wallet.loadingWallet')}
             </div>
         );
     }
@@ -115,8 +115,8 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
         return (
             <div className="container mx-auto px-4 py-20 max-w-xl text-center">
                 <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100 mb-6">{error}</div>
-                <Link href={`/${shopSlug}/account/login`} className="text-emerald-600 font-medium hover:underline">
-                    Đăng nhập lại
+                <Link href={`/${shopSlug}/account/login`} className="text-brand font-medium hover:underline">
+                    {t('wallet.loginAgain')}
                 </Link>
             </div>
         );
@@ -125,45 +125,45 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl space-y-10">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-slate-900">Ví của tôi</h1>
+                <h1 className="text-3xl font-bold text-slate-900">{t('wallet.title')}</h1>
                 <Link href={`/${shopSlug}/profile`} className="text-sm font-medium text-slate-500 hover:text-slate-900">
-                    ← Tài khoản
+                    {t('wallet.backToAccount')}
                 </Link>
             </div>
 
             {/* Balance card */}
-            <div className="bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-3xl p-8 shadow-lg">
-                <p className="text-emerald-100 text-sm font-medium uppercase tracking-wider mb-2">Số dư khả dụng</p>
-                <p className="text-5xl font-extrabold">{(wallet?.balance ?? 0).toLocaleString('vi-VN')}đ</p>
-                <p className="text-emerald-100 text-sm mt-3">
-                    Dùng để thanh toán đơn hàng tại {shopInfo.name}. Tiền hoàn từ đơn huỷ cũng được cộng vào đây.
+            <div className="bg-gradient-to-br from-brand to-brand/70 text-white rounded-3xl p-8 shadow-lg">
+                <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-2">{t('wallet.availableBalance')}</p>
+                <p className="text-5xl font-extrabold">{formatPrice((wallet?.balance ?? 0))}</p>
+                <p className="text-white/80 text-sm mt-3">
+                    {t('wallet.balanceDescription', { shop: shopInfo.name })}
                 </p>
             </div>
 
             {/* Topup */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
-                <h2 className="text-xl font-bold text-slate-800">Nạp tiền vào ví</h2>
+                <h2 className="text-xl font-bold text-slate-800">{t('wallet.topupTitle')}</h2>
 
                 {topupResult ? (
                     <div className="space-y-4">
-                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl">
-                            Đã tạo yêu cầu nạp <strong>{topupResult.amount?.toLocaleString('vi-VN')}đ</strong>.
-                            Vui lòng chuyển khoản theo thông tin dưới đây, sau đó cửa hàng sẽ xác nhận và cộng tiền vào ví.
+                        <div className="bg-brand/10 border border-brand/20 text-brand p-4 rounded-xl">
+                            {t('wallet.topupCreated', { amount: formatPrice(topupResult.amount) })}
+                            {' '}{t('wallet.topupInstructions')}
                         </div>
                         <div className="flex flex-col md:flex-row gap-6 items-center">
                             <div className="flex-1 bg-slate-50 p-5 rounded-xl space-y-2 text-sm w-full">
-                                <p><strong>Ngân hàng:</strong> {topupResult.bankAccount?.bankName || 'Liên hệ cửa hàng'}</p>
-                                <p><strong>Chủ tài khoản:</strong> {topupResult.bankAccount?.accountHolder || 'N/A'}</p>
-                                <p><strong>Số tài khoản:</strong> <span className="font-mono font-bold text-emerald-600">{topupResult.bankAccount?.accountNumber || 'N/A'}</span></p>
-                                <p><strong>Số tiền:</strong> <span className="font-bold text-emerald-600">{topupResult.amount?.toLocaleString('vi-VN')}đ</span></p>
-                                <p><strong>Nội dung CK:</strong> <span className="font-mono bg-yellow-100 px-2 py-0.5 rounded">NAP VI {String(topupResult.id || '').substring(0, 8).toUpperCase()}</span></p>
+                                <p><strong>{t('wallet.bankLabel')}</strong> {topupResult.bankAccount?.bankName || 'N/A'}</p>
+                                <p><strong>{t('wallet.accountHolder')}</strong> {topupResult.bankAccount?.accountHolder || 'N/A'}</p>
+                                <p><strong>{t('wallet.accountNumberLabel')}</strong> <span className="font-mono font-bold text-brand">{topupResult.bankAccount?.accountNumber || 'N/A'}</span></p>
+                                <p><strong>{t('wallet.amountLabel')}</strong> <span className="font-bold text-brand">{formatPrice(topupResult.amount)}</span></p>
+                                <p><strong>{t('wallet.transferNoteLabel')}</strong> <span className="font-mono bg-yellow-100 px-2 py-0.5 rounded">NAP VI {String(topupResult.id || '').substring(0, 8).toUpperCase()}</span></p>
                             </div>
                         </div>
                         <button
                             onClick={() => setTopupResult(null)}
                             className="text-sm font-medium text-slate-500 hover:text-slate-900"
                         >
-                            Tạo yêu cầu khác
+                            {t('wallet.createAnother')}
                         </button>
                     </div>
                 ) : (
@@ -174,9 +174,9 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                                     key={a}
                                     type="button"
                                     onClick={() => setTopupAmount(String(a))}
-                                    className={`px-4 py-2 rounded-xl border font-medium text-sm transition-colors ${topupAmount === String(a) ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    className={`px-4 py-2 rounded-xl border font-medium text-sm transition-colors ${topupAmount === String(a) ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                 >
-                                    {a.toLocaleString('vi-VN')}đ
+                                    {formatPrice(a)}
                                 </button>
                             ))}
                         </div>
@@ -185,17 +185,17 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                                 type="number"
                                 min={1000}
                                 step={1000}
-                                placeholder="Hoặc nhập số tiền khác..."
-                                className="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder={t('wallet.enterOtherAmount')}
+                                className="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                 value={topupAmount}
                                 onChange={e => setTopupAmount(e.target.value)}
                             />
                             <button
                                 type="submit"
                                 disabled={requesting}
-                                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors disabled:opacity-60"
+                                className="px-6 py-3 bg-brand hover:bg-brand/90 text-white font-bold rounded-xl transition-colors disabled:opacity-60"
                             >
-                                {requesting ? 'Đang tạo...' : 'Nạp tiền'}
+                                {requesting ? t('wallet.topupProcessing') : t('wallet.topupButton')}
                             </button>
                         </div>
                     </form>
@@ -203,13 +203,13 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
 
                 {wallet?.pendingTopups && wallet.pendingTopups.length > 0 && (
                     <div className="border-t border-slate-100 pt-4 space-y-2">
-                        <p className="text-sm font-medium text-slate-700">Yêu cầu đang chờ xác nhận:</p>
-                        {wallet.pendingTopups.map(t => (
-                            <div key={t.id} className="flex justify-between items-center bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm">
+                        <p className="text-sm font-medium text-slate-700">{t('wallet.pendingRequests')}</p>
+                        {wallet.pendingTopups.map(pt => (
+                            <div key={pt.id} className="flex justify-between items-center bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm">
                                 <span className="text-amber-800">
-                                    Nạp <strong>{t.amount.toLocaleString('vi-VN')}đ</strong> · {new Date(t.createdAt).toLocaleString('vi-VN')}
+                                    {t('wallet.depositLabel')} <strong>{formatPrice(pt.amount)}</strong> · {new Date(pt.createdAt).toLocaleString(intlLocale)}
                                 </span>
-                                <span className="text-xs font-bold text-amber-600 uppercase">Chờ xác nhận</span>
+                                <span className="text-xs font-bold text-amber-600 uppercase">{t('wallet.pendingStatus')}</span>
                             </div>
                         ))}
                     </div>
@@ -218,25 +218,25 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
 
             {/* Transactions */}
             <div>
-                <h2 className="text-xl font-bold text-slate-800 mb-4">Lịch sử giao dịch</h2>
+                <h2 className="text-xl font-bold text-slate-800 mb-4">{t('wallet.txHistory')}</h2>
                 {txs.length === 0 ? (
                     <div className="bg-slate-50 text-slate-500 p-8 rounded-2xl text-center border border-slate-200">
-                        Chưa có giao dịch nào.
+                        {t('wallet.noTransactions')}
                     </div>
                 ) : (
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100">
                         {txs.map(tx => (
                             <div key={tx.id} className="flex justify-between items-center px-6 py-4">
                                 <div>
-                                    <p className="font-medium text-slate-800">{TX_TYPE_LABELS[tx.type] || tx.type}</p>
+                                    <p className="font-medium text-slate-800">{t(`txTypes.${tx.type}`, { defaultValue: tx.type })}</p>
                                     {tx.note && <p className="text-sm text-slate-500">{tx.note}</p>}
-                                    <p className="text-xs text-slate-400">{new Date(tx.createdAt).toLocaleString('vi-VN')}</p>
+                                    <p className="text-xs text-slate-400">{new Date(tx.createdAt).toLocaleString(intlLocale)}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`font-bold ${tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                        {tx.amount >= 0 ? '+' : ''}{tx.amount.toLocaleString('vi-VN')}đ
+                                    <p className={`font-bold ${tx.amount >= 0 ? 'text-brand' : 'text-rose-600'}`}>
+                                        {tx.amount >= 0 ? '+' : ''}{formatPrice(tx.amount)}
                                     </p>
-                                    <p className="text-xs text-slate-400">Số dư: {tx.balanceAfter.toLocaleString('vi-VN')}đ</p>
+                                    <p className="text-xs text-slate-400">{t('wallet.balanceAfter')} {formatPrice(tx.balanceAfter)}</p>
                                 </div>
                             </div>
                         ))}

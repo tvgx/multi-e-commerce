@@ -60,7 +60,7 @@ export function PreviewWrapper({ children, initialGlobalComponents, initialTheme
         <div 
             className="flex flex-col min-h-screen preview-mode storefront-layout-wrapper"
             style={{
-                '--theme-primary': theme?.primaryColor || '#000',
+                '--theme-primary': theme?.primaryColor || '#059669',
                 fontFamily: theme?.fontFamily || 'Inter, sans-serif',
             } as React.CSSProperties}
         >

@@ -54,6 +54,8 @@
     "tryAgain": "Vui lòng thử lại",
     "contactSupport": "Vui lòng liên hệ với bộ phận hỗ trợ",
     "networkError": "Lỗi mạng - Vui lòng kiểm tra kết nối của bạn",
-    "timeout": "Yêu cầu hết thời gian - Vui lòng thử lại"
+    "timeout": "Yêu cầu hết thời gian - Vui lòng thử lại",
+    "loadFailed": "Không thể tải nội dung này. Vui lòng thử lại — nếu lỗi vẫn tiếp diễn, hãy quay lại sau ít phút.",
+    "componentUnavailable": "Component {{name}} không khả dụng"
   }
 }

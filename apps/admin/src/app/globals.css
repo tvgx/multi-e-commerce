@@ -26,6 +26,9 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
+  /* Shared brand color so storefront components rendered inside the builder
+     preview resolve `*-brand` utilities. Falls back to emerald. */
+  --color-brand: var(--theme-primary, #059669);
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));

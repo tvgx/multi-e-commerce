@@ -1,189 +1,118 @@
+'use client';
+
 /**
- * React hooks for i18n integration
- * For use in React applications (Storefront, Admin)
- * 
- * IMPORTANT: This file is optional and should only be imported in React apps.
- * It requires React to be installed as a peer dependency.
- * 
- * Import from '@ecommerce/i18n/react' instead of main package:
- * import { useTranslations, useLanguage } from '@ecommerce/i18n/react';
+ * React integration for i18n (Storefront, Admin, shared ui-registry).
+ *
+ * Design notes — why this is safe for the Next.js App Router:
+ *   - The active locale comes from a React context (`LocaleContext`), seeded by
+ *     `<I18nProvider locale>` which the server layouts feed from the
+ *     `NEXT_LOCALE` cookie. Client components rendered during SSR therefore read
+ *     the *request's* locale, not the process-global `i18next.language`.
+ *   - Every `t()` call passes an explicit `{ lng }`. We never call
+ *     `i18next.changeLanguage()` (which mutates global state and would race
+ *     across concurrent SSR requests). Switching language is done by writing the
+ *     cookie and reloading — see the LanguageSwitcher components.
  */
 
-import { useCallback, useState, useEffect } from 'react';
-import { getI18nInstance } from './config';
+import React, { createContext, useCallback, useContext } from 'react';
+import { ensureI18n } from './config';
 import { Namespace, Language, TranslationOptions } from './types';
 
+const LocaleContext = createContext<Language>('vi');
+
 /**
- * Hook for accessing translated strings in React components
- * 
- * @example
- * const t = useTranslations('auth');
- * const loginLabel = t('login.email');
- * const withInterpolation = t('messages.welcome', { name: 'John' });
+ * Wrap the app once (near the root) so every client component can translate
+ * using the request's locale.
  */
-export function useTranslations(namespace: Namespace): (key: string, options?: TranslationOptions | Record<string, any>) => string {
-  const i18n = getI18nInstance();
+export function I18nProvider({
+  locale,
+  children,
+}: {
+  locale: Language;
+  children: React.ReactNode;
+}) {
+  // Idempotent; guarantees resources are loaded before any consumer renders.
+  ensureI18n(locale);
+  return React.createElement(LocaleContext.Provider, { value: locale }, children);
+}
+
+/** Current locale as seen by this part of the tree. */
+export function useLocale(): Language {
+  return useContext(LocaleContext);
+}
+
+/**
+ * Hook for accessing translated strings in client components.
+ *
+ * @example
+ * const t = useTranslations('shop');
+ * t('cart.title');                       // "Shopping Cart" / "Giỏ hàng"
+ * t('messages.welcome', { name: 'An' }); // interpolation
+ */
+export function useTranslations(
+  namespace: Namespace = 'common'
+): (key: string, options?: TranslationOptions | Record<string, any>) => string {
+  const locale = useContext(LocaleContext);
+  const i18n = ensureI18n(locale);
 
   return useCallback(
-    (key: string, options?: TranslationOptions | Record<string, any>) => {
-      const fullKey = `${namespace}:${key}`;
-      return i18n.t(fullKey, options as TranslationOptions) as string;
-    },
-    [namespace, i18n]
+    (key: string, options?: TranslationOptions | Record<string, any>) =>
+      i18n.t(`${namespace}:${key}`, {
+        lng: locale,
+        ...(options as Record<string, any>),
+      }) as string,
+    [namespace, locale, i18n]
   );
 }
 
 /**
- * Hook for managing language state in React components
- * Triggers re-render when language changes
- * 
+ * Convenience hook returning the locale together with a bound translator.
+ *
  * @example
- * const { language, setLanguage, availableLanguages } = useLanguage();
- * 
- * return (
- *   <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
- *     {availableLanguages.map(lang => (
- *       <option key={lang} value={lang}>{lang}</option>
- *     ))}
- *   </select>
- * );
+ * const { t, locale } = useI18n('order');
  */
-export function useLanguage() {
-  const i18n = getI18nInstance();
-  const [language, setLanguageState] = useState<Language>(i18n.language as Language);
-  const [availableLanguages] = useState<Language[]>(i18n.languages as Language[]);
-
-  const setLanguage = useCallback(async (lang: Language) => {
-    await i18n.changeLanguage(lang);
-    setLanguageState(lang);
-  }, []);
-
-  useEffect(() => {
-    const handleLanguageChange = (lng: string) => {
-      setLanguageState(lng as Language);
-    };
-
-    i18n.on('languageChanged', handleLanguageChange);
-    
-    return () => {
-      i18n.off('languageChanged', handleLanguageChange);
-    };
-  }, []);
-
-  return {
-    language,
-    setLanguage,
-    availableLanguages,
-    isRTL: false, // Both EN and VI are LTR languages
-  };
-}
-
-/**
- * Hook for namespace-specific translations with auto language switching
- * 
- * @example
- * const { t, language, setLanguage } = useI18n('shop');
- */
-export function useI18n(namespace: Namespace): {
+export function useI18n(namespace: Namespace = 'common'): {
   t: (key: string, options?: TranslationOptions | Record<string, any>) => string;
-  language: Language;
-  setLanguage: (lang: Language) => Promise<void>;
-  availableLanguages: Language[];
+  locale: Language;
 } {
-  const t = useTranslations(namespace);
-  const { language, setLanguage, availableLanguages } = useLanguage();
-
-  return {
-    t,
-    language,
-    setLanguage,
-    availableLanguages,
-  };
+  return { t: useTranslations(namespace), locale: useLocale() };
 }
 
-/**
- * Hook for translating multiple keys at once
- * Useful for translating arrays or lists
- * 
- * @example
- * const labels = useTranslateKeys('auth', ['buttons.login', 'buttons.register']);
- * // { 'buttons.login': 'Login', 'buttons.register': 'Register' }
- */
-export function useTranslateKeys(
-  namespace: Namespace,
-  keys: string[]
-): Record<string, string> {
-  const t = useTranslations(namespace);
-
-  return keys.reduce(
-    (acc, key) => {
-      acc[key] = t(key);
-      return acc;
-    },
-    {} as Record<string, string>
-  );
-}
-
-/**
- * Hook for format number according to language locale
- * 
- * @example
- * const formatNumber = useFormatNumber('en');
- * formatNumber(1234.56) // "1,234.56"
- */
+/** Format a number using the current locale. */
 export function useFormatNumber() {
-  const { language } = useLanguage();
-
+  const locale = useLocale();
   return useCallback(
-    (value: number, options?: Intl.NumberFormatOptions) => {
-      return new Intl.NumberFormat(language === 'vi' ? 'vi-VN' : 'en-US', options).format(value);
-    },
-    [language]
+    (value: number, options?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', options).format(value),
+    [locale]
   );
 }
 
-/**
- * Hook for format date according to language locale
- * 
- * @example
- * const formatDate = useFormatDate('en');
- * formatDate(new Date()) // "4/6/2026" (EN) or "6/4/2026" (VI)
- */
+/** Format a date using the current locale. */
 export function useFormatDate() {
-  const { language } = useLanguage();
-
+  const locale = useLocale();
   return useCallback(
-    (value: Date | number, options?: Intl.DateTimeFormatOptions) => {
-      return new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-US', {
+    (value: Date | number, options?: Intl.DateTimeFormatOptions) =>
+      new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
         year: 'numeric',
         month: 'numeric',
         day: 'numeric',
         ...options,
-      }).format(value);
-    },
-    [language]
+      }).format(value),
+    [locale]
   );
 }
 
-/**
- * Hook for format currency according to language locale
- * 
- * @example
- * const formatCurrency = useFormatCurrency('en');
- * formatCurrency(99.99, 'USD') // "$99.99"
- * formatCurrency(100000, 'VND') // "₫100,000"
- */
+/** Format a currency value using the current locale. */
 export function useFormatCurrency() {
-  const { language } = useLanguage();
-
+  const locale = useLocale();
   return useCallback(
-    (value: number, currency: string = 'USD', options?: Intl.NumberFormatOptions) => {
-      return new Intl.NumberFormat(language === 'vi' ? 'vi-VN' : 'en-US', {
+    (value: number, currency: string = 'USD', options?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
         style: 'currency',
         currency,
         ...options,
-      }).format(value);
-    },
-    [language]
+      }).format(value),
+    [locale]
   );
 }

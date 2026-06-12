@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { storefrontUrl } from "@/lib/urls";
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function CreateShopPage() {
   const router = useRouter();
@@ -76,7 +78,7 @@ export default function CreateShopPage() {
       setLoading(false);
       router.push(`/dashboard/${shopId}/online-store/builder`);
     } catch (err: any) {
-      alert(`Error: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
       setLoading(false);
     }
   };
@@ -276,7 +278,7 @@ export default function CreateShopPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                   <a
-                    href={`http://${formData.domain || "my-shop"}.localhost:3002`}
+                    href={storefrontUrl(formData.domain || "my-shop")}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200"
                   >

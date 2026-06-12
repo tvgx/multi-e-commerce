@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useCollections, Collection } from "@/hooks/useCollections";
+import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function EditCollectionPage({ params }: { params: Promise<{ shopId: string; collectionId: string }> }) {
   const { shopId, collectionId } = use(params);
@@ -95,12 +96,19 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
   };
 
   const handleRemoveProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to remove this product from the category?")) return;
+    if (
+      !(await confirmDialog({
+        message: "Gỡ sản phẩm này khỏi danh mục?",
+        confirmText: "Gỡ",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await removeProductFromCollection(collectionId, productId);
       setProducts(products.filter(p => p.productId !== productId));
     } catch (err: any) {
-      alert("Failed to remove product");
+      toast.error("Failed to remove product");
     }
   };
 

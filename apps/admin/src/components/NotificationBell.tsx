@@ -55,11 +55,14 @@ export function NotificationBell({ shopId }: { shopId: string }) {
 
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={toggleOpen}
+        aria-label={`Thông báo${unreadCount > 0 ? `, ${unreadCount} chưa đọc` : ''}`}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all relative"
       >
-        <Bell size={20} />
+        <Bell size={20} aria-hidden="true" />
         {unreadCount > 0 && (
           <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
         )}

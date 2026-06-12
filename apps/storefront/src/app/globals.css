@@ -8,6 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Per-shop brand color. Driven by --theme-primary (set on the storefront
+     layout wrapper from the merchant's theme); falls back to emerald so
+     un-themed shops keep the previous look. */
+  --color-brand: var(--theme-primary, #059669);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-full: 8px;

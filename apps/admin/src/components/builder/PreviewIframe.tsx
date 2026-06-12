@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store';
+import { storefrontUrl } from '@/lib/urls';
 
 export function PreviewIframe({ shopId }: { shopId: string }) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -34,7 +35,7 @@ export function PreviewIframe({ shopId }: { shopId: string }) {
         >
             <iframe 
                 ref={iframeRef}
-                src={`http://${shopId}.localhost:3002?preview=true`}
+                src={storefrontUrl(shopId, '?preview=true')}
                 className="w-full h-full border-0 bg-white"
                 title="Storefront Preview"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"

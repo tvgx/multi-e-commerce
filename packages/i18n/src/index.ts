@@ -29,7 +29,7 @@ export {
 } from './utils';
 
 // Re-export config utilities
-export { initializeI18n, getI18nInstance, getI18nConfig } from './config';
+export { initializeI18n, ensureI18n, getI18nInstance, getI18nConfig } from './config';
 
 // Re-export Node.js/NestJS service
 export {

@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { PageTypeEnum } from '@ecommerce/schema';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { useBuilderStore } from '../../store/builder-store';
+import { toast } from '../../store/toast-store';
 
 interface BaseControlProps {
     label: string;
@@ -145,7 +146,7 @@ export function ResourcePickerControl({ label, value, onChange }: BaseControlPro
         const url = await uploadMediaFile(file, shopId);
         setIsUploading(false);
         if (url) onChange(url);
-        else alert('Tải ảnh thất bại. Vui lòng thử lại.');
+        else toast.error('Tải ảnh thất bại. Vui lòng thử lại.');
     };
 
     return (
@@ -207,7 +208,7 @@ export function ImagePickerControl({ label, value, onChange }: BaseControlProps)
         const url = await uploadMediaFile(file, shopId);
         setIsUploading(false);
         if (url) onChange(url);
-        else alert('Tải ảnh thất bại. Vui lòng thử lại.');
+        else toast.error('Tải ảnh thất bại. Vui lòng thử lại.');
     };
 
     return (

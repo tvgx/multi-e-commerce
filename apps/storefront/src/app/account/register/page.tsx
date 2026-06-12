@@ -48,7 +48,7 @@ export default function CustomerRegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#fafaf9] flex items-center justify-center p-6">
-      <div className="fixed top-0 left-0 w-[600px] h-[600px] rounded-full bg-emerald-100/50 blur-[120px] pointer-events-none -translate-y-1/2 -translate-x-1/2" />
+      <div className="fixed top-0 left-0 w-[600px] h-[600px] rounded-full bg-brand/10 blur-[120px] pointer-events-none -translate-y-1/2 -translate-x-1/2" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-amber-100/40 blur-[120px] pointer-events-none translate-y-1/2 translate-x-1/2" />
 
       <div className="w-full max-w-md relative z-10">
@@ -67,7 +67,7 @@ export default function CustomerRegisterPage() {
         <div className="flex flex-col gap-2 mb-6">
           {benefits.map((b) => (
             <div key={b} className="flex items-center gap-2.5 text-sm text-stone-600">
-              <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <CheckCircle className="w-4 h-4 text-brand flex-shrink-0" />
               {b}
             </div>
           ))}

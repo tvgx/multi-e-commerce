@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useCallback, useState, useEffect } from 'react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function SearchBar() {
   const router = useRouter();
@@ -9,6 +10,7 @@ export function SearchBar() {
   const params = useParams();
   const shopSlug = params?.shopSlug as string;
   const [query, setQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
+  const tc = useTranslations('common');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -48,7 +50,7 @@ export function SearchBar() {
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search products..."
+        placeholder={tc('labels.searchPlaceholder')}
         className="w-full bg-slate-100 border-none rounded-full px-6 py-2 text-sm focus:ring-2 outline-none transition-shadow"
         style={{ '--tw-ring-color': 'var(--primary-color, #10b981)' } as React.CSSProperties}
       />

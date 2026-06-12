@@ -54,7 +54,7 @@ export function VariantSelector({ variants, selectedVariantId, onSelect }: Varia
                   disabled={outOfStock}
                   onClick={() => setSelectedAttrs(prev => ({...prev, [attrName]: val}))}
                   className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all
-                    ${selectedAttrs[attrName] === val ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-slate-400 bg-white text-slate-700'}
+                    ${selectedAttrs[attrName] === val ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 hover:border-slate-400 bg-white text-slate-700'}
                     ${outOfStock ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
                 >
                   {val}

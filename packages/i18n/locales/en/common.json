@@ -19,7 +19,12 @@
     "download": "Download",
     "upload": "Upload",
     "copy": "Copy",
-    "ok": "OK"
+    "ok": "OK",
+    "signOut": "Sign Out",
+    "continueShopping": "Continue Shopping",
+    "browseProducts": "Browse Products",
+    "startShopping": "Start Shopping",
+    "tryAgain": "Try Again"
   },
   "labels": {
     "email": "Email Address",
@@ -33,10 +38,14 @@
     "country": "Country",
     "zipCode": "Zip Code",
     "search": "Search",
+    "searchPlaceholder": "Search products...",
     "category": "Category",
     "price": "Price",
     "quantity": "Quantity",
-    "total": "Total"
+    "total": "Total",
+    "min": "Min",
+    "max": "Max",
+    "variant": "Variant"
   },
   "messages": {
     "loading": "Loading...",
@@ -47,7 +56,22 @@
     "noData": "No data available",
     "noResults": "No results found",
     "confirmDelete": "Are you sure you want to delete this?",
-    "confirmAction": "Are you sure?"
+    "confirmAction": "Are you sure?",
+    "notSet": "Not set",
+    "noImage": "No Image"
+  },
+  "nav": {
+    "allProducts": "All Products",
+    "home": "Home",
+    "account": "Account",
+    "wishlist": "Wishlist",
+    "cart": "Cart",
+    "myWallet": "My Wallet"
+  },
+  "footer": {
+    "links": "Links",
+    "poweredBy": "Powered by ShopVolo E-commerce Engine.",
+    "rightsReserved": "All rights reserved."
   },
   "languages": {
     "en": "English",

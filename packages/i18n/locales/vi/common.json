@@ -19,7 +19,12 @@
     "download": "Tải xuống",
     "upload": "Tải lên",
     "copy": "Sao chép",
-    "ok": "OK"
+    "ok": "OK",
+    "signOut": "Đăng xuất",
+    "continueShopping": "Tiếp tục mua sắm",
+    "browseProducts": "Xem sản phẩm",
+    "startShopping": "Bắt đầu mua sắm",
+    "tryAgain": "Thử lại"
   },
   "labels": {
     "email": "Địa chỉ Email",
@@ -33,10 +38,14 @@
     "country": "Quốc gia",
     "zipCode": "Mã bưu điện",
     "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm kiếm sản phẩm...",
     "category": "Danh mục",
     "price": "Giá",
     "quantity": "Số lượng",
-    "total": "Tổng cộng"
+    "total": "Tổng cộng",
+    "min": "Tối thiểu",
+    "max": "Tối đa",
+    "variant": "Phân loại"
   },
   "messages": {
     "loading": "Đang tải...",
@@ -47,7 +56,22 @@
     "noData": "Không có dữ liệu",
     "noResults": "Không tìm thấy kết quả",
     "confirmDelete": "Bạn có chắc chắn muốn xóa?",
-    "confirmAction": "Bạn có chắc chắn?"
+    "confirmAction": "Bạn có chắc chắn?",
+    "notSet": "Chưa đặt",
+    "noImage": "Không có ảnh"
+  },
+  "nav": {
+    "allProducts": "Tất cả sản phẩm",
+    "home": "Trang chủ",
+    "account": "Tài khoản",
+    "wishlist": "Yêu thích",
+    "cart": "Giỏ hàng",
+    "myWallet": "Ví của tôi"
+  },
+  "footer": {
+    "links": "Liên kết",
+    "poweredBy": "Vận hành bởi ShopVolo E-commerce Engine.",
+    "rightsReserved": "Bảo lưu mọi quyền."
   },
   "languages": {
     "en": "English",

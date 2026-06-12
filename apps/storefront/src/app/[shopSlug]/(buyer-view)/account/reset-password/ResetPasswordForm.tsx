@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
+  const t = useTranslations('auth');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,9 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
 
   useEffect(() => {
     if (!token) {
-      setError('Token is missing or invalid.');
+      setError(t('resetPassword.tokenMissing'));
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('errors.passwordMismatch'));
       setLoading(false);
       return;
     }
@@ -41,15 +43,15 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage(data.data?.message || 'Password reset successfully');
+        setMessage(data.data?.message || t('resetPassword.successMessage'));
         setTimeout(() => {
           router.push(`/${shopSlug}/account/login`);
         }, 2000);
       } else {
-        setError(data.message || 'An error occurred');
+        setError(data.message || t('errors.generic'));
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || t('errors.generic'));
     } finally {
       setLoading(false);
     }
@@ -68,11 +70,11 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
   return (
     <div className="container mx-auto px-4 py-12 flex justify-center">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Đặt lại mật khẩu mới</h1>
-        <p className="text-slate-500 mb-6">Vui lòng nhập mật khẩu mới của bạn.</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">{t('resetPassword.heading')}</h1>
+        <p className="text-slate-500 mb-6">{t('resetPassword.description')}</p>
         
         {message && (
-          <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl mb-6 text-sm">
+          <div className="bg-brand/10 text-brand p-4 rounded-xl mb-6 text-sm">
             {message}
           </div>
         )}
@@ -85,26 +87,26 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Mật khẩu mới</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('resetPassword.newPassword')}</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand/20 transition-all"
               placeholder="••••••••"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Xác nhận mật khẩu</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('resetPassword.confirmPassword')}</label>
             <input
               type="password"
               required
               minLength={6}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand/20 transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -113,7 +115,7 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
             disabled={loading || !!message}
             className="w-full bg-slate-900 text-white font-medium py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
+            {loading ? t('resetPassword.updating') : t('resetPassword.submitChange')}
           </button>
         </form>
       </div>

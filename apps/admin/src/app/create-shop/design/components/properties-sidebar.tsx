@@ -7,6 +7,7 @@ import { UIComponentRef } from "@ecommerce/schema";
 import { ChevronLeft, Plus, Trash2, X, Image as ImageIcon, Type, Settings, Loader2 } from "lucide-react";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
 import { useSearchParams } from "next/navigation";
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export function PropertiesSidebar() {
   const searchParams = useSearchParams();
@@ -160,7 +161,7 @@ export function PropertiesSidebar() {
                        const url = await uploadFileToMinIO(file, 'banner', shopId);
                        handlePropChange(field.id, url);
                      } catch (err) {
-                       alert('Upload thất bại: ' + (err instanceof Error ? err.message : String(err)));
+                       toast.error('Upload thất bại: ' + (err instanceof Error ? err.message : String(err)));
                      } finally {
                        setIsUploadingImage(false);
                        e.target.value = '';

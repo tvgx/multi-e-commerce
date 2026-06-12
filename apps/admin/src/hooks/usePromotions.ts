@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export interface Promotion {
   id: string;
@@ -40,7 +41,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => [res.data, ...prev]);
       return true;
     } catch (err: any) {
-      alert(`Failed to create promotion: ${err.message}`);
+      toast.error(`Failed to create promotion: ${err.message}`);
       return false;
     }
   };
@@ -51,7 +52,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => prev.map(p => (p.id === id ? res.data : p)));
       return true;
     } catch (err: any) {
-      alert(`Failed to update promotion: ${err.message}`);
+      toast.error(`Failed to update promotion: ${err.message}`);
       return false;
     }
   };
@@ -62,7 +63,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => prev.filter(p => p.id !== id));
       return true;
     } catch (err: any) {
-      alert(`Failed to delete promotion: ${err.message}`);
+      toast.error(`Failed to delete promotion: ${err.message}`);
       return false;
     }
   };

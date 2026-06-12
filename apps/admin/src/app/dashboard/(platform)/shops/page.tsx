@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { ExternalLink, Palette, Plus, Store } from "lucide-react";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
+import { shopPublicUrl } from "@/lib/urls";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 type Shop = {
   id: string;
@@ -17,25 +19,13 @@ type Shop = {
 };
 
 function buildStorefrontUrl(shop: Shop): string {
-  const configured = process.env.NEXT_PUBLIC_STOREFRONT_URL;
-  if (configured) {
-    return `${configured.replace(/\/$/, "")}/${shop.id}`;
-  }
-
-  if (!shop.domain) {
-    return `http://localhost:3002/${shop.id}`;
-  }
-
-  if (shop.domain.includes(".")) {
-    return `https://${shop.domain}`;
-  }
-
-  return `http://${shop.domain}.localhost:3002`;
+  return shopPublicUrl(shop);
 }
 
 export default function ShopsPage() {
   const router = useRouter();
   const { checkAndNavigate } = useCheckAuth();
+  const t = useTranslations("admin");
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +38,7 @@ export default function ShopsPage() {
         setShops(res.data || []);
         setError(null);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to fetch shops";
+        const message = err instanceof Error ? err.message : t("shops.fetchError");
         setError(message);
       } finally {
         setLoading(false);
@@ -56,7 +46,7 @@ export default function ShopsPage() {
     };
 
     fetchShops();
-  }, []);
+  }, [t]);
 
   const sortedShops = useMemo(() => {
     return [...shops].sort((a, b) => {
@@ -71,21 +61,21 @@ export default function ShopsPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">My Shops</h1>
-            <p className="text-zinc-400 mt-2">Manage your existing shops, update design, or open storefront links.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">{t("shops.title")}</h1>
+            <p className="text-zinc-400 mt-2">{t("shops.manageDescription")}</p>
           </div>
           <button
             onClick={() => checkAndNavigate("/create-shop")}
             className="inline-flex items-center gap-2 rounded-xl bg-white text-black px-4 py-2.5 font-semibold hover:bg-zinc-200 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            Create New Shop
+            {t("shops.createNew")}
           </button>
         </div>
 
         {loading && (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 text-zinc-400 text-center">
-            <div className="animate-pulse">Loading shops...</div>
+            <div className="animate-pulse">{t("shops.loading")}</div>
           </div>
         )}
 
@@ -98,14 +88,14 @@ export default function ShopsPage() {
         {!loading && !error && sortedShops.length === 0 && (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-12 text-center">
             <Store className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-white">No shops yet</h2>
-            <p className="text-zinc-400 mb-6 max-w-md mx-auto">Create your first shop to start building your brand and selling products online.</p>
+            <h2 className="text-xl font-semibold mb-2 text-white">{t("shops.noneTitle")}</h2>
+            <p className="text-zinc-400 mb-6 max-w-md mx-auto">{t("shops.noneDescription")}</p>
             <button
               onClick={() => checkAndNavigate("/create-shop")}
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold hover:bg-indigo-500 transition-colors text-white shadow-sm"
             >
               <Plus className="w-4 h-4" />
-              Create Your First Shop
+              {t("shops.createFirst")}
             </button>
           </div>
         )}
@@ -129,12 +119,12 @@ export default function ShopsPage() {
                       href={`/dashboard/${shop.id}`}
                       className="flex-1 text-center inline-flex justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 transition-colors text-white"
                     >
-                      Open Admin
+                      {t("shops.openAdmin")}
                     </Link>
 
                     <button
                       onClick={() => router.push(`/dashboard/${shop.id}/online-store/themes`)}
-                      title="Edit Design"
+                      title={t("shops.editDesign")}
                       className="inline-flex items-center justify-center rounded-xl bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
                     >
                       <Palette className="w-5 h-5" />
@@ -144,7 +134,7 @@ export default function ShopsPage() {
                       href={storefrontUrl}
                       target="_blank"
                       rel="noreferrer"
-                      title="View Storefront"
+                      title={t("shops.viewStorefront")}
                       className="inline-flex items-center justify-center rounded-xl bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
                     >
                       <ExternalLink className="w-5 h-5" />

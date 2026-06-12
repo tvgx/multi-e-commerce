@@ -2,6 +2,7 @@
 
 import React, { use } from "react";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { storefrontUrl } from "@/lib/urls";
 import { 
   Rocket, 
   Settings, 
@@ -24,6 +25,7 @@ import {
 import Link from "next/link";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { ChatPanel } from "./ChatPanel";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
   step1: <Rocket className="w-5 h-5" />,
@@ -36,19 +38,20 @@ const STEP_ICONS: Record<string, React.ReactNode> = {
   step8: <Globe className="w-5 h-5" />,
 };
 
-const STEP_ACTIONS: Record<string, { label: string; href: string }> = {
-  step2: { label: "Add Product", href: "/products" },
-  step3: { label: "Create Collection", href: "/collections" },
-  step4: { label: "Setup Menus", href: "/online-store/navigation" },
-  step5: { label: "Customize Theme", href: "/online-store/themes" }, // For Step 5 (Design)
-  step6: { label: "Setup Payment", href: "/payments" },
-  step7: { label: "Configure Shipping", href: "/settings/shipping" },
-  step8: { label: "Verify Domain", href: "/settings/domain" },
-};
-
 export default function OnboardingDashboard({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
   const { status, loading, progressPercentage, refresh } = useOnboarding(shopId);
+  const t = useTranslations("admin");
+
+  const STEP_ACTIONS: Record<string, { label: string; href: string }> = {
+    step2: { label: t("dashboard.actions.addProduct"), href: "/products" },
+    step3: { label: t("dashboard.actions.createCollection"), href: "/collections" },
+    step4: { label: t("dashboard.actions.setupMenus"), href: "/online-store/navigation" },
+    step5: { label: t("dashboard.actions.customizeTheme"), href: "/online-store/themes" },
+    step6: { label: t("dashboard.actions.setupPayment"), href: "/payments" },
+    step7: { label: t("dashboard.actions.configureShipping"), href: "/settings/shipping" },
+    step8: { label: t("dashboard.actions.verifyDomain"), href: "/settings/domain" },
+  };
 
   if (loading && !status) {
     return (
@@ -72,7 +75,7 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
               <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
                 <MessageCircle className="w-5 h-5 text-indigo-600" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800">Live Support</h2>
+              <h2 className="text-xl font-bold text-slate-800">{t("dashboard.liveSupport")}</h2>
             </div>
             <ChatPanel shopId={shopId} />
           </div>
@@ -85,11 +88,11 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
          <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
             <div className="flex-1 space-y-4 text-center md:text-left">
                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">
-                 <Rocket size={14} /> Mission Control
+                 <Rocket size={14} /> {t("dashboard.missionControl")}
                </div>
-               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Chào mừng đến với cửa hàng của bạn!</h1>
+               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">{t("dashboard.welcomeTitle")}</h1>
                <p className="text-indigo-100/80 text-lg max-w-xl">
-                 Bạn đã hoàn thành <span className="text-white font-bold">{progressPercentage}%</span> thiết lập. Hãy hoàn thành các bước bên dưới để kích hoạt cửa hàng trực tuyến của mình.
+                 {t("dashboard.completedPrefix")} <span className="text-white font-bold">{progressPercentage}%</span> {t("dashboard.setupSuffix")}
                </p>
             </div>
 
@@ -118,7 +121,7 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
                </svg>
                <div className="absolute inset-0 flex items-center justify-center flex-col">
                   <span className="text-4xl font-extrabold">{progressPercentage}%</span>
-                  <span className="text-[10px] uppercase font-bold text-white/60">Done</span>
+                  <span className="text-[10px] uppercase font-bold text-white/60">{t("dashboard.done")}</span>
                </div>
             </div>
          </div>
@@ -163,7 +166,7 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
                     {index + 1}. {step.label}
                   </h3>
                   <p className="text-slate-500 text-sm leading-relaxed">
-                    Hoàn thành bước này để tiến gần hơn tới việc ra mắt shop của bạn.
+                    {t("dashboard.stepHelp")}
                   </p>
                 </div>
 
@@ -181,7 +184,7 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
 
                 {isCompleted && (
                   <div className="mt-auto pt-4 flex items-center gap-2 text-emerald-500/60 text-xs font-bold uppercase tracking-wider">
-                     <CheckCircle2 size={12} /> Task Finished
+                     <CheckCircle2 size={12} /> {t("dashboard.taskFinished")}
                   </div>
                 )}
               </div>
@@ -198,16 +201,16 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
                 <Globe className="text-white w-8 h-8" />
               </div>
               <div>
-                 <h2 className="text-2xl font-bold text-white">Bạn đã sẵn sàng cất cánh!</h2>
-                 <p className="text-emerald-200/60">Tất cả checklist đã hoàn tất. Cửa hàng của bạn đã được công khai.</p>
+                 <h2 className="text-2xl font-bold text-white">{t("dashboard.readyTitle")}</h2>
+                 <p className="text-emerald-200/60">{t("dashboard.readyBody")}</p>
               </div>
            </div>
            <a 
-             href={`http://${shopId}.localhost:3002`}
+             href={storefrontUrl(shopId)}
              target="_blank"
              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
            >
-             Mở Cửa Hàng Ngay
+             {t("dashboard.openStoreNow")}
            </a>
         </div>
       )}

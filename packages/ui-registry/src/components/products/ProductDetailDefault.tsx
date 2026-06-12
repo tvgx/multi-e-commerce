@@ -6,6 +6,8 @@ import { ProductReviews } from './ProductReviews';
 import { VariantSelector } from './VariantSelector';
 import { useState } from 'react';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface ProductDetailDefaultProps {
   product: any;
@@ -15,6 +17,7 @@ interface ProductDetailDefaultProps {
 export function ProductDetailDefault({ product, shopInfo }: ProductDetailDefaultProps) {
   const thumbnail = product.images?.[0] ?? null;
   const inStock = product.variants?.some((v: any) => v.stock > 0);
+  const t = useTranslations('shop');
   
   // Use the first variant for add to cart in the simple fallback
   const firstVariant = product.variants?.[0];
@@ -39,19 +42,19 @@ export function ProductDetailDefault({ product, shopInfo }: ProductDetailDefault
                 priority
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300 text-6xl">
-                🖼️
+              <div className="w-full h-full flex items-center justify-center text-slate-300 text-6xl" role="img" aria-label={t('products.noImageAria')}>
+                <span aria-hidden="true">🖼️</span>
               </div>
             )}
             
             {/* Badges */}
             <div className="absolute top-4 left-4 flex flex-col gap-2">
               <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                {product.category || 'General'}
+                {product.category || t('categories.all')}
               </span>
               {!inStock && (
                 <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  Out of Stock
+                  {t('products.outOfStock')}
                 </span>
               )}
             </div>
@@ -67,13 +70,13 @@ export function ProductDetailDefault({ product, shopInfo }: ProductDetailDefault
               {product.name || product.title}
             </h1>
             
-            <div className="text-3xl font-extrabold text-emerald-600 mb-6 transition-all duration-300">
-              {displayPrice?.toLocaleString('vi-VN')}đ
+            <div className="text-3xl font-extrabold text-brand mb-6 transition-all duration-300">
+              {formatPrice(displayPrice)}
             </div>
             
             <div className="prose prose-slate mb-4 max-w-none">
               <p className="text-slate-600 leading-relaxed">
-                {product.description || 'This product does not have a description yet.'}
+                {product.description || t('storefront.noDescription')}
               </p>
             </div>
 

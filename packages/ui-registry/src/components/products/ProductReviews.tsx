@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface Review {
     id: string;
@@ -19,6 +20,9 @@ interface ProductReviewsProps {
 }
 
 export function ProductReviews({ productId, initialReviews = [], className = '' }: ProductReviewsProps) {
+    const t = useTranslations('shop');
+    const tc = useTranslations('common');
+
     const [reviews, setReviews] = useState<Review[]>(initialReviews.length > 0 ? initialReviews : [
         // Mock data if none provided
         { id: '1', author: 'Jane Doe', rating: 5, content: 'Absolutely love this product! The quality is amazing.', date: '2026-05-15' },
@@ -59,7 +63,7 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
         <div className={`mt-16 border-t border-slate-100 pt-16 ${className}`}>
             <div className="flex flex-col md:flex-row gap-8 mb-12">
                 <div className="md:w-1/3">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">Customer Reviews</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-4">{t('reviews.title')}</h2>
                     <div className="flex items-center gap-4 mb-4">
                         <div className="text-4xl font-black text-slate-900">{averageRating.toFixed(1)}</div>
                         <div>
@@ -68,7 +72,7 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
                                     <Star key={star} className={`w-5 h-5 ${star <= averageRating ? 'fill-current' : 'text-slate-200'}`} />
                                 ))}
                             </div>
-                            <p className="text-sm text-slate-500">Based on {reviews.length} reviews</p>
+                            <p className="text-sm text-slate-500">{t('reviews.basedOn', { count: reviews.length })}</p>
                         </div>
                     </div>
                     
@@ -77,7 +81,7 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
                             onClick={() => setIsWriting(true)}
                             className="mt-4 bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-sm"
                         >
-                            Write a Review
+                            {t('reviews.writeReview')}
                         </Button>
                     )}
                 </div>
@@ -85,10 +89,10 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
                 <div className="md:w-2/3">
                     {isWriting && (
                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-8 animate-in fade-in slide-in-from-top-4">
-                            <h3 className="font-bold text-lg mb-4">Write your review</h3>
+                            <h3 className="font-bold text-lg mb-4">{t('reviews.writeYourReview')}</h3>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">{t('reviews.ratingLabel')}</label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(star => (
                                             <button 
@@ -103,23 +107,23 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Review</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">{t('reviews.reviewLabel')}</label>
                                     <textarea 
                                         required
                                         rows={4}
                                         value={newContent}
                                         onChange={e => setNewContent(e.target.value)}
-                                        className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        placeholder="What did you like or dislike?"
+                                        className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand outline-none"
+                                        placeholder={t('reviews.reviewPlaceholder')}
                                     />
                                 </div>
                                 <div className="flex gap-4 pt-2">
                                     <Button 
                                         type="submit" 
                                         disabled={submitting}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        className="bg-brand hover:bg-brand/90 text-white"
                                     >
-                                        {submitting ? 'Submitting...' : 'Submit Review'}
+                                        {submitting ? t('reviews.submitting') : t('reviews.submitReview')}
                                     </Button>
                                     <Button 
                                         type="button" 
@@ -127,7 +131,7 @@ export function ProductReviews({ productId, initialReviews = [], className = '' 
                                         onClick={() => setIsWriting(false)}
                                         disabled={submitting}
                                     >
-                                        Cancel
+                                        {t('reviews.cancel')}
                                     </Button>
                                 </div>
                             </form>

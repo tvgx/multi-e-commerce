@@ -4,8 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../../store/cart-store';
 import { useRouter } from 'next/navigation';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlug: string }) {
+    const t = useTranslations('order');
     const { items, totalAmount, clearCart } = useCartStore();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -130,20 +133,20 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
             });
             const data = await res.json();
             if (res.ok && data.data?.valid) {
-                setCouponStatus({ 
-                    valid: true, 
-                    message: `✅ Giảm ${data.data.discountAmount.toLocaleString('vi-VN')}đ`, 
-                    discount: data.data.discountAmount 
+                setCouponStatus({
+                    valid: true,
+                    message: t('checkoutForm.couponDiscount', { amount: formatPrice(data.data.discountAmount) }),
+                    discount: data.data.discountAmount
                 });
             } else {
-                setCouponStatus({ 
-                    valid: false, 
-                    message: data.message || 'Mã không hợp lệ', 
-                    discount: 0 
+                setCouponStatus({
+                    valid: false,
+                    message: data.message || t('checkoutForm.couponInvalid'),
+                    discount: 0
                 });
             }
         } catch {
-            setCouponStatus({ valid: false, message: 'Không thể kiểm tra mã', discount: 0 });
+            setCouponStatus({ valid: false, message: t('checkoutForm.couponCheckError'), discount: 0 });
         } finally {
             setValidatingCoupon(false);
         }
@@ -189,13 +192,13 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.message || 'Checkout failed');
+                throw new Error(data.message || t('checkoutForm.failed'));
             }
 
             // API trả thẳng object order (một số bản cũ bọc trong { data })
             const order = data.id ? data : data.data;
             if (!order?.id) {
-                throw new Error(data.message || 'Checkout failed');
+                throw new Error(data.message || t('checkoutForm.failed'));
             }
 
             setOrderId(order.id);
@@ -224,46 +227,46 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
     if (orderId) {
         return (
             <div className="container mx-auto px-4 py-20 max-w-2xl text-center">
-                <div className="bg-emerald-50 text-emerald-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl">
+                <div className="bg-brand/10 text-brand w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl">
                     ✓
                 </div>
-                <h1 className="text-4xl font-bold text-slate-900 mb-4">Order Confirmed!</h1>
+                <h1 className="text-4xl font-bold text-slate-900 mb-4">{t('checkoutForm.orderConfirmed')}</h1>
                 <p className="text-lg text-slate-600 mb-8">
-                    Your order #{orderId.substring(0, 8)} has been placed successfully.
+                    {t('checkoutForm.orderPlacedDetail', { id: orderId.substring(0, 8) })}
                 </p>
                 {selectedPaymentMethod?.type === 'BankTransfer' && qrCodeUrl && (
                     <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm mb-8">
-                        <h3 className="font-bold text-xl mb-4">Payment Instructions</h3>
-                        <p className="text-slate-600 mb-6">Please scan the QR code below to complete your payment:</p>
+                        <h3 className="font-bold text-xl mb-4">{t('checkoutForm.paymentInstructions')}</h3>
+                        <p className="text-slate-600 mb-6">{t('checkoutForm.scanQr')}</p>
                         <div className="flex justify-center mb-6">
                             <img src={qrCodeUrl} alt="Payment QR Code" className="w-64 h-64 border rounded-lg shadow-sm" />
                         </div>
                         <div className="text-left bg-slate-50 p-6 rounded-xl space-y-3">
-                            <p><strong>Bank:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
-                            <p><strong>Account Name:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
-                            <p><strong>Account Number:</strong> <span className="font-mono font-bold text-emerald-600">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
-                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{paidAmount.toLocaleString('vi-VN')}đ</span></p>
+                            <p><strong>{t('checkoutForm.bank')}:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
+                            <p><strong>{t('checkoutForm.accountName')}:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
+                            <p><strong>{t('checkoutForm.accountNumber')}:</strong> <span className="font-mono font-bold text-brand">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
+                            <p><strong>{t('checkoutForm.amount')}:</strong> <span className="font-bold text-brand">{formatPrice(paidAmount)}</span></p>
                         </div>
                     </div>
                 )}
                 {selectedPaymentMethod?.type === 'BankTransfer' && !qrCodeUrl && (
                     <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm mb-8">
-                        <h3 className="font-bold text-xl mb-4">Payment Instructions</h3>
-                        <p className="text-slate-600 mb-6">Please transfer the total amount to the following bank account:</p>
+                        <h3 className="font-bold text-xl mb-4">{t('checkoutForm.paymentInstructions')}</h3>
+                        <p className="text-slate-600 mb-6">{t('checkoutForm.transferInstructions')}</p>
                         <div className="text-left bg-slate-50 p-6 rounded-xl space-y-3">
-                            <p><strong>Bank:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
-                            <p><strong>Account Name:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
-                            <p><strong>Account Number:</strong> <span className="font-mono font-bold text-emerald-600">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
-                            <p><strong>Amount:</strong> <span className="font-bold text-emerald-600">{paidAmount.toLocaleString('vi-VN')}đ</span></p>
-                            <p><strong>Transfer Note:</strong> <span className="font-mono bg-yellow-100 px-2 py-1">ORDER {orderId.substring(0, 8)}</span></p>
+                            <p><strong>{t('checkoutForm.bank')}:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
+                            <p><strong>{t('checkoutForm.accountName')}:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
+                            <p><strong>{t('checkoutForm.accountNumber')}:</strong> <span className="font-mono font-bold text-brand">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
+                            <p><strong>{t('checkoutForm.amount')}:</strong> <span className="font-bold text-brand">{formatPrice(paidAmount)}</span></p>
+                            <p><strong>{t('checkoutForm.transferNote')}:</strong> <span className="font-mono bg-yellow-100 px-2 py-1">ORDER {orderId.substring(0, 8)}</span></p>
                         </div>
                     </div>
                 )}
-                <button 
+                <button
                     onClick={() => router.push(`/${shopSlug}/all-products`)}
-                    className="bg-emerald-600 text-white font-bold py-4 px-8 rounded-xl hover:bg-emerald-700 transition-colors"
+                    className="bg-brand text-white font-bold py-4 px-8 rounded-xl hover:bg-brand/90 transition-colors"
                 >
-                    Continue Shopping
+                    {t('checkoutForm.continueShopping')}
                 </button>
             </div>
         );
@@ -271,7 +274,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
     return (
         <div className="container mx-auto px-4 py-12">
-            <h1 className="text-3xl font-bold text-slate-900 mb-8">Checkout</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-8">{t('checkout.title')}</h1>
             
             <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-12">
                 <div className="lg:w-2/3 space-y-8">
@@ -282,40 +285,40 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                     )}
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                        <h2 className="text-xl font-bold mb-6">Contact Information</h2>
+                        <h2 className="text-xl font-bold mb-6">{t('checkoutForm.contactInfo')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Email</label>
+                                <label className="text-sm font-medium text-slate-700">{t('checkoutForm.email')}</label>
                                 <input 
                                     required type="email" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.email}
                                     onChange={e => setCustomerInfo({...customerInfo, email: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                                <label className="text-sm font-medium text-slate-700">{t('shipping.phone')}</label>
                                 <input 
                                     required type="tel" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.phone}
                                     onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">First Name</label>
+                                <label className="text-sm font-medium text-slate-700">{t('shipping.firstName')}</label>
                                 <input 
                                     required type="text" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.firstName}
                                     onChange={e => setCustomerInfo({...customerInfo, firstName: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Last Name</label>
+                                <label className="text-sm font-medium text-slate-700">{t('shipping.lastName')}</label>
                                 <input 
                                     required type="text" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.lastName}
                                     onChange={e => setCustomerInfo({...customerInfo, lastName: e.target.value})}
                                 />
@@ -324,30 +327,30 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                        <h2 className="text-xl font-bold mb-6">Shipping Address</h2>
+                        <h2 className="text-xl font-bold mb-6">{t('shipping.title')}</h2>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Address</label>
+                                <label className="text-sm font-medium text-slate-700">{t('shipping.address')}</label>
                                 <input 
                                     required type="text" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.address}
                                     onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">City / Province</label>
+                                <label className="text-sm font-medium text-slate-700">{t('checkoutForm.cityProvince')}</label>
                                 <input 
                                     required type="text" 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     value={customerInfo.city}
                                     onChange={e => setCustomerInfo({...customerInfo, city: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Order Notes (Optional)</label>
+                                <label className="text-sm font-medium text-slate-700">{t('checkoutForm.orderNotes')}</label>
                                 <textarea 
-                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
                                     rows={3}
                                     value={customerInfo.note}
                                     onChange={e => setCustomerInfo({...customerInfo, note: e.target.value})}
@@ -358,17 +361,17 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
                     {shippingMethods.length > 0 && (
                         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                            <h2 className="text-xl font-bold mb-6">Shipping Method</h2>
+                            <h2 className="text-xl font-bold mb-6">{t('shipping.shippingMethod')}</h2>
                             <div className="space-y-4">
                                 {shippingMethods.map(sm => {
                                     const fee = sm.freeThreshold != null && totalAmount >= sm.freeThreshold ? 0 : sm.baseFee;
                                     return (
-                                        <label key={sm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${shippingMethodId === sm.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                        <label key={sm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${shippingMethodId === sm.id ? 'border-brand bg-brand/10' : 'border-slate-200 hover:bg-slate-50'}`}>
                                             <input
                                                 type="radio"
                                                 name="shipping"
                                                 value={sm.id}
-                                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                                                className="w-5 h-5 text-brand focus:ring-brand"
                                                 checked={shippingMethodId === sm.id}
                                                 onChange={() => setShippingMethodId(sm.id)}
                                             />
@@ -377,8 +380,8 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                                                 {sm.estimatedDays && <span className="ml-2 text-sm text-slate-500">({sm.estimatedDays})</span>}
                                                 {sm.description && <span className="block text-sm text-slate-500">{sm.description}</span>}
                                             </span>
-                                            <span className={`font-bold ${fee === 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
-                                                {fee === 0 ? 'Miễn phí' : `${fee.toLocaleString('vi-VN')}đ`}
+                                            <span className={`font-bold ${fee === 0 ? 'text-brand' : 'text-slate-900'}`}>
+                                                {fee === 0 ? t('checkoutForm.free') : `${formatPrice(fee)}`}
                                             </span>
                                         </label>
                                     );
@@ -388,26 +391,26 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                     )}
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                        <h2 className="text-xl font-bold mb-6">Payment Method</h2>
+                        <h2 className="text-xl font-bold mb-6">{t('payment.title')}</h2>
                         <div className="space-y-4">
                             {paymentMethods.length === 0 ? (
-                                <div className="text-slate-500">No payment methods available.</div>
+                                <div className="text-slate-500">{t('checkoutForm.noPaymentMethods')}</div>
                             ) : (
                                 paymentMethods.map(pm => (
-                                    <label key={pm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${paymentMethodId === pm.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                    <label key={pm.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-colors ${paymentMethodId === pm.id ? 'border-brand bg-brand/10' : 'border-slate-200 hover:bg-slate-50'}`}>
                                         <input
                                             type="radio"
                                             name="payment"
                                             value={pm.id}
-                                            className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                                            className="w-5 h-5 text-brand focus:ring-brand"
                                             checked={paymentMethodId === pm.id}
                                             onChange={() => setPaymentMethodId(pm.id)}
                                         />
                                         <span className="ml-4 font-medium">{pm.name}</span>
                                         {pm.description && <span className="ml-2 text-sm text-slate-500">({pm.description})</span>}
                                         {pm.type === 'Wallet' && walletBalance != null && (
-                                            <span className="ml-auto text-sm font-bold text-emerald-600">
-                                                Số dư: {walletBalance.toLocaleString('vi-VN')}đ
+                                            <span className="ml-auto text-sm font-bold text-brand">
+                                                {t('checkoutForm.balance')}: {formatPrice(walletBalance)}
                                             </span>
                                         )}
                                     </label>
@@ -415,12 +418,12 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             )}
                             {walletInsufficient && (
                                 <div className="bg-amber-50 text-amber-700 p-3 rounded-xl text-sm border border-amber-200">
-                                    Số dư ví không đủ để thanh toán đơn này. Vui lòng nạp thêm hoặc chọn phương thức khác.
+                                    {t('checkoutForm.walletInsufficient')}
                                 </div>
                             )}
                             {isWalletSelected && walletBalance == null && (
                                 <div className="bg-slate-50 text-slate-600 p-3 rounded-xl text-sm border border-slate-200">
-                                    Đăng nhập để sử dụng ví của bạn.
+                                    {t('checkoutForm.walletLoginPrompt')}
                                 </div>
                             )}
                         </div>
@@ -429,7 +432,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
                 <div className="lg:w-1/3">
                     <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 sticky top-6">
-                        <h2 className="text-xl font-bold mb-6">Order Summary</h2>
+                        <h2 className="text-xl font-bold mb-6">{t('review.orderSummary')}</h2>
                         <div className="space-y-4 mb-6">
                             {items.map((item: any) => (
                                 <div key={`${item.productId}-${item.variantId}`} className="flex gap-4">
@@ -441,19 +444,19 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                                     </div>
                                     <div className="flex-1 flex flex-col justify-center">
                                         <h4 className="font-medium text-sm line-clamp-2">{item.title}</h4>
-                                        <div className="text-slate-500 text-sm mt-1">{(item.price).toLocaleString('vi-VN')}đ</div>
+                                        <div className="text-slate-500 text-sm mt-1">{formatPrice((item.price))}</div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                         
                         <div className="border-t border-slate-200 pt-4 mb-6">
-                            <label className="text-sm font-medium text-slate-700 mb-2 block">Discount Code</label>
+                            <label className="text-sm font-medium text-slate-700 mb-2 block">{t('checkoutForm.discountCode')}</label>
                             <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    className="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
-                                    placeholder="Enter code"
+                                <input
+                                    type="text"
+                                    className="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand uppercase"
+                                    placeholder={t('checkoutForm.enterCode')}
                                     value={couponCode}
                                     onChange={e => {
                                         setCouponCode(e.target.value.toUpperCase());
@@ -466,11 +469,11 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                                     disabled={validatingCoupon || !couponCode.trim()}
                                     className="px-4 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 disabled:opacity-50"
                                 >
-                                    {validatingCoupon ? '...' : 'Apply'}
+                                    {validatingCoupon ? '...' : t('checkoutForm.apply')}
                                 </button>
                             </div>
                             {couponStatus && (
-                                <div className={`text-sm mt-2 ${couponStatus.valid ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <div className={`text-sm mt-2 ${couponStatus.valid ? 'text-brand' : 'text-red-600'}`}>
                                     {couponStatus.message}
                                 </div>
                             )}
@@ -478,36 +481,36 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                         
                         <div className="border-t border-slate-200 pt-4 space-y-3 mb-6">
                             <div className="flex justify-between text-slate-600">
-                                <span>Subtotal</span>
-                                <span>{totalAmount.toLocaleString('vi-VN')}đ</span>
+                                <span>{t('review.subtotal')}</span>
+                                <span>{formatPrice(totalAmount)}</span>
                             </div>
                             {couponStatus?.valid && (
-                                <div className="flex justify-between text-emerald-600">
-                                    <span>Discount ({couponCode})</span>
-                                    <span>-{couponStatus.discount.toLocaleString('vi-VN')}đ</span>
+                                <div className="flex justify-between text-brand">
+                                    <span>{t('checkoutForm.discountWithCode', { code: couponCode })}</span>
+                                    <span>-{formatPrice(couponStatus.discount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-slate-600">
-                                <span>Shipping{selectedShippingMethod ? ` (${selectedShippingMethod.name})` : ''}</span>
-                                <span>{shippingFee === 0 ? 'Free' : `${shippingFee.toLocaleString('vi-VN')}đ`}</span>
+                                <span>{t('review.shipping')}{selectedShippingMethod ? ` (${selectedShippingMethod.name})` : ''}</span>
+                                <span>{shippingFee === 0 ? t('checkoutForm.free') : `${formatPrice(shippingFee)}`}</span>
                             </div>
                             <div className="flex justify-between font-bold text-xl pt-3 border-t border-slate-200">
-                                <span>Total</span>
-                                <span className="text-emerald-600">{grandTotal.toLocaleString('vi-VN')}đ</span>
+                                <span>{t('review.total')}</span>
+                                <span className="text-brand">{formatPrice(grandTotal)}</span>
                             </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading || paymentMethods.length === 0 || walletInsufficient}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-70 flex items-center justify-center"
+                            className="w-full bg-brand hover:bg-brand/90 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-70 flex items-center justify-center"
                         >
                             {loading ? (
                                 <span className="flex items-center gap-2">
-                                    <span className="animate-spin text-xl">◌</span> Processing...
+                                    <span className="animate-spin text-xl">◌</span> {t('checkoutForm.processing')}
                                 </span>
                             ) : (
-                                `Pay ${grandTotal.toLocaleString('vi-VN')}đ`
+                                t('checkoutForm.pay', { amount: formatPrice(grandTotal) })
                             )}
                         </button>
                     </div>

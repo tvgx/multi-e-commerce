@@ -1,5 +1,6 @@
 import React from "react";
 import { Settings, Shield, Key, Bell, CreditCard, Trash2 } from "lucide-react";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export default function SettingsPage() {
   return (
@@ -42,8 +43,8 @@ export default function SettingsPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-zinc-700 bg-zinc-800 flex items-center justify-center">
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=random&size=64" alt="Avatar" className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-zinc-700 bg-zinc-800 flex items-center justify-center text-lg">
+                    <UserAvatar />
                   </div>
                   <div>
                     <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium text-sm transition-colors border border-zinc-700">
@@ -55,18 +56,18 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-400">Full Name</label>
-                    <input 
-                      type="text" 
-                      defaultValue="Administrator"
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                    <input
+                      type="text"
+                      placeholder="Your full name"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-400">Email Address</label>
-                    <input 
-                      type="email" 
-                      defaultValue="admin@omnicommerce.com"
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
                 </div>

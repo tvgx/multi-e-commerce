@@ -1,6 +1,7 @@
 import React from 'react';
 import { Minus, Plus, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
 
 interface CartItem {
     id: string;
@@ -66,7 +67,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                                 <div className="flex flex-col">
                                                     <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">{item.name}</h3>
                                                     {item.variant && <span className="text-sm text-slate-500 mb-2">Variant: {item.variant}</span>}
-                                                    <div className="text-primary font-medium">${item.price.toFixed(2)}</div>
+                                                    <div className="text-primary font-medium">{formatPrice(item.price)}</div>
                                                 </div>
                                             </div>
 
@@ -85,8 +86,8 @@ export function StandardCart({ items = [] }: StandardCartProps) {
 
                                             {/* Total & Remove */}
                                             <div className="col-span-1 md:col-span-3 flex justify-between md:justify-end items-center gap-4">
-                                                <div className="font-bold text-slate-900 text-lg md:text-right block md:hidden">Total: ${(item.price * item.quantity).toFixed(2)}</div>
-                                                <div className="font-bold text-slate-900 text-lg text-right hidden md:block">${(item.price * item.quantity).toFixed(2)}</div>
+                                                <div className="font-bold text-slate-900 text-lg md:text-right block md:hidden">Total: {formatPrice((item.price * item.quantity))}</div>
+                                                <div className="font-bold text-slate-900 text-lg text-right hidden md:block">{formatPrice((item.price * item.quantity))}</div>
                                                 <button className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Remove item">
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
@@ -105,15 +106,15 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                 <div className="space-y-4 text-slate-600 mb-6">
                                     <div className="flex justify-between">
                                         <span>Subtotal</span>
-                                        <span className="font-medium text-slate-900">${subtotal.toFixed(2)}</span>
+                                        <span className="font-medium text-slate-900">{formatPrice(subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Shipping</span>
-                                        <span className="font-medium text-slate-900">${shipping.toFixed(2)}</span>
+                                        <span className="font-medium text-slate-900">{formatPrice(shipping)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Estimated Taxes</span>
-                                        <span className="font-medium text-slate-900">${taxes.toFixed(2)}</span>
+                                        <span className="font-medium text-slate-900">{formatPrice(taxes)}</span>
                                     </div>
                                 </div>
                                 
@@ -121,7 +122,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                 
                                 <div className="flex justify-between items-center mb-8">
                                     <span className="text-lg font-bold text-slate-900">Total</span>
-                                    <span className="text-3xl font-black text-slate-900">${total.toFixed(2)}</span>
+                                    <span className="text-3xl font-black text-slate-900">{formatPrice(total)}</span>
                                 </div>
 
                                 <a href="/payment" className="w-full block text-center bg-primary text-white py-4 rounded-xl font-bold text-lg shadow-md hover:shadow-lg hover:bg-primary/90 transition-all flex justify-center items-center gap-2 mb-6">
@@ -131,7 +132,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                 {/* Trust Badges */}
                                 <div className="bg-slate-50 rounded-2xl p-4 flex flex-col gap-3">
                                     <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                                        <ShieldCheck className="w-5 h-5 text-emerald-500" /> Secure Checkout
+                                        <ShieldCheck className="w-5 h-5 text-brand" /> Secure Checkout
                                     </div>
                                     <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
                                         <CreditCard className="w-5 h-5 text-blue-500" /> Multiple Payment Options

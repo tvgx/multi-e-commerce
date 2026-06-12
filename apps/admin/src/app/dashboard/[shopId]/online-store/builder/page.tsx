@@ -8,6 +8,7 @@ import { PageSwitcher } from '@/components/builder/PageSwitcher';
 import { CanvasRenderer } from '@ecommerce/ui-registry/src/components/builder/canvas-renderer';
 import { ArrowLeft, Save, Loader2, Monitor, Smartphone, RotateCcw, RotateCw, Globe, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function BuilderPage({ params }: { params: Promise<{ shopId: string }> }) {
     const { shopId } = use(params);
@@ -58,7 +59,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
             setPublishSuccess(true);
             setTimeout(() => setPublishSuccess(false), 3000);
         } catch {
-            alert('Xuất bản thất bại. Vui lòng thử lại.');
+            toast.error('Xuất bản thất bại. Vui lòng thử lại.');
         } finally {
             setPublishing(false);
         }

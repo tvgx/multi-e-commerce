@@ -54,6 +54,8 @@
     "tryAgain": "Please try again",
     "contactSupport": "Please contact support",
     "networkError": "Network error - Please check your connection",
-    "timeout": "Request timeout - Please try again"
+    "timeout": "Request timeout - Please try again",
+    "loadFailed": "Could not load this content. Please try again — if the issue persists, come back later.",
+    "componentUnavailable": "Component {{name}} is unavailable"
   }
 }

@@ -13,6 +13,7 @@ import {
   Loader2
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function DomainSettings({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
@@ -40,7 +41,7 @@ export default function DomainSettings({ params }: { params: Promise<{ shopId: s
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert("Copied to clipboard!");
+    toast.success("Đã sao chép vào clipboard");
   };
 
   const isVerified = status?.steps?.step8?.status === "COMPLETED";

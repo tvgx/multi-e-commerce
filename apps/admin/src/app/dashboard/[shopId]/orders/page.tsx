@@ -4,10 +4,14 @@ import React, { useEffect, use } from 'react';
 import { useOrders, Order } from '@/hooks/useOrders';
 import { Loader2, Package, RefreshCw, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function OrdersPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const { orders, loading, error, fetchOrders, updateOrderStatus } = useOrders(shopId);
+  const t = useTranslations('admin');
 
   useEffect(() => {
     fetchOrders();
@@ -29,7 +33,7 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
     if (validTransitions[order.state]?.includes(newState)) {
       updateOrderStatus(order.id, newState);
     } else {
-      alert(`Invalid state transition from ${order.state} to ${newState}`);
+      toast.error(t('orders.invalidTransition', { from: order.state, to: newState }));
     }
   };
 
@@ -51,14 +55,14 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Orders Management</h1>
-          <p className="text-slate-400">View and manage customer orders.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('orders.title')}</h1>
+          <p className="text-slate-400">{t('orders.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={() => fetchOrders()}
           className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-colors"
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> {t('orders.refresh')}
         </button>
       </div>
 
@@ -73,13 +77,13 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-white/5 border-b border-white/10 text-slate-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Order ID</th>
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Total</th>
-                <th className="px-6 py-4 font-medium">Payment</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colId')}</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colCustomer')}</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colDate')}</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colTotal')}</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colPayment')}</th>
+                <th className="px-6 py-4 font-medium">{t('orders.colStatus')}</th>
+                <th className="px-6 py-4 font-medium text-right">{t('orders.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -87,14 +91,14 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500 mb-4" />
-                    <p className="text-slate-400">Loading orders...</p>
+                    <p className="text-slate-400">{t('orders.loading')}</p>
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <Package className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                    <p className="text-slate-400">No orders found.</p>
+                    <p className="text-slate-400">{t('orders.none')}</p>
                   </td>
                 </tr>
               ) : (
@@ -113,7 +117,7 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 font-medium text-emerald-400">
-                      {order.totalAmount.toLocaleString('vi-VN')}đ
+                      {formatPrice(order.totalAmount)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-bold px-2 py-1 bg-slate-800 rounded-md uppercase">
@@ -122,7 +126,7 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(order.state)}`}>
-                        {order.state}
+                        {t(`orderStates.${order.state}`, { defaultValue: order.state })}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
@@ -130,38 +134,38 @@ export default function OrdersPage({ params }: { params: Promise<{ shopId: strin
                       {order.state === 'checkout' && (
                         <>
                           <button onClick={() => handleStatusChange(order, 'confirmed')} className="px-3 py-1 bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 rounded text-xs font-bold">
-                            Confirm
+                            {t('orders.confirm')}
                           </button>
                           <button onClick={() => handleStatusChange(order, 'canceled')} className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded text-xs font-bold">
-                            Cancel
+                            {t('orders.cancel')}
                           </button>
                         </>
                       )}
                       {order.state === 'confirmed' && (
                         <button onClick={() => handleStatusChange(order, 'processing')} className="px-3 py-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded text-xs font-bold">
-                          Process
+                          {t('orders.process')}
                         </button>
                       )}
                       {order.state === 'processing' && (
                         <button onClick={() => handleStatusChange(order, 'shipped')} className="px-3 py-1 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded text-xs font-bold">
-                          Ship
+                          {t('orders.ship')}
                         </button>
                       )}
                       {order.state === 'shipped' && (
                         <button onClick={() => handleStatusChange(order, 'delivered')} className="px-3 py-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded text-xs font-bold">
-                          Deliver
+                          {t('orders.deliver')}
                         </button>
                       )}
                       {order.state === 'delivered' && (
                         <button onClick={() => handleStatusChange(order, 'completed')} className="px-3 py-1 bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600/30 rounded text-xs font-bold">
-                          Complete
+                          {t('orders.complete')}
                         </button>
                       )}
                       <Link 
                         href={`/dashboard/${shopId}/orders/${order.id}`}
                         className="px-3 py-1 bg-slate-500/20 text-slate-300 hover:bg-slate-500/30 rounded text-xs font-bold inline-flex items-center gap-1"
                       >
-                        <Eye size={14} /> View
+                        <Eye size={14} /> {t('orders.view')}
                       </Link>
                     </td>
                   </tr>

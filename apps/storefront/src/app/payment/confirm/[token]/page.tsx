@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@ecommerce/ui-registry/src/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@ecommerce/ui-registry/src/components/ui/card';
 import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
 
 export default function PaymentConfirmPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -148,7 +149,7 @@ export default function PaymentConfirmPage({ params }: { params: Promise<{ token
           <div className="bg-blue-50 p-6 rounded-xl text-center">
             <p className="text-sm text-blue-600 font-medium mb-1">Số tiền cần thanh toán</p>
             <p className="text-4xl font-bold text-blue-700">
-              {tokenInfo?.amount?.toLocaleString('vi-VN')} đ
+              {formatPrice(tokenInfo?.amount)}
             </p>
           </div>
           

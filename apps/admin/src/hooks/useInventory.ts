@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export interface InventoryItem {
   id: string;
@@ -56,7 +57,7 @@ export function useInventory(shopId: string) {
 
       return true;
     } catch (err: any) {
-      alert(`Failed to adjust stock: ${err.message}`);
+      toast.error(`Failed to adjust stock: ${err.message}`);
       return false;
     }
   };

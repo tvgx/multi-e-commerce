@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface ChatMessage {
   _id: string;
@@ -12,6 +13,7 @@ interface ChatMessage {
 }
 
 export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?: string }) {
+  const t = useTranslations('shop');
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -90,6 +92,7 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(true)}
+        aria-label={t('chat.openAria')}
         className={`fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-indigo-700 transition-transform ${isOpen ? 'scale-0' : 'scale-100'} z-50`}
       >
         <MessageCircle size={28} />
@@ -104,25 +107,25 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
               <MessageCircle size={18} />
             </div>
             <div>
-              <h3 className="font-bold">Hỗ trợ trực tuyến</h3>
-              <p className="text-xs text-indigo-200">Chúng tôi thường trả lời trong vài phút</p>
+              <h3 className="font-bold">{t('chat.title')}</h3>
+              <p className="text-xs text-indigo-200">{t('chat.subtitle')}</p>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white">
+          <button onClick={() => setIsOpen(false)} aria-label={t('chat.closeAria')} className="text-white/80 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
         {/* Messages */}
         <div className="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-4">
-          <div className="text-center text-xs text-slate-400 mb-6">Hôm nay</div>
-          
+          <div className="text-center text-xs text-slate-400 mb-6">{t('chat.today')}</div>
+
           <div className="flex items-start gap-2">
             <div className="w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-500 font-bold text-xs">
               AD
             </div>
             <div className="bg-white border border-slate-100 p-3 rounded-2xl rounded-tl-sm text-sm text-slate-700 shadow-sm">
-              Xin chào! Chúng tôi có thể giúp gì cho bạn?
+              {t('chat.greeting')}
             </div>
           </div>
 
@@ -146,12 +149,13 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập tin nhắn..."
+              placeholder={t('chat.inputPlaceholder')}
               className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             />
             <button
               type="submit"
               disabled={!input.trim() || loading}
+              aria-label={t('chat.sendAria')}
               className="w-10 h-10 bg-indigo-600 text-white flex items-center justify-center rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="ml-1" />}

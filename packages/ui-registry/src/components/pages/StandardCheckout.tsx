@@ -6,6 +6,8 @@ import { useCartStore } from '../../store/cart-store';
 // Note: We use dynamic import for router in a registry component
 import { useRouter } from 'next/navigation';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
+import { toast } from '../../store/toast-store';
 
 interface StandardCheckoutProps {
     shopInfo?: any;
@@ -123,7 +125,7 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                     await clearCart();
                 } else {
                     await clearCart();
-                    alert('Order placed successfully! Order ID: ' + orderData.number);
+                    toast.success('Order placed successfully! Order ID: ' + orderData.number);
                     router.push(`/${shopSlug || ''}`);
                 }
             } else {
@@ -296,7 +298,7 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                                             <h4 className="font-medium text-slate-900 text-sm leading-tight">{item.title}</h4>
                                         </div>
                                         <div className="font-semibold text-slate-900">
-                                            ${(item.price * item.quantity).toFixed(2)}
+                                            {formatPrice((item.price * item.quantity))}
                                         </div>
                                     </div>
                                 ))}
@@ -307,15 +309,15 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                             <div className="space-y-3 text-slate-600 mb-6 text-sm">
                                 <div className="flex justify-between">
                                     <span>Subtotal</span>
-                                    <span className="font-medium text-slate-900">${totalAmount.toFixed(2)}</span>
+                                    <span className="font-medium text-slate-900">{formatPrice(totalAmount)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Shipping</span>
-                                    <span className="font-medium text-slate-900">${shippingCost.toFixed(2)}</span>
+                                    <span className="font-medium text-slate-900">{formatPrice(shippingCost)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Taxes</span>
-                                    <span className="font-medium text-slate-900">${taxes.toFixed(2)}</span>
+                                    <span className="font-medium text-slate-900">{formatPrice(taxes)}</span>
                                 </div>
                             </div>
                             
@@ -323,7 +325,7 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                             
                             <div className="flex justify-between items-center">
                                 <span className="text-lg font-bold text-slate-900">Total</span>
-                                <span className="text-3xl font-black text-slate-900">${finalTotal.toFixed(2)}</span>
+                                <span className="text-3xl font-black text-slate-900">{formatPrice(finalTotal)}</span>
                             </div>
                         </div>
                     </div>
@@ -352,7 +354,7 @@ export function StandardCheckout({ shopInfo, shopSlug }: StandardCheckoutProps) 
                     <div className="relative bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
                         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto"><Truck size={32} /></div>
                         <h3 className="text-2xl font-bold">Confirm Order?</h3>
-                        <p className="text-slate-500">You will pay <span className="font-bold text-black">${finalTotal.toFixed(2)}</span> upon delivery.</p>
+                        <p className="text-slate-500">You will pay <span className="font-bold text-black">{formatPrice(finalTotal)}</span> upon delivery.</p>
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={() => setShowCODConfirm(false)} className="py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
                             <button onClick={() => { setShowCODConfirm(false); submitOrder(); }} className="py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all">Confirm</button>

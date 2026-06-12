@@ -40,7 +40,7 @@ export function NotificationToast({ customerId, token }: { customerId?: string, 
     if (notifications.length === 0) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2">
+        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2" role="region" aria-label="Thông báo" aria-live="polite">
             {notifications.map(notif => (
                 <div 
                     key={notif.id} 
@@ -50,11 +50,12 @@ export function NotificationToast({ customerId, token }: { customerId?: string, 
                         <p className="font-bold text-sm">Update</p>
                         <p className="text-sm text-slate-300">{notif.message}</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                        aria-label="Đóng thông báo"
                         className="text-slate-400 hover:text-white"
                     >
-                        ✕
+                        <span aria-hidden="true">✕</span>
                     </button>
                 </div>
             ))}

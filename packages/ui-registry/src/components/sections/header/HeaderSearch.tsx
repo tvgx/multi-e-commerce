@@ -49,7 +49,7 @@ export const HeaderSearch: React.FC = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
                 placeholder="Tìm sản phẩm..."
-                className="w-40 sm:w-56 px-3 py-1.5 text-sm rounded-full border border-slate-300 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-40 sm:w-56 px-3 py-1.5 text-sm rounded-full border border-slate-300 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button type="submit" className="p-2 text-inherit opacity-80 hover:opacity-100" title="Search">
                 <Search className="h-5 w-5" />

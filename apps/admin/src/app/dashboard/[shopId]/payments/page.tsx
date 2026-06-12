@@ -18,6 +18,7 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import Link from "next/link";
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function PaymentSetupPage() {
   const params = useParams();
@@ -69,10 +70,10 @@ export default function PaymentSetupPage() {
       // 2. Complete Step 6
       await completeStep(6);
       
-      alert("Thiết lập thanh toán thành công!");
+      toast.success("Thiết lập thanh toán thành công!");
       router.push(`/dashboard/${shopId}`);
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`Lỗi: ${err.message}`);
     } finally {
       setSaving(false);
     }

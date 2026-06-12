@@ -3,32 +3,40 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Store, 
-  BarChart3, 
-  Package, 
-  Palette, 
-  CreditCard, 
-  Code2, 
-  Settings 
+import { authClient } from "@/lib/auth-client";
+import { UserAvatar } from "@/components/UserAvatar";
+import { useTranslations } from "@ecommerce/i18n/src/react";
+import {
+  LayoutDashboard,
+  Store,
+  BarChart3,
+  Package,
+  Palette,
+  CreditCard,
+  Code2,
+  Settings
 } from "lucide-react";
-
-const PLATFORM_ITEMS = [
-  { icon: <Store size={20} />, label: "My Shops", href: "/dashboard/shops" },
-  { icon: <BarChart3 size={20} />, label: "Analytics Hub", href: "/dashboard/analytics" },
-  { icon: <Package size={20} />, label: "Product Catalog", href: "/dashboard/catalog", badge: "Soon" },
-  { icon: <Palette size={20} />, label: "Theme Market", href: "/dashboard/themes", badge: "Soon" },
-];
-
-const ACCOUNT_ITEMS = [
-  { icon: <CreditCard size={20} />, label: "Billing & Plans", href: "/dashboard/billing" },
-  { icon: <Code2 size={20} />, label: "Developer API", href: "/dashboard/developer", badge: "Soon" },
-  { icon: <Settings size={20} />, label: "Account Settings", href: "/dashboard/settings" },
-];
 
 export function GlobalSidebar() {
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
+  const t = useTranslations("admin");
+  const user = session?.user;
+  const displayName = user?.name || user?.email || t("header.accountFallback");
+
+  const soon = t("nav.soon");
+  const PLATFORM_ITEMS = [
+    { icon: <Store size={20} />, label: t("nav.myShops"), href: "/dashboard/shops" },
+    { icon: <BarChart3 size={20} />, label: t("nav.analytics"), href: "/dashboard/analytics" },
+    { icon: <Package size={20} />, label: t("nav.catalog"), href: "/dashboard/catalog", badge: soon },
+    { icon: <Palette size={20} />, label: t("nav.themes"), href: "/dashboard/themes", badge: soon },
+  ];
+
+  const ACCOUNT_ITEMS = [
+    { icon: <CreditCard size={20} />, label: t("nav.billing"), href: "/dashboard/billing" },
+    { icon: <Code2 size={20} />, label: t("nav.developer"), href: "/dashboard/developer", badge: soon },
+    { icon: <Settings size={20} />, label: t("nav.settings"), href: "/dashboard/settings" },
+  ];
 
   return (
     <aside className="w-[240px] bg-black border-r border-zinc-800 flex flex-col overflow-y-auto">
@@ -42,12 +50,12 @@ export function GlobalSidebar() {
           }`}
         >
           <LayoutDashboard size={20} className={pathname === "/dashboard" ? "text-indigo-400" : "text-zinc-500"} />
-          <span className="text-sm font-medium">Overview</span>
+          <span className="text-sm font-medium">{t("nav.overview")}</span>
         </Link>
       </div>
 
       <div className="px-4 py-2">
-        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2">PLATFORM</h3>
+        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2 uppercase">{t("nav.platform")}</h3>
         <div className="space-y-1">
           {PLATFORM_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -79,7 +87,7 @@ export function GlobalSidebar() {
       </div>
 
       <div className="px-4 py-4">
-        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2">ACCOUNT</h3>
+        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2 uppercase">{t("nav.account")}</h3>
         <div className="space-y-1">
           {ACCOUNT_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -113,11 +121,11 @@ export function GlobalSidebar() {
       <div className="mt-auto p-4 border-t border-zinc-800 bg-zinc-950/50">
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
-            <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="Avatar" className="w-full h-full object-cover" />
+            <UserAvatar name={user?.name} email={user?.email} image={user?.image} />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-zinc-200 truncate">Administrator</p>
-            <p className="text-xs text-zinc-500 truncate">Free Plan</p>
+            <p className="text-sm font-medium text-zinc-200 truncate">{displayName}</p>
+            <p className="text-xs text-zinc-500 truncate">{user?.email || t("nav.freePlan")}</p>
           </div>
         </div>
       </div>

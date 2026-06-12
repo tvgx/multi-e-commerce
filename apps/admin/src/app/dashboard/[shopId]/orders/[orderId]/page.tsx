@@ -4,6 +4,9 @@ import React, { useEffect, useState, use } from 'react';
 import { useOrders, Order, Shipment } from '@/hooks/useOrders';
 import { Loader2, ArrowLeft, Package, User, CreditCard, Truck, Save } from 'lucide-react';
 import Link from 'next/link';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 const SHIPMENT_TRANSITIONS: Record<string, string[]> = {
   pending: ['ready', 'shipped', 'canceled'],
@@ -14,18 +17,10 @@ const SHIPMENT_TRANSITIONS: Record<string, string[]> = {
   canceled: [],
 };
 
-const SHIPMENT_STATE_LABELS: Record<string, string> = {
-  pending: 'Chờ xử lý',
-  ready: 'Sẵn sàng giao',
-  shipped: 'Đang giao',
-  delivered: 'Đã giao',
-  returned: 'Hoàn trả',
-  canceled: 'Đã huỷ',
-};
-
 export default function OrderDetailPage({ params }: { params: Promise<{ shopId: string, orderId: string }> }) {
   const { shopId, orderId } = use(params);
   const { fetchOrderById, updateOrderStatus, updateShipment } = useOrders(shopId);
+  const t = useTranslations('admin');
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +42,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
       setCarrier(s?.carrier || '');
       setTrackingNumber(s?.trackingNumber || '');
     } catch (err: any) {
-      setError(err.message || 'Failed to load order');
+      setError(err.message || t('orderDetail.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +68,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
       await updateShipment(shipment.id, { carrier, trackingNumber });
       await loadOrder();
     } catch (err: any) {
-      alert(`Lỗi cập nhật vận đơn: ${err.message}`);
+      toast.error(`${t('orderDetail.saveShipmentError')}: ${err.message}`);
     } finally {
       setSavingShipment(false);
     }
@@ -86,7 +81,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
       await updateShipment(shipment.id, { state, carrier, trackingNumber });
       await loadOrder();
     } catch (err: any) {
-      alert(`Lỗi cập nhật trạng thái giao hàng: ${err.message}`);
+      toast.error(`${t('orderDetail.saveStateError')}: ${err.message}`);
     } finally {
       setSavingShipment(false);
     }
@@ -130,10 +125,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
     return (
       <div className="p-8 max-w-5xl mx-auto">
         <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6">
-          {error || 'Order not found'}
+          {error || t('orderDetail.orderNotFound')}
         </div>
         <Link href={`/dashboard/${shopId}/orders`} className="text-indigo-400 hover:text-indigo-300 flex items-center gap-2">
-          <ArrowLeft size={16} /> Back to Orders
+          <ArrowLeft size={16} /> {t('orderDetail.backToOrders')}
         </Link>
       </div>
     );
@@ -145,37 +140,37 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
     <div className="p-8 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4">
       <div className="mb-6">
         <Link href={`/dashboard/${shopId}/orders`} className="text-slate-400 hover:text-white flex items-center gap-2 w-fit mb-4 transition-colors">
-          <ArrowLeft size={16} /> Back to Orders
+          <ArrowLeft size={16} /> {t('orderDetail.backToOrders')}
         </Link>
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
               Order #{order.number || order.id.substring(0, 8)}
               <span className={`text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(order.state)}`}>
-                {order.state}
+                {t(`orderStates.${order.state}`, { defaultValue: order.state })}
               </span>
             </h1>
-            <p className="text-slate-400">Placed on {new Date(order.createdAt).toLocaleString()}</p>
+            <p className="text-slate-400">{t('orderDetail.placedOn')} {new Date(order.createdAt).toLocaleString()}</p>
           </div>
 
           <div className="flex gap-2">
             {order.state === 'checkout' && (
               <>
-                <button onClick={() => handleStatusChange('confirmed')} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold transition-colors">Confirm Order</button>
-                <button onClick={() => handleStatusChange('canceled')} className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl text-sm font-bold transition-colors">Cancel</button>
+                <button onClick={() => handleStatusChange('confirmed')} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold transition-colors">{t('orderDetail.confirmOrder')}</button>
+                <button onClick={() => handleStatusChange('canceled')} className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl text-sm font-bold transition-colors">{t('orderDetail.cancel')}</button>
               </>
             )}
             {order.state === 'confirmed' && (
-              <button onClick={() => handleStatusChange('processing')} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-colors">Mark Processing</button>
+              <button onClick={() => handleStatusChange('processing')} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-colors">{t('orderDetail.markProcessing')}</button>
             )}
             {order.state === 'processing' && (
-              <button onClick={() => handleStatusChange('shipped')} className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-bold transition-colors">Mark Shipped</button>
+              <button onClick={() => handleStatusChange('shipped')} className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-bold transition-colors">{t('orderDetail.markShipped')}</button>
             )}
             {order.state === 'shipped' && (
-              <button onClick={() => handleStatusChange('delivered')} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors">Mark Delivered</button>
+              <button onClick={() => handleStatusChange('delivered')} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors">{t('orderDetail.markDelivered')}</button>
             )}
             {order.state === 'delivered' && (
-              <button onClick={() => handleStatusChange('completed')} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors">Complete Order</button>
+              <button onClick={() => handleStatusChange('completed')} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors">{t('orderDetail.completeOrder')}</button>
             )}
           </div>
         </div>
@@ -185,7 +180,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-              <Package size={18} className="text-indigo-400" /> Order Items
+              <Package size={18} className="text-indigo-400" /> {t('orderDetail.orderItems')}
             </h2>
             <div className="space-y-4">
               {order.lineItems?.map((item: any, index: number) => (
@@ -194,10 +189,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
                     <div className="font-medium text-white">
                       {item.variant?.product?.name || item.variant?.sku || item.variantId}
                     </div>
-                    <div className="text-sm text-slate-400">Qty: {item.quantity} × {(item.price ?? 0).toLocaleString('vi-VN')}đ</div>
+                    <div className="text-sm text-slate-400">{t('orderDetail.qty')}: {item.quantity} × {formatPrice((item.price ?? 0))}</div>
                   </div>
                   <div className="font-bold text-white">
-                    {(item.quantity * (item.price ?? 0)).toLocaleString('vi-VN')}đ
+                    {formatPrice((item.quantity * (item.price ?? 0)))}
                   </div>
                 </div>
               ))}
@@ -205,25 +200,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
             <div className="mt-6 pt-4 border-t border-white/10 space-y-2 text-sm">
               {order.itemTotal != null && order.itemTotal > 0 && (
                 <div className="flex justify-between text-slate-400">
-                  <span>Tạm tính</span>
-                  <span>{order.itemTotal.toLocaleString('vi-VN')}đ</span>
+                  <span>{t('orderDetail.subtotal')}</span>
+                  <span>{formatPrice(order.itemTotal)}</span>
                 </div>
               )}
               {order.promoTotal != null && order.promoTotal > 0 && (
                 <div className="flex justify-between text-emerald-400">
-                  <span>Giảm giá</span>
-                  <span>-{order.promoTotal.toLocaleString('vi-VN')}đ</span>
+                  <span>{t('orderDetail.discount')}</span>
+                  <span>-{formatPrice(order.promoTotal)}</span>
                 </div>
               )}
               {order.shipmentTotal != null && order.shipmentTotal > 0 && (
                 <div className="flex justify-between text-slate-400">
-                  <span>Phí vận chuyển</span>
-                  <span>{order.shipmentTotal.toLocaleString('vi-VN')}đ</span>
+                  <span>{t('orderDetail.shippingFee')}</span>
+                  <span>{formatPrice(order.shipmentTotal)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center text-lg font-bold pt-2">
-                <span className="text-white">Total</span>
-                <span className="text-emerald-400">{order.totalAmount.toLocaleString('vi-VN')}đ</span>
+                <span className="text-white">{t('orderDetail.total')}</span>
+                <span className="text-emerald-400">{formatPrice(order.totalAmount)}</span>
               </div>
             </div>
           </div>
@@ -231,47 +226,47 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
           {/* Fulfillment / Shipment */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-              <Truck size={18} className="text-indigo-400" /> Giao hàng
+              <Truck size={18} className="text-indigo-400" /> {t('orderDetail.fulfillment')}
             </h2>
 
             {!shipment ? (
-              <p className="text-slate-400 text-sm">Đơn này chưa có vận đơn.</p>
+              <p className="text-slate-400 text-sm">{t('orderDetail.noShipment')}</p>
             ) : (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className={`text-sm font-bold px-3 py-1 rounded-full ${getShipmentColor(shipment.state)}`}>
-                    {SHIPMENT_STATE_LABELS[shipment.state] || shipment.state}
+                    {t(`shipmentStates.${shipment.state}`, { defaultValue: shipment.state })}
                   </span>
                   {order.shippingMethod && (
                     <span className="text-sm text-slate-300">
-                      Phương thức: <strong>{order.shippingMethod.name}</strong>
+                      {t('orderDetail.method')}: <strong>{order.shippingMethod.name}</strong>
                       {order.shippingMethod.estimatedDays ? ` (${order.shippingMethod.estimatedDays})` : ''}
                     </span>
                   )}
                   {shipment.shippedAt && (
-                    <span className="text-xs text-slate-500">Gửi: {new Date(shipment.shippedAt).toLocaleString()}</span>
+                    <span className="text-xs text-slate-500">{t('orderDetail.shippedAt')}: {new Date(shipment.shippedAt).toLocaleString()}</span>
                   )}
                   {shipment.deliveredAt && (
-                    <span className="text-xs text-slate-500">Giao: {new Date(shipment.deliveredAt).toLocaleString()}</span>
+                    <span className="text-xs text-slate-500">{t('orderDetail.deliveredAt')}: {new Date(shipment.deliveredAt).toLocaleString()}</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wide">Đơn vị vận chuyển</label>
+                    <label className="text-xs text-slate-400 uppercase tracking-wide">{t('orderDetail.carrierLabel')}</label>
                     <input
                       type="text"
-                      placeholder="VD: GHN, GHTK, Viettel Post"
+                      placeholder={t('orderDetail.carrierPlaceholder')}
                       className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={carrier}
                       onChange={(e) => setCarrier(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wide">Mã vận đơn</label>
+                    <label className="text-xs text-slate-400 uppercase tracking-wide">{t('orderDetail.trackingLabel')}</label>
                     <input
                       type="text"
-                      placeholder="VD: GHN123456789"
+                      placeholder={t('orderDetail.trackingPlaceholder')}
                       className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={trackingNumber}
                       onChange={(e) => setTrackingNumber(e.target.value)}
@@ -286,26 +281,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
                     className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     {savingShipment ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    Lưu vận đơn
+                    {t('orderDetail.saveShipment')}
                   </button>
                   {allowedShipmentNext.includes('ready') && (
                     <button onClick={() => handleShipmentState('ready')} disabled={savingShipment} className="px-4 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
-                      Sẵn sàng giao
+                      {t('orderDetail.markReady')}
                     </button>
                   )}
                   {allowedShipmentNext.includes('shipped') && (
                     <button onClick={() => handleShipmentState('shipped')} disabled={savingShipment} className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
-                      Bắt đầu giao
+                      {t('orderDetail.startShipping')}
                     </button>
                   )}
                   {allowedShipmentNext.includes('delivered') && (
                     <button onClick={() => handleShipmentState('delivered')} disabled={savingShipment} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
-                      Đã giao thành công
+                      {t('orderDetail.markDeliveredSuccess')}
                     </button>
                   )}
                   {allowedShipmentNext.includes('returned') && (
                     <button onClick={() => handleShipmentState('returned')} disabled={savingShipment} className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
-                      Hoàn trả
+                      {t('orderDetail.markReturned')}
                     </button>
                   )}
                 </div>
@@ -317,30 +312,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
         <div className="space-y-6">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-              <User size={18} className="text-indigo-400" /> Customer Info
+              <User size={18} className="text-indigo-400" /> {t('orderDetail.customerInfo')}
             </h2>
             <div className="space-y-3 text-sm">
               <div>
-                <div className="text-slate-400 mb-1">Name</div>
-                <div className="text-white font-medium">{order.recipientName || order.customer?.name || 'N/A'}</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.name')}</div>
+                <div className="text-white font-medium">{order.recipientName || order.customer?.name || t('orderDetail.na')}</div>
               </div>
               <div>
-                <div className="text-slate-400 mb-1">Email</div>
-                <div className="text-white">{order.customer?.email || 'N/A'}</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.email')}</div>
+                <div className="text-white">{order.customer?.email || t('orderDetail.na')}</div>
               </div>
               <div>
-                <div className="text-slate-400 mb-1">Phone</div>
-                <div className="text-white">{order.recipientPhone || order.customer?.phoneNumber || 'N/A'}</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.phone')}</div>
+                <div className="text-white">{order.recipientPhone || order.customer?.phoneNumber || t('orderDetail.na')}</div>
               </div>
               <div>
-                <div className="text-slate-400 mb-1">Shipping Address</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.shippingAddress')}</div>
                 <div className="text-white">
-                  {[order.shippingAddress, order.shippingCity, order.shippingProvince].filter(Boolean).join(', ') || 'N/A'}
+                  {[order.shippingAddress, order.shippingCity, order.shippingProvince].filter(Boolean).join(', ') || t('orderDetail.na')}
                 </div>
               </div>
               {order.shippingNote && (
                 <div>
-                  <div className="text-slate-400 mb-1">Note</div>
+                  <div className="text-slate-400 mb-1">{t('orderDetail.note')}</div>
                   <div className="text-white">{order.shippingNote}</div>
                 </div>
               )}
@@ -349,18 +344,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ shopId: 
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-              <CreditCard size={18} className="text-indigo-400" /> Payment Info
+              <CreditCard size={18} className="text-indigo-400" /> {t('orderDetail.paymentInfo')}
             </h2>
             <div className="space-y-3 text-sm">
               <div>
-                <div className="text-slate-400 mb-1">Method</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.method')}</div>
                 <div className="text-white font-medium uppercase">
-                  {order.payments?.[0]?.paymentMethod?.name || order.paymentMethod || 'N/A'}
+                  {order.payments?.[0]?.paymentMethod?.name || order.paymentMethod || t('orderDetail.na')}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 mb-1">Status</div>
-                <div className="text-white capitalize">{order.paymentState || (order.state === 'checkout' ? 'Pending' : 'Paid')}</div>
+                <div className="text-slate-400 mb-1">{t('orderDetail.paymentStatus')}</div>
+                <div className="text-white capitalize">{order.paymentState || (order.state === 'checkout' ? t('orderDetail.pending') : t('orderDetail.paid'))}</div>
               </div>
             </div>
           </div>

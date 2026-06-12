@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface ShippingMethod {
   id: string;
@@ -38,6 +41,7 @@ const EMPTY_FORM = {
 export default function ShippingSettingsPage() {
   const params = useParams();
   const shopId = params.shopId as string;
+  const t = useTranslations("admin");
 
   const [methods, setMethods] = useState<ShippingMethod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +87,7 @@ export default function ShippingSettingsPage() {
 
   const handleSave = async () => {
     if (!form.name.trim() || form.baseFee === "") {
-      alert("Vui lòng nhập tên và phí vận chuyển");
+      toast.error(t("shipping.requireNameFee"));
       return;
     }
     setSaving(true);
@@ -104,19 +108,27 @@ export default function ShippingSettingsPage() {
       setShowForm(false);
       await fetchMethods();
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (m: ShippingMethod) => {
-    if (!confirm(`Xoá phương thức "${m.name}"? Nếu đã có đơn hàng sử dụng, phương thức sẽ chỉ bị tắt.`)) return;
+    if (
+      !(await confirmDialog({
+        title: t("shipping.deleteTitle"),
+        message: t("shipping.deleteMessage", { name: m.name }),
+        confirmText: t("shipping.deleteConfirm"),
+        danger: true,
+      }))
+    )
+      return;
     try {
       await apiClient.delete(`/api/shipping/methods/${m.id}`, { shopId });
       await fetchMethods();
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
     }
   };
 
@@ -125,7 +137,7 @@ export default function ShippingSettingsPage() {
       await apiClient.patch(`/api/shipping/methods/${m.id}`, { active: !m.active }, { shopId });
       setMethods(prev => prev.map(x => x.id === m.id ? { ...x, active: !m.active } : x));
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
     }
   };
 
@@ -136,23 +148,23 @@ export default function ShippingSettingsPage() {
         className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Quay lại Dashboard
+        {t("shipping.backToDashboard")}
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <Truck className="w-9 h-9 text-indigo-400" /> Vận chuyển
+            <Truck className="w-9 h-9 text-indigo-400" /> {t("shipping.title")}
           </h1>
           <p className="text-slate-400 text-lg">
-            Cấu hình các phương thức giao hàng mà khách có thể chọn khi thanh toán.
+            {t("shipping.subtitle")}
           </p>
         </div>
         <button
           onClick={openCreate}
           className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/20 transition-all flex items-center gap-2"
         >
-          <Plus className="w-5 h-5" /> Thêm phương thức
+          <Plus className="w-5 h-5" /> {t("shipping.addMethod")}
         </button>
       </div>
 
@@ -162,7 +174,7 @@ export default function ShippingSettingsPage() {
         </div>
       ) : methods.length === 0 ? (
         <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-12 text-center text-slate-400">
-          Chưa có phương thức vận chuyển nào. Thêm phương thức đầu tiên để khách có thể chọn giao hàng khi checkout.
+          {t("shipping.noMethods")}
         </div>
       ) : (
         <div className="space-y-4">
@@ -175,16 +187,16 @@ export default function ShippingSettingsPage() {
                 <div className="flex items-center gap-3">
                   <h3 className="font-bold text-white text-lg">{m.name}</h3>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${m.active ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
-                    {m.active ? "Đang bật" : "Đã tắt"}
+                    {m.active ? t("shipping.active") : t("shipping.inactive")}
                   </span>
                 </div>
                 {m.description && <p className="text-sm text-slate-400">{m.description}</p>}
                 <div className="text-sm text-slate-300 flex flex-wrap gap-4 pt-1">
-                  <span>Phí: <strong className="text-emerald-400">{m.baseFee.toLocaleString("vi-VN")}đ</strong></span>
+                  <span>{t("shipping.feeLabel")}: <strong className="text-emerald-400">{formatPrice(m.baseFee)}</strong></span>
                   {m.freeThreshold != null && (
-                    <span>Freeship từ: <strong className="text-amber-400">{m.freeThreshold.toLocaleString("vi-VN")}đ</strong></span>
+                    <span>{t("shipping.freeFrom")}: <strong className="text-amber-400">{formatPrice(m.freeThreshold)}</strong></span>
                   )}
-                  {m.estimatedDays && <span>Thời gian: <strong>{m.estimatedDays}</strong></span>}
+                  {m.estimatedDays && <span>{t("shipping.timeLabel")}: <strong>{m.estimatedDays}</strong></span>}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -192,19 +204,19 @@ export default function ShippingSettingsPage() {
                   onClick={() => toggleActive(m)}
                   className={`px-3 py-2 rounded-xl text-sm font-bold transition-colors ${m.active ? "bg-slate-500/10 text-slate-300 hover:bg-slate-500/20" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`}
                 >
-                  {m.active ? "Tắt" : "Bật"}
+                  {m.active ? t("shipping.turnOff") : t("shipping.turnOn")}
                 </button>
                 <button
                   onClick={() => openEdit(m)}
                   className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors"
-                  title="Sửa"
+                  title={t("shipping.edit")}
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(m)}
                   className="p-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                  title="Xoá"
+                  title={t("shipping.delete")}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -219,7 +231,7 @@ export default function ShippingSettingsPage() {
           <div className="bg-[#0b0820] border border-white/10 rounded-[2rem] p-8 w-full max-w-lg space-y-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white">
-                {editingId ? "Sửa phương thức vận chuyển" : "Thêm phương thức vận chuyển"}
+                {editingId ? t("shipping.editTitle") : t("shipping.createTitle")}
               </h2>
               <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white">
                 <X size={22} />
@@ -228,20 +240,20 @@ export default function ShippingSettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Tên phương thức *</label>
+                <label className="text-sm font-medium text-slate-300">{t("shipping.nameLabel")}</label>
                 <input
                   type="text"
-                  placeholder="VD: Giao hàng tiêu chuẩn"
+                  placeholder={t("shipping.namePlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Mô tả</label>
+                <label className="text-sm font-medium text-slate-300">{t("shipping.descLabel")}</label>
                 <input
                   type="text"
-                  placeholder="VD: Giao trong giờ hành chính"
+                  placeholder={t("shipping.descPlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -249,7 +261,7 @@ export default function ShippingSettingsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Phí vận chuyển (đ) *</label>
+                  <label className="text-sm font-medium text-slate-300">{t("shipping.feeFieldLabel")}</label>
                   <input
                     type="number"
                     min={0}
@@ -260,11 +272,11 @@ export default function ShippingSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Freeship cho đơn từ (đ)</label>
+                  <label className="text-sm font-medium text-slate-300">{t("shipping.freeThresholdLabel")}</label>
                   <input
                     type="number"
                     min={0}
-                    placeholder="Bỏ trống nếu không áp dụng"
+                    placeholder={t("shipping.freeThresholdPlaceholder")}
                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     value={form.freeThreshold}
                     onChange={(e) => setForm({ ...form, freeThreshold: e.target.value })}
@@ -272,10 +284,10 @@ export default function ShippingSettingsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Thời gian dự kiến</label>
+                <label className="text-sm font-medium text-slate-300">{t("shipping.etaLabel")}</label>
                 <input
                   type="text"
-                  placeholder="VD: 2-4 ngày"
+                  placeholder={t("shipping.etaPlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={form.estimatedDays}
                   onChange={(e) => setForm({ ...form, estimatedDays: e.target.value })}
@@ -288,7 +300,7 @@ export default function ShippingSettingsPage() {
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="w-5 h-5 rounded accent-indigo-500"
                 />
-                <span className="text-sm text-slate-300">Cho phép khách chọn phương thức này</span>
+                <span className="text-sm text-slate-300">{t("shipping.allowCustomer")}</span>
               </label>
             </div>
 
@@ -298,9 +310,9 @@ export default function ShippingSettingsPage() {
               className="w-full px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               {saving ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> {t("shipping.saving")}</>
               ) : (
-                <><Save className="w-5 h-5" /> {editingId ? "Cập nhật" : "Tạo phương thức"}</>
+                <><Save className="w-5 h-5" /> {editingId ? t("shipping.update") : t("shipping.createMethod")}</>
               )}
             </button>
           </div>

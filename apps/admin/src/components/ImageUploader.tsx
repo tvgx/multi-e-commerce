@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 interface ImageUploaderProps {
   shopId: string;
@@ -24,10 +25,10 @@ export function ImageUploader({ shopId, onUpload }: ImageUploaderProps) {
       if (res.data?.url) {
         onUpload(res.data.url);
       } else {
-        alert('Upload failed');
+        toast.error('Upload failed');
       }
     } catch (err: any) {
-      alert('Upload failed: ' + err.message);
+      toast.error('Upload failed: ' + err.message);
     } finally {
       setUploading(false);
       e.target.value = '';

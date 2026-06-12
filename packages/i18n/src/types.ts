@@ -11,9 +11,9 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
   vi: 'Tiếng Việt',
 };
 
-export type Namespace = 'common' | 'auth' | 'shop' | 'order' | 'errors' | 'validation';
+export type Namespace = 'common' | 'auth' | 'shop' | 'order' | 'errors' | 'validation' | 'admin';
 
-export const NAMESPACES: Namespace[] = ['common', 'auth', 'shop', 'order', 'errors', 'validation'];
+export const NAMESPACES: Namespace[] = ['common', 'auth', 'shop', 'order', 'errors', 'validation', 'admin'];
 
 export interface I18nConfig {
   defaultLanguage: Language;

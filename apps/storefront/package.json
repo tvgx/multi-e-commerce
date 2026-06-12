@@ -9,6 +9,7 @@
     "lint": "eslint \"src/**/*.ts*\""
   },
   "dependencies": {
+    "@ecommerce/i18n": "*",
     "@ecommerce/ui-registry": "^0.1.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@types/uuid": "^10.0.0",

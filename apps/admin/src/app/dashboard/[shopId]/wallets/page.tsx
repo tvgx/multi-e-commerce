@@ -14,6 +14,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface CustomerLite {
   id: string;
@@ -49,16 +52,10 @@ interface TxRow {
   createdAt: string;
 }
 
-const TX_TYPE_LABELS: Record<string, string> = {
-  deposit: "Nạp tiền",
-  payment: "Thanh toán",
-  refund: "Hoàn tiền",
-  adjustment: "Điều chỉnh",
-};
-
 export default function WalletsPage() {
   const params = useParams();
   const shopId = params.shopId as string;
+  const tr = useTranslations("admin");
 
   const [loading, setLoading] = useState(true);
   const [wallets, setWallets] = useState<WalletRow[]>([]);
@@ -111,18 +108,26 @@ export default function WalletsPage() {
       await apiClient.post(`/api/wallet/admin/payment-method`, { active: next }, { shopId });
       setWalletPaymentActive(next);
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
     }
   };
 
   const handleResolveTopup = async (id: string, action: "confirm" | "reject") => {
-    if (action === "confirm" && !confirm("Xác nhận đã nhận được tiền chuyển khoản của khách?")) return;
+    if (
+      action === "confirm" &&
+      !(await confirmDialog({
+        title: tr("wallets.confirmTopupTitle"),
+        message: tr("wallets.confirmTopupMessage"),
+        confirmText: tr("wallets.confirmTopupConfirm"),
+      }))
+    )
+      return;
     setResolving(id);
     try {
       await apiClient.post(`/api/wallet/admin/topups/${id}/resolve`, { action }, { shopId });
       await fetchAll(search);
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
     } finally {
       setResolving(null);
     }
@@ -137,7 +142,7 @@ export default function WalletsPage() {
 
   const handleAdjust = async () => {
     if (!adjustTarget || !adjustAmount || Number(adjustAmount) <= 0) {
-      alert("Vui lòng nhập số tiền hợp lệ");
+      toast.error(tr("wallets.invalidAmount"));
       return;
     }
     setAdjusting(true);
@@ -151,7 +156,7 @@ export default function WalletsPage() {
       setAdjustTarget(null);
       await fetchAll(search);
     } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
     } finally {
       setAdjusting(false);
     }
@@ -177,22 +182,22 @@ export default function WalletsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <Wallet className="w-9 h-9 text-indigo-400" /> Ví khách hàng
+            <Wallet className="w-9 h-9 text-indigo-400" /> {tr("wallets.title")}
           </h1>
           <p className="text-slate-400 text-lg">
-            Quản lý số dư ví, duyệt yêu cầu nạp tiền và bật thanh toán bằng ví.
+            {tr("wallets.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => fetchAll(search)}
             className="p-3 rounded-xl bg-white/5 text-slate-300 hover:bg-white/10 transition-colors"
-            title="Tải lại"
+            title={tr("wallets.reload")}
           >
             <RefreshCw size={18} />
           </button>
           <label className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 cursor-pointer">
-            <span className="text-sm font-medium text-slate-300">Thanh toán bằng ví</span>
+            <span className="text-sm font-medium text-slate-300">{tr("wallets.walletPayment")}</span>
             <button
               onClick={handleToggleWalletPayment}
               disabled={walletPaymentActive === null}
@@ -213,13 +218,13 @@ export default function WalletsPage() {
           {/* Pending topups */}
           <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl space-y-4">
             <h2 className="text-xl font-bold text-white">
-              Yêu cầu nạp tiền đang chờ
+              {tr("wallets.pendingTopups")}
               {topups.length > 0 && (
                 <span className="ml-3 text-sm font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400">{topups.length}</span>
               )}
             </h2>
             {topups.length === 0 ? (
-              <p className="text-slate-400 text-sm">Không có yêu cầu nạp tiền nào đang chờ duyệt.</p>
+              <p className="text-slate-400 text-sm">{tr("wallets.noPendingTopups")}</p>
             ) : (
               <div className="space-y-3">
                 {topups.map((t) => (
@@ -230,24 +235,24 @@ export default function WalletsPage() {
                         <span className="text-slate-500 text-sm ml-2">{t.customer?.email}</span>
                       </div>
                       <div className="text-sm text-slate-400">
-                        Yêu cầu lúc {new Date(t.createdAt).toLocaleString("vi-VN")} · Hết hạn {new Date(t.expiresAt).toLocaleString("vi-VN")}
+                        {tr("wallets.requestedAt")} {new Date(t.createdAt).toLocaleString("vi-VN")} · {tr("wallets.expiresAt")} {new Date(t.expiresAt).toLocaleString("vi-VN")}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-emerald-400">+{t.amount.toLocaleString("vi-VN")}đ</span>
+                      <span className="text-lg font-bold text-emerald-400">+{formatPrice(t.amount)}</span>
                       <button
                         onClick={() => handleResolveTopup(t.id, "confirm")}
                         disabled={resolving === t.id}
                         className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        {resolving === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Duyệt
+                        {resolving === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {tr("wallets.approve")}
                       </button>
                       <button
                         onClick={() => handleResolveTopup(t.id, "reject")}
                         disabled={resolving === t.id}
                         className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl text-sm font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        <X size={14} /> Từ chối
+                        <X size={14} /> {tr("wallets.reject")}
                       </button>
                     </div>
                   </div>
@@ -259,12 +264,12 @@ export default function WalletsPage() {
           {/* Wallets table */}
           <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <h2 className="text-xl font-bold text-white">Danh sách ví</h2>
+              <h2 className="text-xl font-bold text-white">{tr("wallets.walletList")}</h2>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Tìm theo tên / email khách..."
+                  placeholder={tr("wallets.searchPlaceholder")}
                   className="bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none w-72"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -274,16 +279,16 @@ export default function WalletsPage() {
             </div>
 
             {wallets.length === 0 ? (
-              <p className="text-slate-400 text-sm">Chưa có ví nào. Ví được tạo tự động khi khách dùng tính năng ví lần đầu.</p>
+              <p className="text-slate-400 text-sm">{tr("wallets.noWallets")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500 uppercase text-xs tracking-wider border-b border-white/10">
-                      <th className="pb-3 pr-4">Khách hàng</th>
-                      <th className="pb-3 pr-4">Số dư</th>
-                      <th className="pb-3 pr-4">Cập nhật</th>
-                      <th className="pb-3 text-right">Thao tác</th>
+                      <th className="pb-3 pr-4">{tr("wallets.colCustomer")}</th>
+                      <th className="pb-3 pr-4">{tr("wallets.colBalance")}</th>
+                      <th className="pb-3 pr-4">{tr("wallets.colUpdated")}</th>
+                      <th className="pb-3 text-right">{tr("wallets.colActions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -294,7 +299,7 @@ export default function WalletsPage() {
                           <div className="text-slate-500">{w.customer?.email}</div>
                         </td>
                         <td className="py-4 pr-4">
-                          <span className="text-lg font-bold text-emerald-400">{w.balance.toLocaleString("vi-VN")}đ</span>
+                          <span className="text-lg font-bold text-emerald-400">{formatPrice(w.balance)}</span>
                         </td>
                         <td className="py-4 pr-4 text-slate-400">{new Date(w.updatedAt).toLocaleString("vi-VN")}</td>
                         <td className="py-4 text-right">
@@ -303,13 +308,13 @@ export default function WalletsPage() {
                               onClick={() => openTransactions(w)}
                               className="px-3 py-2 rounded-xl bg-white/5 text-slate-300 hover:bg-white/10 transition-colors flex items-center gap-1.5"
                             >
-                              <History size={14} /> Lịch sử
+                              <History size={14} /> {tr("wallets.history")}
                             </button>
                             <button
                               onClick={() => openAdjust(w)}
                               className="px-3 py-2 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
                             >
-                              <PlusCircle size={14} /> Điều chỉnh
+                              <PlusCircle size={14} /> {tr("wallets.adjust")}
                             </button>
                           </div>
                         </td>
@@ -328,14 +333,14 @@ export default function WalletsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#0b0820] border border-white/10 rounded-[2rem] p-8 w-full max-w-md space-y-6 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Điều chỉnh số dư</h2>
+              <h2 className="text-xl font-bold text-white">{tr("wallets.adjustBalance")}</h2>
               <button onClick={() => setAdjustTarget(null)} className="text-slate-400 hover:text-white">
                 <X size={22} />
               </button>
             </div>
             <div className="text-sm text-slate-400">
-              {adjustTarget.customer?.name || adjustTarget.customer?.email} · Số dư hiện tại:{" "}
-              <strong className="text-emerald-400">{adjustTarget.balance.toLocaleString("vi-VN")}đ</strong>
+              {adjustTarget.customer?.name || adjustTarget.customer?.email} · {tr("wallets.currentBalance")}:{" "}
+              <strong className="text-emerald-400">{formatPrice(adjustTarget.balance)}</strong>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -343,32 +348,32 @@ export default function WalletsPage() {
                 onClick={() => setAdjustDirection("credit")}
                 className={`px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${adjustDirection === "credit" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50" : "bg-white/5 text-slate-400 border border-transparent"}`}
               >
-                <PlusCircle size={16} /> Cộng tiền
+                <PlusCircle size={16} /> {tr("wallets.addMoney")}
               </button>
               <button
                 onClick={() => setAdjustDirection("debit")}
                 className={`px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${adjustDirection === "debit" ? "bg-rose-500/20 text-rose-400 border border-rose-500/50" : "bg-white/5 text-slate-400 border border-transparent"}`}
               >
-                <MinusCircle size={16} /> Trừ tiền
+                <MinusCircle size={16} /> {tr("wallets.subtractMoney")}
               </button>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Số tiền (đ)</label>
+              <label className="text-sm font-medium text-slate-300">{tr("wallets.amountLabel")}</label>
               <input
                 type="number"
                 min={0}
-                placeholder="VD: 50000"
+                placeholder={tr("wallets.amountPlaceholder")}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={adjustAmount}
                 onChange={(e) => setAdjustAmount(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Ghi chú</label>
+              <label className="text-sm font-medium text-slate-300">{tr("wallets.noteLabel")}</label>
               <input
                 type="text"
-                placeholder="VD: Đền bù đơn giao thiếu"
+                placeholder={tr("wallets.notePlaceholder")}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={adjustNote}
                 onChange={(e) => setAdjustNote(e.target.value)}
@@ -380,7 +385,7 @@ export default function WalletsPage() {
               disabled={adjusting}
               className="w-full px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
-              {adjusting ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...</> : "Xác nhận điều chỉnh"}
+              {adjusting ? <><Loader2 className="w-5 h-5 animate-spin" /> {tr("wallets.processing")}</> : tr("wallets.confirmAdjust")}
             </button>
           </div>
         </div>
@@ -392,7 +397,7 @@ export default function WalletsPage() {
           <div className="bg-[#0b0820] border border-white/10 rounded-[2rem] p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto space-y-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">
-                Lịch sử giao dịch — {txWallet.customer?.name || txWallet.customer?.email}
+                {tr("wallets.txHistory")} — {txWallet.customer?.name || txWallet.customer?.email}
               </h2>
               <button onClick={() => setTxWallet(null)} className="text-slate-400 hover:text-white">
                 <X size={22} />
@@ -404,24 +409,24 @@ export default function WalletsPage() {
                 <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
               </div>
             ) : txs.length === 0 ? (
-              <p className="text-slate-400 text-sm">Chưa có giao dịch nào.</p>
+              <p className="text-slate-400 text-sm">{tr("wallets.noTransactions")}</p>
             ) : (
               <div className="space-y-2">
                 {txs.map((tx) => (
                   <div key={tx.id} className="flex items-center justify-between bg-black/30 border border-white/5 rounded-xl p-4">
                     <div>
                       <div className="text-white font-medium">
-                        {TX_TYPE_LABELS[tx.type] || tx.type}
-                        <span className="text-xs text-slate-500 ml-2">bởi {tx.createdBy}</span>
+                        {tr(`txTypes.${tx.type}`, { defaultValue: tx.type })}
+                        <span className="text-xs text-slate-500 ml-2">{tr("wallets.by")} {tx.createdBy}</span>
                       </div>
                       {tx.note && <div className="text-sm text-slate-400">{tx.note}</div>}
                       <div className="text-xs text-slate-500">{new Date(tx.createdAt).toLocaleString("vi-VN")}</div>
                     </div>
                     <div className="text-right">
                       <div className={`font-bold ${tx.amount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                        {tx.amount >= 0 ? "+" : ""}{tx.amount.toLocaleString("vi-VN")}đ
+                        {tx.amount >= 0 ? "+" : ""}{formatPrice(tx.amount)}
                       </div>
-                      <div className="text-xs text-slate-500">Số dư: {tx.balanceAfter.toLocaleString("vi-VN")}đ</div>
+                      <div className="text-xs text-slate-500">{tr("wallets.balanceLabel")}: {formatPrice(tx.balanceAfter)}</div>
                     </div>
                   </div>
                 ))}

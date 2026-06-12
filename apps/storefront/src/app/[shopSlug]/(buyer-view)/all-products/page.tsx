@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import React from 'react';
 import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
+import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { getT } from '@/lib/i18n';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;
@@ -49,18 +51,19 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
     }
 
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
+    const t = await getT('shop');
 
     return (
         <div className="container mx-auto px-4 py-12">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                {finalSearch ? `Kết quả cho "${finalSearch}"` : 'All Products'}
+                {finalSearch ? t('products.searchResults', { query: finalSearch }) : t('products.allProducts')}
             </h1>
             <p className="text-slate-500 mb-8">
                 {products.length > 0
-                    ? `${products.length} products found`
+                    ? t('products.countFound', { count: products.length })
                     : finalSearch
-                        ? `Không tìm thấy sản phẩm nào cho "${finalSearch}"`
-                        : `No products yet in ${shopName}`}
+                        ? t('products.noResultsFor', { query: finalSearch })
+                        : t('products.noneInShop', { shop: shopName })}
             </p>
 
             <div className="flex flex-col md:flex-row gap-8">
@@ -73,8 +76,8 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
                     {products.length === 0 ? (
                         <div className="col-span-full h-64 bg-slate-100 rounded-xl flex flex-col items-center justify-center text-slate-400 gap-3">
-                            <span className="text-4xl">📦</span>
-                            <p>No products available yet.</p>
+                            <span className="text-4xl" aria-hidden="true">📦</span>
+                            <p>{t('products.noneAvailable')}</p>
                         </div>
                     ) : (
                         products.map((product) => {
@@ -102,14 +105,14 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                                                 sizes="(min-width: 768px) 25vw, 50vw"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl">
-                                                🖼️
+                                            <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl" role="img" aria-label={t('products.noImageAria')}>
+                                                <span aria-hidden="true">🖼️</span>
                                             </div>
                                         )}
                                         {!inStock && (
                                             <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
                                                 <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">
-                                                    Out of Stock
+                                                    {t('products.outOfStock')}
                                                 </span>
                                             </div>
                                         )}
@@ -118,11 +121,11 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                                     {/* Product Info */}
                                     <div className="p-4">
                                         <p className="text-xs text-slate-400 mb-1">{product.category}</p>
-                                        <h2 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-2 mb-2 group-hover:text-emerald-600 transition-colors">
+                                        <h2 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-2 mb-2 group-hover:text-brand transition-colors">
                                             {product.name || product.title}
                                         </h2>
-                                        <p className="font-bold text-emerald-600">
-                                            {product.basePrice.toLocaleString('vi-VN')}đ
+                                        <p className="font-bold text-brand">
+                                            {formatPrice(product.basePrice)}
                                         </p>
                                     </div>
                                 </a>

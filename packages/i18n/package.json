@@ -2,45 +2,8 @@
   "name": "@ecommerce/i18n",
   "version": "1.0.0",
   "description": "Centralized internationalization and translation system supporting Vietnamese and English across the e-commerce platform",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./react": {
-      "import": "./dist/react.mjs",
-      "require": "./dist/react.js",
-      "types": "./dist/react.d.ts"
-    },
-    "./config": {
-      "import": "./dist/config.mjs",
-      "require": "./dist/config.js",
-      "types": "./dist/config.d.ts"
-    },
-    "./utils": {
-      "import": "./dist/utils/index.mjs",
-      "require": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
-    },
-    "./utils/language": {
-      "import": "./dist/utils/language.mjs",
-      "require": "./dist/utils/language.js",
-      "types": "./dist/utils/language.d.ts"
-    },
-    "./types": {
-      "import": "./dist/types.mjs",
-      "require": "./dist/types.js",
-      "types": "./dist/types.d.ts"
-    },
-    "./service": {
-      "import": "./dist/service.mjs",
-      "require": "./dist/service.js",
-      "types": "./dist/service.d.ts"
-    }
-  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",

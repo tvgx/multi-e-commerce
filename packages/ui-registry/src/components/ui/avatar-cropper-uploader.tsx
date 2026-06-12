@@ -6,6 +6,7 @@ import { Upload, X, Loader2 } from 'lucide-react';
 import { Button } from './button'; // Giả sử có sẵn
 import { cn } from '../../lib/utils';
 import { useDropzone } from 'react-dropzone';
+import { toast } from '../../store/toast-store';
 
 interface AvatarCropperUploaderProps {
   onUploadSuccess: (url: string) => void;
@@ -133,7 +134,7 @@ export function AvatarCropperUploader({
       }
     } catch (err) {
       console.error(err);
-      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
+      toast.error('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsUploading(false);
     }

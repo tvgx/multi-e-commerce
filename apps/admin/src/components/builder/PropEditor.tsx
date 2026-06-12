@@ -6,6 +6,7 @@ import { schemaRegistry } from '@ecommerce/ui-registry/src/registry';
 import { GOOGLE_FONTS } from '@ecommerce/ui-registry/src/component-schemas';
 import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft, Upload, Paintbrush } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 // -----------------------------------------------------------------------
 // Recursive node finder
@@ -203,12 +204,12 @@ export function PropEditor() {
             if (res.ok) {
                 const json = await res.json();
                 if (json.data?.url) handlePropChange(fieldId, json.data.url);
-                else alert('Upload failed');
+                else toast.error('Upload failed');
             } else {
-                alert('Upload failed');
+                toast.error('Upload failed');
             }
         } catch {
-            alert('Upload error');
+            toast.error('Upload error');
         } finally {
             setIsUploading(false);
         }

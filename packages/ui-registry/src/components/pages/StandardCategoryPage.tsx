@@ -2,6 +2,7 @@ import React from 'react';
 import { Filter, ChevronDown, LayoutGrid, List } from 'lucide-react';
 import { ProductCard } from '../product-card';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
 
 interface Product {
     id: string;
@@ -32,7 +33,7 @@ export function StandardCategoryPage({
                 {/* Header Section */}
                 <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 mb-8 text-center bg-gradient-to-br from-slate-50 to-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
                     
                     <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 relative z-10">{title}</h1>
                     <p className="text-lg text-slate-500 max-w-2xl mx-auto relative z-10">{description}</p>
@@ -118,7 +119,7 @@ export function StandardCategoryPage({
                                         </div>
                                         <div className="p-5 flex flex-col flex-grow">
                                             <h3 className="font-semibold text-slate-900 mb-2 truncate group-hover:text-primary transition-colors">{product.name}</h3>
-                                            <div className="text-lg font-bold text-slate-900 mt-auto">${product.basePrice.toFixed(2)}</div>
+                                            <div className="text-lg font-bold text-slate-900 mt-auto">{formatPrice(product.basePrice)}</div>
                                             <a href={`/products/${product.id}`} className="mt-4 block w-full text-center bg-slate-50 hover:bg-primary hover:text-white border border-slate-200 hover:border-primary py-2.5 rounded-xl font-medium text-slate-700 transition-all">
                                                 View Details
                                             </a>

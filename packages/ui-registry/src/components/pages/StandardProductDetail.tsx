@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart, ShieldCheck, Truck, RefreshCcw } from 'lucide-react';
 import { AddToCartButton } from '../cart/AddToCartButton';
 import { SmartImage } from '../blocks/SmartImage';
+import { formatPrice } from '../../lib/format';
 
 interface ProductVariant {
     id: string;
@@ -101,7 +102,7 @@ export function StandardProductDetail({ product, relatedProducts = [] }: Standar
 
                         {/* Price */}
                         <div className="text-3xl font-light text-slate-900 mb-8">
-                            ${price.toFixed(2)}
+                            {formatPrice(price)}
                         </div>
 
                         {/* Description Extract */}
@@ -173,7 +174,7 @@ export function StandardProductDetail({ product, relatedProducts = [] }: Standar
                                         <SmartImage src={rp.images?.[0]} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 768px) 25vw, 50vw" />
                                     </div>
                                     <h3 className="font-medium text-slate-900 mb-1 truncate">{rp.name}</h3>
-                                    <div className="text-primary font-semibold">${rp.basePrice.toFixed(2)}</div>
+                                    <div className="text-primary font-semibold">{formatPrice(rp.basePrice)}</div>
                                 </a>
                             ))}
                         </div>

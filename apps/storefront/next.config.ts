@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
   reactCompiler: false,
-  transpilePackages: ['@ecommerce/ui-registry'],
+  transpilePackages: ['@ecommerce/ui-registry', '@ecommerce/i18n'],
   images: {
     remotePatterns: [
       {

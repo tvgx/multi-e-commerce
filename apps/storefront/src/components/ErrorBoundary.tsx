@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { ensureI18n } from '@ecommerce/i18n/src/config';
 
 interface Props {
   children: React.ReactNode;
@@ -25,9 +26,17 @@ export class ErrorBoundary extends React.Component<Props, State> {
   
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? (
+      if (this.props.fallback) return this.props.fallback;
+
+      // Class components can't use hooks, so call ensureI18n() directly.
+      const i18n = ensureI18n();
+      const message = i18n.t('errors:general.componentUnavailable', {
+        name: this.props.componentName || 'Unknown',
+      }) as string;
+
+      return (
         <div className="p-4 text-center text-slate-400 text-sm border border-dashed border-slate-300 rounded-lg">
-          Component {this.props.componentName} không khả dụng
+          {message}
         </div>
       );
     }

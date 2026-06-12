@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
                             {(blocks.length === 0 || hasCartTrigger) && (
                                 <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
                                     <ShoppingCart className="h-5 w-5" />
-                                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500" />
+                                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand" />
                                 </Link>
                             )}
                         </div>

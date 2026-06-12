@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface FiltersSidebarProps {
   categories: string[];
@@ -10,6 +11,8 @@ interface FiltersSidebarProps {
 export function FiltersSidebar({ categories }: FiltersSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('shop');
+  const tc = useTranslations('common');
 
   const currentCategory = searchParams.get('category') || '';
   // Convert these directly to numbers or strings
@@ -50,17 +53,17 @@ export function FiltersSidebar({ categories }: FiltersSidebarProps) {
       {/* Categories */}
       {categories.length > 0 && (
         <div>
-          <h3 className="font-bold mb-4 text-slate-800">Categories</h3>
+          <h3 className="font-bold mb-4 text-slate-800">{t('filters.category')}</h3>
           <div className="space-y-3 text-sm text-slate-600">
             {categories.map((cat) => (
               <label key={cat} className="flex items-center gap-3 cursor-pointer group">
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 transition-colors"
+                  className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand transition-colors"
                   checked={currentCategory === cat}
                   onChange={() => handleCategoryChange(cat)}
                 />
-                <span className="group-hover:text-emerald-600 transition-colors">{cat}</span>
+                <span className="group-hover:text-brand transition-colors">{cat}</span>
               </label>
             ))}
           </div>
@@ -69,29 +72,29 @@ export function FiltersSidebar({ categories }: FiltersSidebarProps) {
 
       {/* Price Range */}
       <div>
-        <h3 className="font-bold mb-4 text-slate-800">Price Range</h3>
+        <h3 className="font-bold mb-4 text-slate-800">{t('filters.price')}</h3>
         <div className="flex items-center gap-2 mb-3">
           <input 
             type="number" 
-            placeholder="Min" 
+            placeholder={tc('labels.min')} 
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" 
           />
           <span className="text-slate-400">-</span>
           <input 
             type="number" 
-            placeholder="Max" 
+            placeholder={tc('labels.max')} 
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" 
           />
         </div>
         <button 
           onClick={handlePriceApply}
           className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-lg text-sm transition-colors"
         >
-          Apply Price Filter
+          {t('filters.apply')}
         </button>
       </div>
     </aside>

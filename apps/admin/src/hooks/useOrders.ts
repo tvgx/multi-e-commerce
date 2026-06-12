@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export interface Shipment {
   id: string;
@@ -84,7 +85,7 @@ export function useOrders(shopId: string) {
       );
       return true;
     } catch (err: any) {
-      alert(`Failed to update order status: ${err.message}`);
+      toast.error(`Failed to update order status: ${err.message}`);
       return false;
     }
   };
