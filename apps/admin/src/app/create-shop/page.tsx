@@ -63,10 +63,18 @@ export default function CreateShopPage() {
 
       const shopId = res.data.id;
 
-      // 2. If custom design, we might want to do extra logic, but for now just redirect to dashboard
-      // The dashboard will guide them to the builder in Step 5
+      // 2. Seed working default pages (header/footer + Home, Product listing,
+      // Product detail) so the new storefront is never blank or "Layout not found".
+      try {
+        await apiClient.post<any>(`/api/layouts/${shopId}/seed`, { shopName: formData.shopName });
+      } catch (seedErr) {
+        // Non-fatal: the builder also seeds client-side defaults on first load.
+        console.warn("Layout seed failed, falling back to builder defaults", seedErr);
+      }
+
+      // 3. Drop the owner straight into the visual builder to customise every page.
       setLoading(false);
-      router.push(`/dashboard/${shopId}`);
+      router.push(`/dashboard/${shopId}/online-store/builder`);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
       setLoading(false);

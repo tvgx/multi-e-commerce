@@ -29,7 +29,13 @@ const PREVIEW_MAP: Record<string, string> = {
     RecommendedProducts: '/section-previews/products/recommended_products/media__1780244951786.png',
 };
 
-const SECTION_CATALOG = [
+type CatalogEntry = { componentId: string; label: string; category: string; pages?: string[] };
+
+const SECTION_CATALOG: CatalogEntry[] = [
+    // Page-level sections — only offered on the matching page so owners can't
+    // drop a product-detail layout onto the home page.
+    { componentId: 'StandardCategoryPage', label: 'Danh sách sản phẩm', category: 'Trang sản phẩm', pages: ['product_listing'] },
+    { componentId: 'StandardProductDetail', label: 'Chi tiết sản phẩm', category: 'Trang sản phẩm', pages: ['product_detail'] },
     { componentId: 'Hero', label: 'Image Banner', category: 'Banners' },
     { componentId: 'HeroBottomAligned', label: 'Hero: Căn dưới', category: 'Banners' },
     { componentId: 'HeroMarquee', label: 'Hero: Chữ chạy', category: 'Banners' },
@@ -69,6 +75,7 @@ const SECTION_CATALOG = [
 ];
 
 const CATEGORY_ICON: Record<string, React.ElementType> = {
+    'Trang sản phẩm': LayoutTemplate,
     Banners: ImageIcon,
     Collections: Grid,
     Products: Star,
@@ -95,11 +102,15 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
 
     const enriched = useMemo(() => {
         const schemaMap = new Map(availableSchemas.map((s: any) => [s.componentId, s]));
-        return SECTION_CATALOG.map(sec => ({
-            ...sec,
-            previewImage: (schemaMap.get(sec.componentId) as any)?.mediaUrl || PREVIEW_MAP[sec.componentId] || null,
-        }));
-    }, [availableSchemas]);
+        return SECTION_CATALOG
+            // Hide sections restricted to other pages (e.g. a product-detail
+            // mega-component should not show up on the home page).
+            .filter(sec => !sec.pages || sec.pages.includes(activePage))
+            .map(sec => ({
+                ...sec,
+                previewImage: (schemaMap.get(sec.componentId) as any)?.mediaUrl || PREVIEW_MAP[sec.componentId] || null,
+            }));
+    }, [availableSchemas, activePage]);
 
     const filtered = useMemo(() => {
         if (!search) return enriched;

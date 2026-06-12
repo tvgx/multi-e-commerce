@@ -52,6 +52,11 @@ const ComponentRegistry: Record<string, React.ComponentType<any>> = {
     ImageCompare: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/storytelling/ImageCompare').then(m => m.ImageCompare)),
     ImageWithText: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/storytelling/ImageWithText').then(m => m.ImageWithText)),
 
+    // Page-level "mega" sections — editable product listing / product detail.
+    // These receive real data via pageContext (products / product) at render time.
+    StandardCategoryPage: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardCategoryPage').then(m => m.StandardCategoryPage)),
+    StandardProductDetail: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardProductDetail').then(m => m.StandardProductDetail)),
+
     // Text
     FAQ: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/text/FAQ').then(m => m.FAQ)),
     IconsWithText: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/text/IconsWithText').then(m => m.IconsWithText)),

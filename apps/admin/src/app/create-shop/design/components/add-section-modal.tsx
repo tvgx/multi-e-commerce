@@ -36,16 +36,18 @@ export function AddSectionModal({ onClose, insertIndex }: { onClose: () => void,
   };
 
   const filteredCategories = useMemo(() => {
-    if (!search) return SECTION_CATEGORIES;
     const lowerSearch = search.toLowerCase();
     return SECTION_CATEGORIES.map(cat => ({
       ...cat,
-      sections: cat.sections.filter(sec =>
-        sec.label.toLowerCase().includes(lowerSearch) ||
-        sec.componentId.toLowerCase().includes(lowerSearch)
-      )
+      sections: cat.sections.filter(sec => {
+        // Page-restricted sections only show on their page type.
+        if (sec.pages && !sec.pages.includes(activePage)) return false;
+        if (!search) return true;
+        return sec.label.toLowerCase().includes(lowerSearch) ||
+          sec.componentId.toLowerCase().includes(lowerSearch);
+      })
     })).filter(cat => cat.sections.length > 0);
-  }, [search]);
+  }, [search, activePage]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

@@ -1,6 +1,6 @@
-import { getShopPageLayout, getShopInfo } from '@/lib/api/storefront.api';
+import { getShopInfo } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
-import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
+import { CartPageClient } from '@/components/CartPageClient';
 import React from 'react';
 
 interface Props {
@@ -11,18 +11,13 @@ export default async function CartPage({ params }: Props) {
   const { shopSlug } = await params;
 
   try {
-    const [shopInfo, pageLayout] = await Promise.all([
-      getShopInfo(shopSlug),
-      getShopPageLayout(shopSlug, 'cart')
-    ]);
-
+    const shopInfo = await getShopInfo(shopSlug);
     if (!shopInfo) return notFound();
-    if (!pageLayout) return <div className="text-center py-20">Layout not found</div>;
 
-    // Cart store data is on client-side, but standard components can read it if needed.
-    return <LayoutRenderer pageLayout={pageLayout} pageContext={{ shopInfo }} />;
+    // Cart is a fixed (non-customisable) page rendered from the live cart store.
+    return <CartPageClient />;
   } catch (error) {
-    console.error('Error fetching cart page layout:', error);
+    console.error('Error rendering cart page:', error);
     return notFound();
   }
 }

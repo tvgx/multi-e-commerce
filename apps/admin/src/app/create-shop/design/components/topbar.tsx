@@ -4,6 +4,7 @@ import { Save, ArrowLeft, Monitor, Smartphone, Undo2, Redo2 } from "lucide-react
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useBuilderStore } from "@ecommerce/ui-registry/src/store/builder-store";
+import { PageSwitcher } from "@/components/builder/PageSwitcher";
 import { useState } from "react";
 
 export function Topbar({ onSave }: { onSave?: () => void }) {
@@ -28,10 +29,7 @@ export function Topbar({ onSave }: { onSave?: () => void }) {
         <Link href={`/dashboard/${shopId}/online-store/themes`} className="text-gray-500 hover:text-gray-900 transition-colors bg-gray-100 hover:bg-gray-200 p-1.5 rounded-md">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          Home page
-          <span className="text-xs text-gray-400 font-normal">({shopId})</span>
-        </div>
+        <PageSwitcher variant="light" />
       </div>
 
       <div className="flex items-center gap-1 absolute left-1/2 -translate-x-1/2 bg-gray-100 p-1 rounded-lg">

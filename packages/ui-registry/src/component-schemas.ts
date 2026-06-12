@@ -375,9 +375,35 @@ export const SplitShowcaseSchema: ComponentSchema = {
 };
 
 // ---------------------------------------------------------
+// Page-level "mega" sections (product listing / product detail)
+// These render real shop data; only the framing copy is editable.
+// ---------------------------------------------------------
+export const StandardCategoryPageSchema: ComponentSchema = {
+  id: 'StandardCategoryPage',
+  title: 'Danh sách sản phẩm',
+  type: 'section',
+  category: 'Trang sản phẩm',
+  settings: [
+    { type: 'text', id: 'title', label: 'Tiêu đề trang', default: 'Tất cả sản phẩm' },
+    { type: 'textarea', id: 'description', label: 'Mô tả ngắn', default: 'Khám phá toàn bộ bộ sưu tập của chúng tôi.' },
+  ],
+};
+
+export const StandardProductDetailSchema: ComponentSchema = {
+  id: 'StandardProductDetail',
+  title: 'Chi tiết sản phẩm',
+  type: 'section',
+  category: 'Trang sản phẩm',
+  // Content is driven by the selected product; no free-form fields to edit.
+  settings: [],
+};
+
+// ---------------------------------------------------------
 // Registry Map
 // ---------------------------------------------------------
 export const ComponentSchemas: Record<string, ComponentSchema> = {
+  StandardCategoryPage: StandardCategoryPageSchema,
+  StandardProductDetail: StandardProductDetailSchema,
   Hero: HeroSchema,
   HeroBottomAligned: HeroBottomAlignedSchema,
   AnnouncementBar: AnnouncementBarSchema,

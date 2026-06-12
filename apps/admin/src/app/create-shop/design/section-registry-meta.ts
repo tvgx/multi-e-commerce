@@ -4,9 +4,17 @@ export interface SectionMeta {
   icon: string;
   desc: string;
   previewImage?: string;
+  pages?: string[]; // if set, only offered on these page types
 }
 
 export const SECTION_CATEGORIES: { label: string; sections: SectionMeta[] }[] = [
+  {
+    label: 'Trang sản phẩm',
+    sections: [
+      { componentId: 'StandardCategoryPage', label: 'Danh sách sản phẩm', icon: 'grid', desc: 'Lưới sản phẩm kèm bộ lọc cho trang danh mục.', pages: ['product_listing'] },
+      { componentId: 'StandardProductDetail', label: 'Chi tiết sản phẩm', icon: 'layout', desc: 'Bố cục chi tiết một sản phẩm.', pages: ['product_detail'] },
+    ]
+  },
   {
     label: 'Banners',
     sections: [

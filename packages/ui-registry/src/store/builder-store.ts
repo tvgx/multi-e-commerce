@@ -5,6 +5,45 @@ import { ComponentSchemas } from '../component-schemas';
 
 export type DeviceMode = 'desktop' | 'mobile';
 
+// Pages a shop owner can customise in the builder. Order here drives the page
+// switcher. Labels are intentionally plain-language for non-technical owners.
+export const EDITABLE_PAGES: { key: string; label: string; description: string }[] = [
+    { key: 'home', label: 'Trang chủ', description: 'Trang đầu tiên khách nhìn thấy' },
+    { key: 'product_listing', label: 'Trang danh sách sản phẩm', description: 'Nơi khách duyệt và lọc sản phẩm' },
+    { key: 'product_detail', label: 'Trang chi tiết sản phẩm', description: 'Thông tin chi tiết của một sản phẩm' },
+];
+
+export const EDITABLE_PAGE_KEYS = EDITABLE_PAGES.map(p => p.key);
+
+// Starter sections used when a page has never been saved, so the canvas is
+// never blank. Mirrors the server-side seed in api-core's LayoutService.
+function defaultSectionsForPage(pageType: string): UIComponentRef[] {
+    const section = (componentId: string, props: Record<string, any>, order: number): UIComponentRef => ({
+        id: uuidv4(), componentId, type: 'section', props, order,
+    });
+    switch (pageType) {
+        case 'home':
+            return [
+                section('Hero', {
+                    title: 'Chào mừng đến với cửa hàng',
+                    subtitle: 'Khám phá những sản phẩm mới nhất của chúng tôi',
+                    ctaText: 'Mua ngay',
+                    ctaLink: '/all-products',
+                }, 0),
+                section('FeaturedProducts', { title: 'Sản phẩm nổi bật' }, 1),
+            ];
+        case 'product_listing':
+            return [section('StandardCategoryPage', {
+                title: 'Tất cả sản phẩm',
+                description: 'Khám phá toàn bộ bộ sưu tập của chúng tôi.',
+            }, 0)];
+        case 'product_detail':
+            return [section('StandardProductDetail', {}, 0)];
+        default:
+            return [];
+    }
+}
+
 interface HistorySnapshot {
     globalComponents: UIComponentRef[];
     pages: Record<string, UIComponentRef[]>;
@@ -130,7 +169,7 @@ function pushHistory(state: BuilderStoreState, coalesceKey?: string): Pick<Build
 // -----------------------------------------------------------------------
 export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     globalComponents: [],
-    pages: { home: [] },
+    pages: { home: [], product_listing: [], product_detail: [] },
     theme: {},
 
     shopId: null,
@@ -409,13 +448,26 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             const headers: any = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const [globalRes, pageRes] = await Promise.all([
+            const [globalRes, ...pageResults] = await Promise.all([
                 fetch(`http://localhost:3000/api/layouts/${shopId}/draft/global`, { headers }),
-                fetch(`http://localhost:3000/api/layouts/${shopId}/draft/page/home`, { headers }),
+                ...EDITABLE_PAGE_KEYS.map(pageType =>
+                    fetch(`http://localhost:3000/api/layouts/${shopId}/draft/page/${pageType}`, { headers })
+                ),
             ]);
 
             const globalData = globalRes.ok ? (await globalRes.json()).data : null;
-            const pageData = pageRes.ok ? (await pageRes.json()).data : null;
+
+            // Build the pages map for every editable page. A page that was never
+            // saved (null) gets sensible starter sections; an explicitly-emptied
+            // page (components: []) is respected as-is.
+            const pages: Record<string, UIComponentRef[]> = {};
+            await Promise.all(EDITABLE_PAGE_KEYS.map(async (pageType, i) => {
+                const res = pageResults[i];
+                const data = res.ok ? (await res.json()).data : null;
+                pages[pageType] = data?.components
+                    ? data.components
+                    : defaultSectionsForPage(pageType);
+            }));
 
             let shopData: any = null;
             if (!globalData?.theme?.shopName) {
@@ -459,7 +511,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             set({
                 globalComponents: globalData?.globalComponents?.length ? globalData.globalComponents : defaultGlobalComponents,
                 theme: globalData?.theme || (shopData ? { shopName: shopData.name } : {}),
-                pages: { home: pageData?.components || [] },
+                pages,
                 availableSchemas,
                 isLoading: false,
                 history: { past: [], future: [] },
@@ -482,11 +534,13 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                     headers,
                     body: JSON.stringify({ shopId, theme: state.theme, globalComponents: state.globalComponents }),
                 }),
-                fetch('http://localhost:3000/api/layouts/builder/save/page', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ shopId, pageType: 'home', components: state.pages['home'] || [] }),
-                }),
+                ...EDITABLE_PAGE_KEYS.map(pageType =>
+                    fetch('http://localhost:3000/api/layouts/builder/save/page', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ shopId, pageType, components: state.pages[pageType] || [] }),
+                    })
+                ),
             ]);
         } catch (error) {
             console.error('Failed to save layout', error);

@@ -86,6 +86,18 @@ export class LayoutController {
     return BaseResponseDto.success(data);
   }
 
+  // Seed a brand-new shop with working default pages (header/footer + Home,
+  // Product listing, Product detail). Called by the create-shop wizard.
+  @Public()
+  @Post(':shopId/seed')
+  async seedDefaultLayouts(
+    @Param('shopId') shopId: string,
+    @Body() body: { shopName?: string },
+  ) {
+    const data = await this.layoutService.seedDefaultLayouts(shopId, { shopName: body?.shopName });
+    return BaseResponseDto.success(data);
+  }
+
   // ─── ADMIN endpoints ───────────────────────────────────────────────────────
 
   // Master Template usually created by System Admins, but for mock sake:

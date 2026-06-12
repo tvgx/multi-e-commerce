@@ -5,6 +5,23 @@ import { useBuilderStore } from "../../store/builder-store";
 import { UIComponentRef } from "@ecommerce/schema";
 import { registry } from "../../registry";
 
+// Sample data so data-driven page sections (product listing / detail) render a
+// realistic preview in the builder instead of "no products" / "not found".
+const SAMPLE_PRODUCTS = Array.from({ length: 6 }).map((_, i) => ({
+    id: `sample-${i + 1}`,
+    name: `Sản phẩm mẫu ${i + 1}`,
+    description: 'Đây là mô tả sản phẩm mẫu dùng để xem trước giao diện.',
+    basePrice: 19.99 + i * 10,
+    images: [] as string[],
+    variants: [] as any[],
+}));
+
+function previewContextForPage(activePage: string): Record<string, any> {
+    if (activePage === 'product_listing') return { products: SAMPLE_PRODUCTS, totalProducts: SAMPLE_PRODUCTS.length };
+    if (activePage === 'product_detail') return { product: SAMPLE_PRODUCTS[0], relatedProducts: SAMPLE_PRODUCTS.slice(1, 5) };
+    return {};
+}
+
 export function CanvasRenderer() {
     // Narrow selectors: subscribing to the whole store re-rendered the entire
     // canvas on every store change (including history pushes).
@@ -50,6 +67,8 @@ export function CanvasRenderer() {
 
     const getIsBlockActive = (id: string) => activeBlockId !== null && activeSectionId === id;
 
+    const previewContext = previewContextForPage(activePage);
+
     return (
         <div className="w-full min-h-[600px] flex flex-col bg-white relative">
             {/* Header */}
@@ -78,6 +97,7 @@ export function CanvasRenderer() {
                             isActive={getIsActive(section.id)}
                             isBlockSelected={getIsBlockActive(section.id)}
                             onSelect={setActiveComponent}
+                            previewContext={previewContext}
                         />
                     ))
                 )}
@@ -103,12 +123,14 @@ const CanvasBlock = React.memo(function CanvasBlock({
     isBlockSelected,
     onSelect,
     isLocked = false,
+    previewContext,
 }: {
     component: UIComponentRef;
     isActive: boolean;
     isBlockSelected?: boolean;
     onSelect: (id: string) => void;
     isLocked?: boolean;
+    previewContext?: Record<string, any>;
 }) {
     const Component = registry[component.componentId];
 
@@ -149,7 +171,7 @@ const CanvasBlock = React.memo(function CanvasBlock({
             )}
 
             <div className={isActive ? '' : 'pointer-events-none'}>
-                <Component {...(component.props || {})} blocks={component.blocks || []} />
+                <Component {...(previewContext || {})} {...(component.props || {})} blocks={component.blocks || []} />
             </div>
         </div>
     );

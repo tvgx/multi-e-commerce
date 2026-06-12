@@ -1,6 +1,7 @@
 import { getCollectionBySlug, getShopInfo, getShopPageLayout } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
+import { StandardCategoryPage } from '@ecommerce/ui-registry/src/components/pages/StandardCategoryPage';
 import React from 'react';
 
 interface Props {
@@ -18,16 +19,28 @@ export default async function CollectionPage({ params }: Props) {
     ]);
 
     if (!collection || !shopInfo) return notFound();
-    if (!pageLayout) return <div className="text-center py-20">Layout not found</div>;
 
     const products = collection.products?.map((pc: any) => pc.product) || [];
 
+    // No saved layout yet → render the fixed standard listing so the page is
+    // never broken for a shop that hasn't customised this page.
+    if (!pageLayout) {
+        return (
+            <StandardCategoryPage
+                title={collection.title}
+                description={collection.description}
+                products={products}
+                totalProducts={products.length}
+            />
+        );
+    }
+
     // Pass collection and mapped products as pageContext so that the Mega-Component receives them
-    return <LayoutRenderer pageLayout={pageLayout} pageContext={{ 
-        shopInfo, 
-        title: collection.title, 
-        description: collection.description, 
-        products 
+    return <LayoutRenderer pageLayout={pageLayout} pageContext={{
+        shopInfo,
+        title: collection.title,
+        description: collection.description,
+        products
     }} />;
   } catch (error) {
     console.error('Error fetching collection details:', error);

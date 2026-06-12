@@ -4,6 +4,7 @@ import React, { useEffect, use } from 'react';
 import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store';
 import { SectionList } from '@/components/builder/SectionList';
 import { PropEditor } from '@/components/builder/PropEditor';
+import { PageSwitcher } from '@/components/builder/PageSwitcher';
 import { CanvasRenderer } from '@ecommerce/ui-registry/src/components/builder/canvas-renderer';
 import { ArrowLeft, Save, Loader2, Monitor, Smartphone, RotateCcw, RotateCw, Globe, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -83,7 +84,8 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                     >
                         <ArrowLeft size={18} />
                     </Link>
-                    <span className="text-sm font-semibold text-white truncate">Theme Builder</span>
+                    <span className="hidden lg:inline text-sm font-semibold text-white truncate">Trình thiết kế</span>
+                    <PageSwitcher variant="dark" />
                 </div>
 
                 {/* Center: device + undo/redo */}
