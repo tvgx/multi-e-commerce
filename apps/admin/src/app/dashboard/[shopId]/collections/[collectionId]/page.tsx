@@ -6,16 +6,19 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useCollections, Collection } from "@/hooks/useCollections";
 import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { ProductPickerModal } from "@/components/products/ProductPickerModal";
+import { apiClient } from "@/lib/api-client";
 
 export default function EditCollectionPage({ params }: { params: Promise<{ shopId: string; collectionId: string }> }) {
   const { shopId, collectionId } = use(params);
   const router = useRouter();
-  const { updateCollection, removeProductFromCollection } = useCollections(shopId);
-  const { collections, fetchCollections } = useCollections(shopId); // Need to get collection by ID, but wait, API gets it by slug or list
+  const { updateCollection, removeProductFromCollection, addProductsToCollection } = useCollections(shopId);
+  const { collections, fetchCollections } = useCollections(shopId); 
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   
   const [formData, setFormData] = useState<Partial<Collection>>({
     title: "",
@@ -34,19 +37,15 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
     const loadData = async () => {
       setLoading(true);
       try {
-        // Simple workaround: fetch all collections, find the slug, then fetch details.
-        // Actually we can use the API client directly here to fetch by slug if we know it, or we can fetch all.
-        // Let's just fetch all collections to get the slug.
-        // Or wait, we can just hit /api/collections and find it.
-        const res = await fetch(`/api/collections?shopId=${shopId}`);
-        const data = await res.json();
-        const collection = data.data?.find((c: any) => c.id === collectionId);
+        // Fetch all collections from the correct API route
+        const res = await apiClient.get<any>(`/api/catalog/collections`, { shopId });
+        const data = res.data; // apiClient returns { data } or unwraps it depending on implementation. Usually it's the raw axios response. Wait, apiClient unwraps if it's the custom one. Let's just use res.data.
+        const collection = Array.isArray(data) ? data.find((c: any) => c.id === collectionId) : data?.data?.find((c: any) => c.id === collectionId);
         
         if (collection) {
           // Now fetch the detailed collection by slug
-          const detailRes = await fetch(`/api/collections/${collection.slug}?shopId=${shopId}`);
-          const detailData = await detailRes.json();
-          const detail = detailData.data;
+          const detailRes = await apiClient.get<any>(`/api/catalog/collections/${collection.slug}`, { shopId });
+          const detail = detailRes.data?.data || detailRes.data;
 
           setFormData({
             title: detail.title,
@@ -112,21 +111,35 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
     }
   };
 
+  const handleAddProducts = async (productIds: string[]) => {
+    try {
+      await addProductsToCollection(collectionId, productIds);
+      toast.success("Products added successfully");
+      // Reload products list
+      const detailRes = await apiClient.get<any>(`/api/catalog/collections/${formData.slug}`, { shopId });
+      const detailData = detailRes.data?.data || detailRes.data;
+      setProducts(detailData.products || []);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add products");
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-indigo-500 w-8 h-8" /></div>;
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link 
-            href={`/dashboard/${shopId}/collections`}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+    <>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link 
+              href={`/dashboard/${shopId}/collections`}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Edit Category</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Edit Collection</h1>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -259,10 +272,19 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
         <div className="lg:col-span-1">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden">
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <h2 className="font-bold text-white">Products in Category</h2>
-              <span className="bg-indigo-500/20 text-indigo-400 py-0.5 px-2 rounded-full text-xs font-medium">
-                {products.length}
-              </span>
+              <div className="flex items-center gap-3">
+                <h2 className="font-bold text-white">Products in Collection</h2>
+                <span className="bg-indigo-500/20 text-indigo-400 py-0.5 px-2 rounded-full text-xs font-medium">
+                  {products.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPickerOpen(true)}
+                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20"
+              >
+                + Add Products
+              </button>
             </div>
             
             <div className="p-2 space-y-1 max-h-[600px] overflow-y-auto">
@@ -297,9 +319,18 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                 ))
               )}
             </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <ProductPickerModal
+        shopId={shopId}
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onAdd={handleAddProducts}
+        existingProductIds={products.map((p) => p.productId)}
+      />
+    </>
   );
 }

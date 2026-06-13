@@ -75,6 +75,11 @@ interface BuilderStoreState extends BuilderState {
     setActivePage: (page: string) => void;
     setDeviceMode: (mode: DeviceMode) => void;
 
+    // Write a resolved value into any node prop, on a specific page or on the
+    // global header/footer. Used by the navigation editor to push destination URLs
+    // back into button/link props (ButtonBlock.link, Hero.ctaLink, HeaderMenuItem.link…).
+    setNodeProp: (location: 'global' | string, nodeId: string, propKey: string, value: any) => void;
+
     // Real-time prop editing
     updateComponentProp: (id: string, propKey: string, value: any) => void;
     updateBlockProp: (blockId: string, propKey: string, value: any) => void;
@@ -96,6 +101,15 @@ interface BuilderStoreState extends BuilderState {
     loadTemplate: (shopId: string, token?: string) => Promise<void>;
     saveTemplate: (shopId: string, token?: string) => Promise<void>;
     publishTemplate: (shopId: string, token?: string) => Promise<void>;
+
+    // Per-page publish (copies one page's draft → published). Used by the guided
+    // wizard so each finished page goes live in the background as the owner moves on.
+    publishPage: (shopId: string, pageType: string, token?: string) => Promise<void>;
+
+    // Guided wizard: persist everything, publish the page just finished in the
+    // background, and advance to the next page in the sequence. Resolves with
+    // `{ done: true }` once the last page is finished (caller routes to nav editor).
+    advanceGuided: (shopId: string, token?: string) => Promise<{ done: boolean; nextPage?: string }>;
 }
 
 // -----------------------------------------------------------------------
@@ -299,6 +313,17 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     setActivePage: (page) => set({ activePage: page }),
     setDeviceMode: (mode) => set({ deviceMode: mode }),
 
+    setNodeProp: (location, nodeId, propKey, value) => set((state) => {
+        const apply = (list: UIComponentRef[]) =>
+            mapRecursive(list, nodeId, (c) => ({ ...c, props: { ...c.props, [propKey]: value } }));
+        if (location === 'global') {
+            return { globalComponents: apply(state.globalComponents) };
+        }
+        const pages = { ...state.pages };
+        if (pages[location]) pages[location] = apply(pages[location]);
+        return { pages };
+    }),
+
     updateComponentProp: (id, propKey, value) => set((state) => {
         const hist = pushHistory(state, `prop:${id}:${propKey}`);
         const isGlobal = state.globalComponents.some(c => c.id === id);
@@ -445,13 +470,14 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     loadTemplate: async (shopId, token) => {
         set({ isLoading: true, shopId });
         try {
-            const headers: any = {};
+            const headers: any = { 'x-shop-id': shopId };
             if (token) headers['Authorization'] = `Bearer ${token}`;
+            const fetchOpts: RequestInit = { headers, credentials: 'include' };
 
             const [globalRes, ...pageResults] = await Promise.all([
-                fetch(`http://localhost:3000/api/layouts/${shopId}/draft/global`, { headers }),
+                fetch(`http://localhost:3000/api/layouts/${shopId}/draft/global`, fetchOpts),
                 ...EDITABLE_PAGE_KEYS.map(pageType =>
-                    fetch(`http://localhost:3000/api/layouts/${shopId}/draft/page/${pageType}`, { headers })
+                    fetch(`http://localhost:3000/api/layouts/${shopId}/draft/page/${pageType}`, fetchOpts)
                 ),
             ]);
 
@@ -472,14 +498,14 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             let shopData: any = null;
             if (!globalData?.theme?.shopName) {
                 try {
-                    const r = await fetch(`http://localhost:3000/api/shops/${shopId}`, { headers });
+                    const r = await fetch(`http://localhost:3000/api/shops/${shopId}`, fetchOpts);
                     if (r.ok) shopData = (await r.json()).data;
                 } catch { /* ignore */ }
             }
 
             let availableSchemas: any[] = [];
             try {
-                const r = await fetch(`http://localhost:3000/api/layouts/builder/schemas`, { headers });
+                const r = await fetch(`http://localhost:3000/api/layouts/builder/schemas`, fetchOpts);
                 if (r.ok) availableSchemas = (await r.json()).data || [];
             } catch { /* ignore */ }
 
@@ -524,44 +550,93 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
 
     saveTemplate: async (shopId, token) => {
         const state = get();
-        try {
-            const headers: any = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+        const headers: any = { 'Content-Type': 'application/json', 'x-shop-id': shopId };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const fetchOpts: RequestInit = { headers, credentials: 'include' };
 
-            await Promise.all([
+        // Rethrow on any failure so callers (advanceGuided, publishTemplate) can
+        // surface it instead of advancing/“publishing” while nothing was saved.
+        try {
+            const responses = await Promise.all([
                 fetch('http://localhost:3000/api/layouts/builder/save/global', {
+                    ...fetchOpts,
                     method: 'POST',
-                    headers,
                     body: JSON.stringify({ shopId, theme: state.theme, globalComponents: state.globalComponents }),
                 }),
                 ...EDITABLE_PAGE_KEYS.map(pageType =>
                     fetch('http://localhost:3000/api/layouts/builder/save/page', {
+                        ...fetchOpts,
                         method: 'POST',
-                        headers,
                         body: JSON.stringify({ shopId, pageType, components: state.pages[pageType] || [] }),
                     })
                 ),
             ]);
+            const failed = responses.find((r) => !r.ok);
+            if (failed) {
+                throw new Error(`Save failed: HTTP ${failed.status} (${failed.url})`);
+            }
         } catch (error) {
             console.error('Failed to save layout', error);
+            throw error;
         }
     },
 
     publishTemplate: async (shopId, token) => {
         try {
-            const headers: any = { 'Content-Type': 'application/json' };
+            const headers: any = { 'Content-Type': 'application/json', 'x-shop-id': shopId };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             // First save draft, then publish
             await get().saveTemplate(shopId, token);
 
-            await fetch(`http://localhost:3000/api/layouts/${shopId}/publish`, {
+            const res = await fetch(`http://localhost:3000/api/layouts/${shopId}/publish`, {
                 method: 'POST',
                 headers,
+                credentials: 'include',
             });
+            if (!res.ok) {
+                throw new Error(`Publish failed: HTTP ${res.status}`);
+            }
         } catch (error) {
             console.error('Failed to publish layout', error);
             throw error;
         }
+    },
+
+    publishPage: async (shopId, pageType, token) => {
+        const headers: any = { 'Content-Type': 'application/json', 'x-shop-id': shopId };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`http://localhost:3000/api/layouts/${shopId}/publish/page/${pageType}`, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            throw new Error(`Publish page failed: HTTP ${res.status} (${pageType})`);
+        }
+    },
+
+    advanceGuided: async (shopId, token) => {
+        const sequence = EDITABLE_PAGE_KEYS;
+        const current = get().activePage;
+
+        // Persist global + every page draft, then publish the page we just finished
+        // in the background so the owner isn't blocked while it goes live.
+        await get().saveTemplate(shopId, token);
+        get().publishPage(shopId, current, token).catch((e) => console.error('Page publish failed', e));
+
+        const idx = sequence.indexOf(current);
+        const nextPage = sequence[idx + 1];
+        if (!nextPage) {
+            return { done: true };
+        }
+        resetHistoryBurst();
+        set({
+            activePage: nextPage,
+            activeComponentId: null,
+            activeBlockId: null,
+            history: { past: [], future: [] },
+        });
+        return { done: false, nextPage };
     },
 }));

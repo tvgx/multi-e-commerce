@@ -74,9 +74,10 @@ export default function CreateShopPage() {
         console.warn("Layout seed failed, falling back to builder defaults", seedErr);
       }
 
-      // 3. Drop the owner straight into the visual builder to customise every page.
+      // 3. Drop the owner into the guided design wizard: they customise each page in
+      // sequence (home → product listing → product detail), then wire up navigation.
       setLoading(false);
-      router.push(`/dashboard/${shopId}/online-store/builder`);
+      router.push(`/create-shop/design?shopId=${shopId}&mode=guided`);
     } catch (err: any) {
       toast.error(`Error: ${err.message}`);
       setLoading(false);

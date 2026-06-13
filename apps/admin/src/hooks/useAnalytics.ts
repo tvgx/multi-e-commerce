@@ -9,6 +9,8 @@ export interface AnalyticsKpis {
   aov: number;
   newCustomers: number;
   uniqueBuyers: number;
+  visitors: number;
+  conversionRate: number;
   canceledOrders: number;
   cancelRate: number;
 }
@@ -23,6 +25,8 @@ export interface AnalyticsSummary {
     orderCount: number | null;
     aov: number | null;
     newCustomers: number | null;
+    visitors: number | null;
+    conversionRate: number | null;
     cancelRate: number | null;
   };
 }
@@ -59,6 +63,65 @@ export interface CustomerInsights {
   topCustomers: TopCustomer[];
 }
 
+export interface VisitPoint {
+  date: string;
+  visits: number;
+  visitors: number;
+}
+
+export interface TrafficInsights {
+  totalVisits: number;
+  series: VisitPoint[];
+  returningVisitors: number;
+  totalVisitors: number;
+  // % khách ghé >= 2 phiên trong kỳ — "ở lại sau lần đầu"
+  returningVisitorRate: number;
+}
+
+export interface ConversionFunnel {
+  visitors: number;
+  cartCustomers: number;
+  buyers: number;
+  completedBuyers: number;
+}
+
+export interface RepeatPurchase {
+  repeatCustomers: number;
+  totalPurchasers: number;
+  // % khách đã mua quay lại mua >= 2 lần (trọn đời)
+  repeatPurchaseRate: number;
+}
+
+export interface TimingPoint {
+  orders: number;
+  revenue: number;
+}
+
+export interface OrderTiming {
+  byHour: (TimingPoint & { hour: number })[];
+  byDow: (TimingPoint & { dow: number })[]; // 1 = Thứ 2 … 7 = Chủ nhật
+}
+
+export interface RevenueBreakdown {
+  total: number;
+  itemTotal: number;
+  promoTotal: number;
+  taxTotal: number;
+  shipmentTotal: number;
+}
+
+export interface ReviewStats {
+  avgRating: number;
+  totalReviews: number;
+  newReviews: number;
+  distribution: { rating: number; count: number }[];
+}
+
+export interface TopSearch {
+  query: string;
+  count: number;
+}
+
 export interface AnalyticsDashboardData {
   summary: AnalyticsSummary;
   revenueSeries: RevenuePoint[];
@@ -66,6 +129,13 @@ export interface AnalyticsDashboardData {
   paymentsByState: Record<string, number>;
   topProducts: TopProduct[];
   customers: CustomerInsights;
+  traffic: TrafficInsights;
+  funnel: ConversionFunnel;
+  retention: RepeatPurchase;
+  timing: OrderTiming;
+  revenueBreakdown: RevenueBreakdown;
+  reviews: ReviewStats;
+  topSearches: TopSearch[];
 }
 
 export function useAnalytics(shopId: string, period: AnalyticsPeriod = '30d') {

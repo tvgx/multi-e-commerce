@@ -16,6 +16,8 @@ jest.mock('blurhash', () => ({ encode: jest.fn() }));
 // Stub the module so only the DI token class is loaded.
 jest.mock('../../common/services/minio.service', () => ({
   MinioService: class MinioService {},
+  LAYOUT_BUCKET: 'shop-layouts',
+  PUBLIC_BUCKET: 'shop-public',
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -67,23 +69,25 @@ describe('MediaService', () => {
       );
     });
 
-    it('uploads a non-image, stores the record and increments storage usage', async () => {
-      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf' });
-      minio.uploadFile.mockResolvedValue('https://cdn.test/test-bucket/doc-123.pdf');
+    it('uploads a non-image into shop-public/<shopId>/ and increments storage usage', async () => {
+      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      minio.uploadFile.mockResolvedValue('https://cdn.test/shop-public/shop-1/doc-123.pdf');
       prisma.media.create.mockResolvedValue({ id: 'm1' });
 
       const res = await service.uploadFile(pdf(), {} as any);
 
       expect(minio.uploadFile).toHaveBeenCalledWith(
         expect.any(Buffer),
-        'doc.pdf',
+        expect.stringMatching(/^shop-1\/[0-9a-f-]+\.pdf$/),
         'application/pdf',
+        'shop-public',
       );
       expect(prisma.media.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           shopId: SHOP,
-          url: 'https://cdn.test/test-bucket/doc-123.pdf',
-          key: 'doc-123.pdf',
+          url: 'https://cdn.test/shop-public/shop-1/doc-123.pdf',
+          key: expect.stringMatching(/^shop-1\//),
+          bucket: 'shop-public',
           mimeType: 'application/pdf',
           size: 2048,
           blurHash: null,
@@ -94,6 +98,44 @@ describe('MediaService', () => {
         data: { storageUsedBytes: { increment: 2048 } },
       });
       expect(res).toEqual({ id: 'm1' });
+    });
+
+    it('routes layout images to shop-layouts/<shopId>/', async () => {
+      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      prisma.media.create.mockResolvedValue({ id: 'm1' });
+
+      await service.uploadFile(pdf(), { entityType: 'layout_image' } as any);
+
+      expect(minio.uploadFile).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        expect.stringMatching(/^shop-1\/[0-9a-f-]+\.pdf$/),
+        'application/pdf',
+        'shop-layouts',
+      );
+    });
+
+    it('names product images <productId>-N, continuing from existing objects', async () => {
+      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      prisma.media.create.mockResolvedValue({ id: 'm1' });
+      minio.listKeys.mockResolvedValue(['shop-1/prod-9-1.png', 'shop-1/prod-9-2.png']);
+
+      await service.uploadFile(pdf(), { entityType: 'product', entityId: 'prod-9' } as any);
+
+      expect(minio.listKeys).toHaveBeenCalledWith('shop-1/prod-9-', 'shop-public');
+      expect(minio.uploadFile).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        'shop-1/prod-9-3.pdf',
+        'application/pdf',
+        'shop-public',
+      );
+    });
+
+    it('rejects product images without an entityId', async () => {
+      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+
+      await expect(
+        service.uploadFile(pdf(), { entityType: 'product' } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 

@@ -174,6 +174,25 @@ model ShopBankAccount {
   @@map("shop_bank_accounts")
 }
 
+// Theo dõi tiến độ build/publish shop chạy nền (worker /scripts/shop-builder).
+// UI poll theo shopId (bản mới nhất theo createdAt) — DB row là source-of-truth, Bull job.progress() chỉ là tín hiệu phụ.
+model ShopBuildJob {
+  id            String   @id @default(uuid())
+  shopId        String
+  jobId         String? // Bull job id (tham chiếu chéo)
+  status        String   @default("QUEUED") // QUEUED | RUNNING | COMPLETED | FAILED
+  percent       Int      @default(0)
+  stage         String? // extract | parse | assemble | compile | db-save | minio | published
+  error         String?
+  storefrontUrl String?
+  attempts      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId, createdAt])
+  @@map("shop_build_jobs")
+}
+
 model Customer {
   id             String    @id @default(uuid())
   shopId         String
@@ -295,7 +314,8 @@ model Product {
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId  String?
-  imageUrl    String?  // Ảnh đại diện sản phẩm
+  imageUrl    String?  // Ảnh đại diện sản phẩm (= images[0], giữ cho tương thích)
+  images      String[] @default([]) // Toàn bộ ảnh sản phẩm theo thứ tự hiển thị
   shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants      Variant[]
@@ -433,6 +453,13 @@ model StockLocation {
   adminName            String?
   active               Boolean  @default(true)
   isDefault            Boolean  @default(false)
+
+  // Địa chỉ kho hàng — nơi shipper sẽ đến lấy hàng (cột phẳng, ref provinces/wards theo code)
+  phone                String?
+  addressLine          String?
+  provinceCode         String?
+  wardCode             String?
+  note                 String?
 
   shop                 Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   stockItems           StockItem[]
@@ -959,4 +986,49 @@ model Notification {
   @@index([shopId])
   @@index([recipientId, recipientType])
   @@map("notifications")
+}
+
+// ==========================================
+// Analytics Models (Visit tracking)
+// ==========================================
+// Mỗi row ≈ một phiên ghé shop (server chỉ ghi khi lần ghé gần nhất của
+// visitor đã quá 30 phút). visitorId là uuid sinh phía client, lưu
+// localStorage — đếm được cả khách vãng lai chưa đăng nhập.
+// Không FK sang Shop/Customer (giống WishlistItem) để ghi nhanh, xoá shop
+// không cần cascade bảng log.
+
+model ShopVisit {
+  id         String   @id @default(uuid())
+  shopId     String
+  visitorId  String
+  customerId String?  // gắn khi khách đã đăng nhập — nối visit ↔ buyer
+  path       String?  // landing path của phiên
+  createdAt  DateTime @default(now())
+
+  @@index([shopId, createdAt])           // đếm visit/unique visitor theo kỳ
+  @@index([shopId, visitorId, createdAt]) // dedup phiên 30 phút
+  @@map("shop_visits")
+}
+
+// ==========================================
+// Đơn vị hành chính VN (2 cấp sau sáp nhập 2025: Tỉnh/Thành → Phường/Xã, bỏ Quận/Huyện)
+// Dữ liệu tham chiếu — seed từ packages/database/data/vn-admin-2cap.json (npm run seed:geo)
+// ==========================================
+
+model Province {
+  code  String @id // mã hành chính chính thức
+  name  String
+  wards Ward[]
+
+  @@map("provinces")
+}
+
+model Ward {
+  code         String   @id
+  name         String
+  provinceCode String
+  province     Province @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+
+  @@index([provinceCode])
+  @@map("wards")
 }

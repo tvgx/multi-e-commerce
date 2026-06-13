@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import type { AnalyticsPeriod } from '@/hooks/useAnalytics';
 
 export const formatVND = (value: number) =>
@@ -37,6 +38,27 @@ export const PAYMENT_STATE_LABELS: Record<string, string> = {
   credit_owed: 'Nợ công',
   refunded: 'Đã hoàn tiền',
   void: 'Đã hủy',
+};
+
+// ISODOW: 1 = Thứ 2 … 7 = Chủ nhật
+export const DOW_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+export const CHART_COLORS = [
+  '#818cf8', // indigo
+  '#34d399', // emerald
+  '#fbbf24', // amber
+  '#f472b6', // pink
+  '#38bdf8', // sky
+  '#a78bfa', // violet
+  '#fb923c', // orange
+  '#2dd4bf', // teal
+];
+
+export const CHART_TOOLTIP_STYLE: React.CSSProperties = {
+  backgroundColor: '#1e293b',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '12px',
+  color: '#fff',
 };
 
 export function PeriodSelect({
@@ -102,6 +124,7 @@ export function KpiCard({
   change,
   invertChange = false,
   accent = 'indigo',
+  sub,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -109,6 +132,7 @@ export function KpiCard({
   change?: number | null;
   invertChange?: boolean;
   accent?: KpiAccent;
+  sub?: string;
 }) {
   const styles = ACCENT_STYLES[accent];
   return (
@@ -119,6 +143,7 @@ export function KpiCard({
         <div className="min-w-0">
           <p className="text-slate-400 text-sm font-medium">{label}</p>
           <h3 className="text-2xl font-bold text-white truncate" title={value}>{value}</h3>
+          {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
           {change !== undefined && (
             <div className="mt-1">
               <ChangeBadge value={change} invert={invertChange} />
@@ -126,6 +151,140 @@ export function KpiCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Donut + chú giải có số liệu — phân bố theo nhóm (trạng thái đơn,
+ * thanh toán, tỷ trọng doanh thu…). `valueFormatter` cho giá trị tiền.
+ */
+export function DonutCard({
+  title,
+  data,
+  labels = {},
+  emptyText,
+  valueFormatter = (v) => String(v),
+  className = '',
+}: {
+  title: string;
+  data: Record<string, number>;
+  labels?: Record<string, string>;
+  emptyText: string;
+  valueFormatter?: (value: number) => string;
+  className?: string;
+}) {
+  const entries = Object.entries(data)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((acc, [, value]) => acc + value, 0);
+  const chartData = entries.map(([key, value], i) => ({
+    name: labels[key] || key,
+    value,
+    fill: CHART_COLORS[i % CHART_COLORS.length],
+  }));
+
+  return (
+    <div className={`bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl ${className}`}>
+      <h3 className="text-lg font-bold text-white mb-4">{title}</h3>
+      {entries.length === 0 ? (
+        <p className="text-slate-500 text-center py-12">{emptyText}</p>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="h-[180px] w-[180px] shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={52}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {chartData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  formatter={(value: any, name: any) => [valueFormatter(Number(value)), name]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex-1 w-full space-y-2 min-w-0">
+            {chartData.map((entry) => {
+              const percent = total > 0 ? (entry.value / total) * 100 : 0;
+              return (
+                <div key={entry.name} className="flex items-center gap-2 text-sm">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.fill }} />
+                  <span className="text-slate-300 truncate flex-1" title={entry.name}>{entry.name}</span>
+                  <span className="text-white font-bold shrink-0">{valueFormatter(entry.value)}</span>
+                  <span className="text-slate-500 text-xs shrink-0 w-12 text-right">{percent.toFixed(0)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export interface FunnelStep {
+  label: string;
+  value: number;
+  hint?: string;
+}
+
+/**
+ * Sơ đồ funnel ngang: thanh thu hẹp dần theo % so với bước đầu,
+ * kèm tỷ lệ chuyển đổi giữa từng bước.
+ */
+export function FunnelSteps({ steps }: { steps: FunnelStep[] }) {
+  const base = steps[0]?.value ?? 0;
+  return (
+    <div className="space-y-3">
+      {steps.map((step, index) => {
+        const widthPercent = base > 0 ? Math.max((step.value / base) * 100, 2) : 2;
+        const prev = index > 0 ? steps[index - 1].value : null;
+        const stepRate = prev !== null ? (prev > 0 ? (step.value / prev) * 100 : null) : null;
+        return (
+          <div key={step.label}>
+            <div className="flex justify-between items-baseline mb-1 gap-2">
+              <span className="text-slate-300 text-sm">
+                {step.label}
+                {step.hint && <span className="text-slate-500 text-xs ml-2">{step.hint}</span>}
+              </span>
+              <span className="text-white text-sm font-bold shrink-0">
+                {step.value.toLocaleString('vi-VN')}
+                {base > 0 && index > 0 && (
+                  <span className="text-slate-500 font-normal text-xs ml-2">
+                    {((step.value / base) * 100).toFixed(1)}% tổng
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="h-7 bg-white/5 rounded-lg overflow-hidden">
+              <div
+                className="h-full rounded-lg transition-all duration-700 flex items-center justify-end pr-2"
+                style={{
+                  width: `${widthPercent}%`,
+                  background: `linear-gradient(90deg, ${CHART_COLORS[index % CHART_COLORS.length]}66, ${CHART_COLORS[index % CHART_COLORS.length]})`,
+                }}
+              >
+                {stepRate !== null && (
+                  <span className="text-[11px] font-bold text-white/90 whitespace-nowrap">
+                    {stepRate.toFixed(0)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

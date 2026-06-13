@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { IsEnum } from 'class-validator';
 
 export enum OrderStatus {
   CONFIRMED = 'confirmed',
@@ -12,7 +12,7 @@ export enum OrderStatus {
 
 export class UpdateOrderStatusDto {
   @IsEnum(OrderStatus, {
-    message: `status must be one of: ${Object.values(OrderStatus).join(', ')}`
+    message: `status must be one of: ${Object.values(OrderStatus).join(', ')}`,
   })
   status: OrderStatus;
 }

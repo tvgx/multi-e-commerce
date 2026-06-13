@@ -8,6 +8,7 @@ import { PageSwitcher } from '@/components/builder/PageSwitcher';
 import { CanvasRenderer } from '@ecommerce/ui-registry/src/components/builder/canvas-renderer';
 import { ArrowLeft, Save, Loader2, Monitor, Smartphone, RotateCcw, RotateCw, Globe, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function BuilderPage({ params }: { params: Promise<{ shopId: string }> }) {
@@ -25,6 +26,8 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     const [saving, setSaving] = React.useState(false);
     const [publishing, setPublishing] = React.useState(false);
     const [publishSuccess, setPublishSuccess] = React.useState(false);
+    const [isNavigating, setIsNavigating] = React.useState(false);
+    const router = useRouter();
 
     const canUndo = history.past.length > 0;
     const canRedo = history.future.length > 0;
@@ -57,18 +60,22 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
         try {
             await publishTemplate(shopId);
             setPublishSuccess(true);
-            setTimeout(() => setPublishSuccess(false), 3000);
+            toast.success('Xuất bản thành công! Đang chuyển trang...');
+            setTimeout(() => {
+                setIsNavigating(true);
+                router.push(`/dashboard/${shopId}/online-store/navigation`);
+            }, 1000);
         } catch {
             toast.error('Xuất bản thất bại. Vui lòng thử lại.');
-        } finally {
             setPublishing(false);
         }
     };
 
-    if (isLoading) {
+    if (isLoading || isNavigating) {
         return (
-            <div className="h-screen flex items-center justify-center">
+            <div className="h-screen flex flex-col items-center justify-center gap-4">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                {isNavigating && <p className="text-slate-400 text-sm">Đang tải cấu hình Navigation...</p>}
             </div>
         );
     }

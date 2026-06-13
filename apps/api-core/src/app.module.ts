@@ -2,6 +2,7 @@ import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/c
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
+import { BullModule } from '@nestjs/bull';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import * as path from 'path';
 
@@ -32,6 +33,8 @@ import { ShippingModule } from './modules/shipping/shipping.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CustomerAddressModule } from './modules/customer-address/customer-address.module';
+import { GeoModule } from './modules/geo/geo.module';
+import { BuildModule } from './modules/build/build.module';
 
 @Module({
   imports: [
@@ -50,6 +53,17 @@ import { CustomerAddressModule } from './modules/customer-address/customer-addre
           port: config.get('REDIS_PORT') ? parseInt(config.get('REDIS_PORT') as string) : 6379,
           ttl: 60 * 1000, // 60s default TTL
         }),
+      }),
+    }),
+    // Bull queues (email, payment-timeout, shop-build). forRoot là source-of-truth cho kết nối Redis
+    // — phải khớp với worker độc lập /scripts/shop-builder (cùng host/port + prefix 'bull').
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        redis: {
+          host: config.get('REDIS_HOST') || 'localhost',
+          port: config.get('REDIS_PORT') ? parseInt(config.get('REDIS_PORT') as string) : 6379,
+        },
       }),
     }),
     MongooseModule.forRootAsync({
@@ -85,6 +99,8 @@ import { CustomerAddressModule } from './modules/customer-address/customer-addre
     WalletModule,
     CartModule,
     CustomerAddressModule,
+    GeoModule,
+    BuildModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,6 +9,7 @@ import {
   Req,
   ForbiddenException,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { BetterAuthGuard } from './guards/better-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -91,12 +92,22 @@ export class AuthController {
     return this.authService.updateProfile(user.id, dto);
   }
 
+  /**
+   * POST /api/auth/register
+   * Public — đăng ký owner mới qua Better Auth.
+   * Trả về token + user data trong response body.
+   */
   @Public()
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  /**
+   * POST /api/auth/login
+   * Public — đăng nhập owner qua Better Auth.
+   * Trả về token + user + session data trong response body.
+   */
   @Public()
   @Post('login')
   async login(@Body() dto: LoginDto) {
@@ -105,13 +116,13 @@ export class AuthController {
 
   @Public()
   @Post('forgot-password')
-  async forgotPassword(@Body() dto: any) {
+  async forgotPassword(@Body() dto: { email: string }) {
     return this.authService.forgotPassword(dto);
   }
 
   @Public()
   @Post('reset-password')
-  async resetPassword(@Body() dto: any) {
+  async resetPassword(@Body() dto: { token: string; newPassword: string }) {
     return this.authService.resetPassword(dto);
   }
 

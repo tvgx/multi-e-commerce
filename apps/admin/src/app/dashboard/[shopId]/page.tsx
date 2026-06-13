@@ -1,31 +1,140 @@
 "use client";
 
-import React, { use } from "react";
+import React, { Suspense, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useBuildStatus } from "@/hooks/useBuildStatus";
 import { storefrontUrl } from "@/lib/urls";
-import { 
-  Rocket, 
-  Settings, 
-  LayoutTemplate, 
-  Package, 
-  ArrowRight, 
-  CheckCircle2, 
+import { apiClient } from "@/lib/api-client";
+import {
+  Rocket,
+  Settings,
+  LayoutTemplate,
+  Package,
+  ArrowRight,
+  CheckCircle2,
   ExternalLink,
   Globe,
   Loader2,
   MessageCircle,
-  Circle, 
-  Lock, 
-  Layers, 
-  Store, 
-  Palette, 
-  CreditCard, 
-  Truck
+  Circle,
+  Lock,
+  Layers,
+  Store,
+  Palette,
+  CreditCard,
+  Truck,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { ChatPanel } from "./ChatPanel";
 import { useTranslations } from "@ecommerce/i18n/src/react";
+
+const STAGE_LABELS: Record<string, string> = {
+  extract: "Đang trích xuất dữ liệu...",
+  parse: "Đang chuẩn hóa cấu trúc...",
+  assemble: "Đang ghép nối các trang...",
+  compile: "Đang biên dịch giao diện...",
+  "db-save": "Đang lưu vào Database...",
+  minio: "Đang xuất bản tài nguyên...",
+  published: "Hoàn tất!",
+};
+
+// Màn "Shop đang được tạo" — poll tiến độ build nền và hiển thị URL khi xong.
+function FinalizingView({ shopId }: { shopId: string }) {
+  const router = useRouter();
+  const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
+  const { status } = useBuildStatus(shopId, true, attempt);
+
+  const percent = status?.percent ?? 0;
+  const failed = status?.status === "FAILED";
+  const done = status?.status === "COMPLETED";
+
+  const retry = async () => {
+    setRetrying(true);
+    try {
+      await apiClient.post(`/api/shops/${shopId}/build`, {}, { shopId });
+      setAttempt((a) => a + 1);
+    } catch {
+      /* giữ nguyên trạng thái lỗi */
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto py-16 px-6">
+      <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 via-violet-700 to-indigo-900 p-10 text-white shadow-2xl text-center">
+        <div className="text-xs font-bold uppercase tracking-widest text-indigo-200/70 mb-8">
+          🚀 OmniAdmin · Khởi tạo cửa hàng
+        </div>
+
+        {failed ? (
+          <>
+            <div className="w-20 h-20 mx-auto rounded-full bg-red-500/20 flex items-center justify-center mb-6">
+              <AlertTriangle className="w-10 h-10 text-red-300" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Tạo shop thất bại</h2>
+            <p className="text-indigo-100/70 text-sm mb-6">{status?.error || "Đã có lỗi xảy ra."}</p>
+            <button
+              onClick={retry}
+              disabled={retrying}
+              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-indigo-700 transition-all hover:bg-slate-100 disabled:opacity-60"
+            >
+              {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Thử lại
+            </button>
+          </>
+        ) : done ? (
+          <>
+            <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center mb-6">
+              <CheckCircle2 className="w-10 h-10 text-emerald-300" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Shop của bạn đã sẵn sàng tại:</h2>
+            {status?.storefrontUrl && (
+              <a
+                href={status.storefrontUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-emerald-200 font-mono text-sm hover:underline mb-6 break-all"
+              >
+                <Globe size={16} /> {status.storefrontUrl}
+              </a>
+            )}
+            <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden mb-8">
+              <div className="h-full bg-emerald-400 rounded-full" style={{ width: "100%" }} />
+            </div>
+            <button
+              onClick={() => router.replace(`/dashboard/${shopId}`)}
+              className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 font-semibold text-indigo-700 transition-all hover:bg-slate-100"
+            >
+              Truy cập trang Quản trị <ArrowRight className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="w-14 h-14 mx-auto animate-spin text-indigo-200 mb-6" />
+            <h2 className="text-xl font-bold mb-2 uppercase tracking-wide">
+              Shop của bạn đang được tạo, bạn chờ chút nhé...
+            </h2>
+            <p className="text-indigo-100/70 text-sm mb-8">
+              {STAGE_LABELS[status?.stage || ""] || "Đang cấu hình Database và Giao diện..."}
+            </p>
+            <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-white rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <div className="text-2xl font-extrabold">{percent}%</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
   step1: <Rocket className="w-5 h-5" />,
@@ -38,10 +147,16 @@ const STEP_ICONS: Record<string, React.ReactNode> = {
   step8: <Globe className="w-5 h-5" />,
 };
 
-export default function OnboardingDashboard({ params }: { params: Promise<{ shopId: string }> }) {
-  const { shopId } = React.use(params);
+function DashboardContent({ shopId }: { shopId: string }) {
+  const searchParams = useSearchParams();
+  const finalizing = searchParams?.get("finalizing") === "true";
   const { status, loading, progressPercentage, refresh } = useOnboarding(shopId);
   const t = useTranslations("admin");
+
+  // Sau khi bấm "Lưu và Hoàn tất" ở Billing & Shipping: hiển thị màn build nền.
+  if (finalizing) {
+    return <FinalizingView shopId={shopId} />;
+  }
 
   const STEP_ACTIONS: Record<string, { label: string; href: string }> = {
     step2: { label: t("dashboard.actions.addProduct"), href: "/products" },
@@ -215,5 +330,20 @@ export default function OnboardingDashboard({ params }: { params: Promise<{ shop
         </div>
       )}
     </div>
+  );
+}
+
+export default function OnboardingDashboard({ params }: { params: Promise<{ shopId: string }> }) {
+  const { shopId } = React.use(params);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        </div>
+      }
+    >
+      <DashboardContent shopId={shopId} />
+    </Suspense>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { apiClient } from "@/lib/api-client";
 
 export default function DomainSettings({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
@@ -31,7 +32,11 @@ export default function DomainSettings({ params }: { params: Promise<{ shopId: s
     setSuccess(false);
     try {
       await completeStep(8);
+      // Trigger background build process
+      await apiClient.post(`/api/shops/${shopId}/build`, {}, { shopId });
       setSuccess(true);
+      // Redirect to dashboard with finalizing=true so it shows progress bar
+      window.location.href = `/dashboard/${shopId}?finalizing=true`;
     } catch (err: any) {
       setError(err.message || "DNS verification failed. Please check your records and try again.");
     } finally {

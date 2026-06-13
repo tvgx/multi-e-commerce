@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsBoolean, IsNumber, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsNumber,
+  Min,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 

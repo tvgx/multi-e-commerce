@@ -11,6 +11,13 @@ interface HeroProps {
     backgroundColor?: string;
     textColor?: string;
     fontFamily?: string;
+    // Simple CTA driven by section props (used by the starter/seeded Hero and the
+    // navigation editor, which writes the destination URL into `ctaLink`). Themes
+    // that build their CTA from a Button block can leave these empty.
+    title?: string;
+    subtitle?: string;
+    ctaText?: string;
+    ctaLink?: string;
     blocks?: UIComponentRef[];
 }
 
@@ -19,6 +26,10 @@ export function Hero({
     backgroundColor,
     textColor,
     fontFamily,
+    title,
+    subtitle,
+    ctaText,
+    ctaLink,
     blocks = []
 }: HeroProps) {
     const containerStyle = {
@@ -44,6 +55,16 @@ export function Hero({
                 )}
             </div>
             <div className="relative z-10 text-center max-w-3xl px-4">
+                {title && <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{title}</h1>}
+                {subtitle && <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">{subtitle}</p>}
+                {ctaText && (
+                    <a
+                        href={ctaLink || '#'}
+                        className="inline-flex items-center justify-center rounded-md bg-white text-zinc-900 px-8 h-12 text-base font-medium shadow hover:bg-white/90 transition-colors mb-2"
+                    >
+                        {ctaText}
+                    </a>
+                )}
                 {blocks.map(block => {
                     if (block.isHidden) return null;
                     const props: any = block.props || {};

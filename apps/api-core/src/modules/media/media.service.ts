@@ -1,11 +1,28 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TenantService } from '../../common/services/tenant.service';
 import { UploadMediaDto } from './dto/media.dto';
-import { MinioService } from '../../common/services/minio.service';
+import {
+  MinioService,
+  LAYOUT_BUCKET,
+  PUBLIC_BUCKET,
+} from '../../common/services/minio.service';
 import { PrismaService } from '../../database/prisma.service';
 import { fileTypeFromBuffer } from 'file-type';
 import sharp from 'sharp';
 import { encode } from 'blurhash';
+import { randomUUID } from 'node:crypto';
+
+// Các entityType là ảnh giao diện → bucket shop-layouts
+const LAYOUT_ENTITY_TYPES = new Set([
+  'layout',
+  'layout_image',
+  'shop_logo',
+  'theme',
+]);
 
 @Injectable()
 export class MediaService {
@@ -21,20 +38,49 @@ export class MediaService {
     return shopId;
   }
 
+  // Ảnh sản phẩm phải tên theo id sản phẩm: <productId>-1, <productId>-2, ...
+  // — đếm tiếp từ ảnh đã có trong MinIO để không ghi đè.
+  private async buildObjectLocation(
+    shopId: string,
+    dto: UploadMediaDto,
+    ext: string,
+  ): Promise<{ bucket: string; key: string }> {
+    if (dto.entityType && LAYOUT_ENTITY_TYPES.has(dto.entityType)) {
+      return { bucket: LAYOUT_BUCKET, key: `${shopId}/${randomUUID()}.${ext}` };
+    }
+
+    if (dto.entityType === 'product') {
+      if (!dto.entityId) {
+        throw new BadRequestException(
+          'entityId (product id) is required for product images',
+        );
+      }
+      const prefix = `${shopId}/${dto.entityId}-`;
+      const existing = await this.minioService.listKeys(prefix, PUBLIC_BUCKET);
+      const maxIndex = existing.reduce((max, k) => {
+        const match = k.slice(prefix.length).match(/^(\d+)\./);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 0);
+      return { bucket: PUBLIC_BUCKET, key: `${prefix}${maxIndex + 1}.${ext}` };
+    }
+
+    return { bucket: PUBLIC_BUCKET, key: `${shopId}/${randomUUID()}.${ext}` };
+  }
+
   async uploadFile(file: any, dto: UploadMediaDto) {
     const shopId = this.getShopId();
     const buffer = file.buffer;
-    
+
     // 1. File size limit (10MB)
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-       throw new BadRequestException('File size exceeds 10MB limit');
+      throw new BadRequestException('File size exceeds 10MB limit');
     }
 
     // 2. MIME type validation from magic bytes
     const typeInfo = await fileTypeFromBuffer(buffer);
     if (!typeInfo) {
-       throw new BadRequestException('Could not determine file type');
+      throw new BadRequestException('Could not determine file type');
     }
     const mimeType = typeInfo.mime;
 
@@ -44,56 +90,71 @@ export class MediaService {
 
     // 3. Generate BlurHash if image
     if (mimeType.startsWith('image/')) {
-       try {
-         const image = sharp(buffer);
-         const metadata = await image.metadata();
-         width = metadata.width;
-         height = metadata.height;
+      try {
+        const image = sharp(buffer);
+        const metadata = await image.metadata();
+        width = metadata.width;
+        height = metadata.height;
 
-         const { data, info } = await image
-           .raw()
-           .ensureAlpha()
-           .resize(32, 32, { fit: 'inside' })
-           .toBuffer({ resolveWithObject: true });
+        const { data, info } = await image
+          .raw()
+          .ensureAlpha()
+          .resize(32, 32, { fit: 'inside' })
+          .toBuffer({ resolveWithObject: true });
 
-         blurHash = encode(new Uint8ClampedArray(data), info.width, info.height, 4, 4);
-       } catch (err) {
-         console.warn('Could not generate blurhash for image', err);
-       }
+        blurHash = encode(
+          new Uint8ClampedArray(data),
+          info.width,
+          info.height,
+          4,
+          4,
+        );
+      } catch (err) {
+        console.warn('Could not generate blurhash for image', err);
+      }
     }
 
-    // 4. Upload to MinIO
-    // minioService.uploadFile expects (buffer, filename, mimetype)
-    const publicUrl = await this.minioService.uploadFile(buffer, file.originalname, mimeType);
-
-    // Extract filename/key from publicUrl assuming it's the last part
-    const key = publicUrl.split('/').pop() || file.originalname;
+    // 4. Upload to MinIO — bucket + key theo loại ảnh:
+    //    - giao diện  → shop-layouts/<shopId>/<uuid>.<ext>
+    //    - sản phẩm   → shop-public/<shopId>/<productId>-<n>.<ext>
+    //    - còn lại    → shop-public/<shopId>/<uuid>.<ext>
+    const { bucket, key } = await this.buildObjectLocation(
+      shopId,
+      dto,
+      typeInfo.ext,
+    );
+    const publicUrl = await this.minioService.uploadFile(
+      buffer,
+      key,
+      mimeType,
+      bucket,
+    );
 
     // 5. Save Media and Update Storage transactionally
     const media = await this.prisma.$transaction(async (tx) => {
-       const mediaRecord = await tx.media.create({
-         data: {
-           shopId,
-           url: publicUrl,
-           key,
-           bucket: this.minioService.getBucketName(),
-           mimeType,
-           size: file.size,
-           width,
-           height,
-           blurHash,
-           alt: file.originalname,
-         }
-       });
+      const mediaRecord = await tx.media.create({
+        data: {
+          shopId,
+          url: publicUrl,
+          key,
+          bucket,
+          mimeType,
+          size: file.size,
+          width,
+          height,
+          blurHash,
+          alt: file.originalname,
+        },
+      });
 
-       await tx.shop.update({
-         where: { id: shopId },
-         data: {
-           storageUsedBytes: { increment: file.size }
-         }
-       });
+      await tx.shop.update({
+        where: { id: shopId },
+        data: {
+          storageUsedBytes: { increment: file.size },
+        },
+      });
 
-       return mediaRecord;
+      return mediaRecord;
     });
 
     return media;
@@ -123,10 +184,12 @@ export class MediaService {
     try {
       await this.minioService.deleteFile(media.key, media.bucket);
     } catch (err) {
-      console.warn(`Media ${id} deleted from DB but MinIO object ${media.bucket}/${media.key} could not be removed`, err);
+      console.warn(
+        `Media ${id} deleted from DB but MinIO object ${media.bucket}/${media.key} could not be removed`,
+        err,
+      );
     }
 
     return { status: 'deleted', id: media.id };
   }
 }
-

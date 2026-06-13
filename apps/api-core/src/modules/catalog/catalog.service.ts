@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -24,14 +28,42 @@ export class CatalogService {
   // --- Collection Methods ---
   async createCollection(dto: CreateCollectionDto) {
     const shopId = this.getShopId();
-    return this.prisma.collection.create({
-      data: {
-        shopId,
-        title: dto.title,
-        slug: dto.slug,
-        description: dto.description,
-        imageUrl: dto.imageUrl,
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create collection
+      const collection = await tx.collection.create({
+        data: {
+          shopId,
+          title: dto.title,
+          slug: dto.slug,
+          description: dto.description,
+          imageUrl: dto.imageUrl,
+        },
+      });
+
+      // 2. Link products if provided
+      if (dto.productIds && dto.productIds.length > 0) {
+        // Verify all products belong to the shop
+        const products = await tx.product.findMany({
+          where: { id: { in: dto.productIds }, shopId },
+        });
+
+        if (products.length !== dto.productIds.length) {
+          throw new BadRequestException('One or more products not found or belong to another shop');
+        }
+
+        const operations = dto.productIds.map(productId => 
+          tx.productCollection.create({
+            data: {
+              productId,
+              collectionId: collection.id,
+            }
+          })
+        );
+        await Promise.all(operations);
       }
+
+      return collection;
     });
   }
 
@@ -39,32 +71,49 @@ export class CatalogService {
     const shopId = this.getShopId();
     return this.prisma.collection.findMany({
       where: { shopId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async addProductToCollection(collectionId: string, productId: string) {
+  async addProductsToCollection(collectionId: string, productIds: string[]) {
     const shopId = this.getShopId();
     // Verify ownership
-    const collection = await this.prisma.collection.findFirst({ where: { id: collectionId, shopId } });
-    const product = await this.prisma.product.findFirst({ where: { id: productId, shopId } });
-    if (!collection || !product) throw new NotFoundException('Collection or Product not found');
-
-    return this.prisma.productCollection.upsert({
-      where: {
-        productId_collectionId: {
-          productId,
-          collectionId
-        }
-      },
-      create: { productId, collectionId },
-      update: {}
+    const collection = await this.prisma.collection.findFirst({
+      where: { id: collectionId, shopId },
     });
+    if (!collection) throw new NotFoundException('Collection not found');
+
+    // Verify all products belong to the shop
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, shopId },
+    });
+
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('One or more products not found');
+    }
+
+    // Add them all
+    const operations = productIds.map(productId => 
+      this.prisma.productCollection.upsert({
+        where: {
+          productId_collectionId: {
+            productId,
+            collectionId,
+          },
+        },
+        create: { productId, collectionId },
+        update: {},
+      })
+    );
+
+    return this.prisma.$transaction(operations);
   }
 
   async updateCollection(id: string, dto: UpdateCollectionDto) {
     const shopId = this.getShopId();
-    const existing = await this.prisma.collection.findFirst({ where: { id, shopId } });
+    const existing = await this.prisma.collection.findFirst({
+      where: { id, shopId },
+    });
     if (!existing) throw new NotFoundException('Collection not found');
     return this.prisma.collection.update({
       where: { id },
@@ -80,7 +129,9 @@ export class CatalogService {
   // ProductCollection xoá theo qua FK cascade
   async deleteCollection(id: string) {
     const shopId = this.getShopId();
-    const existing = await this.prisma.collection.findFirst({ where: { id, shopId } });
+    const existing = await this.prisma.collection.findFirst({
+      where: { id, shopId },
+    });
     if (!existing) throw new NotFoundException('Collection not found');
     return this.prisma.collection.delete({ where: { id } });
   }
@@ -88,7 +139,9 @@ export class CatalogService {
   async getCollectionBySlug(slug: string, shopId: string) {
     const collection = await this.prisma.collection.findFirst({
       where: { slug, shopId },
-      include: { products: { include: { product: { include: { variants: true } } } } },
+      include: {
+        products: { include: { product: { include: { variants: true } } } },
+      },
     });
     if (!collection) throw new NotFoundException('Collection not found');
     return collection;
@@ -96,25 +149,35 @@ export class CatalogService {
 
   async removeProductFromCollection(collectionId: string, productId: string) {
     const shopId = this.getShopId();
-    const collection = await this.prisma.collection.findFirst({ where: { id: collectionId, shopId } });
+    const collection = await this.prisma.collection.findFirst({
+      where: { id: collectionId, shopId },
+    });
     if (!collection) throw new NotFoundException('Collection not found');
     return this.prisma.productCollection.delete({
       where: {
-        productId_collectionId: { productId, collectionId }
-      }
+        productId_collectionId: { productId, collectionId },
+      },
     });
   }
   // -------------------------
 
-
   async findAllProducts(query: GetProductsDto) {
     const shopId = query.shopId || this.getShopId();
-    const { sortBy = 'createdAt', sortOrder = 'DESC', search, categoryId, inStockOnly, status } = query;
+    const {
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      search,
+      categoryId,
+      inStockOnly,
+      status,
+    } = query;
     // Query string không qua transform pipe nên phải tự ép kiểu số
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
-    const minPrice = query.minPrice !== undefined ? Number(query.minPrice) : undefined;
-    const maxPrice = query.maxPrice !== undefined ? Number(query.maxPrice) : undefined;
+    const minPrice =
+      query.minPrice !== undefined ? Number(query.minPrice) : undefined;
+    const maxPrice =
+      query.maxPrice !== undefined ? Number(query.maxPrice) : undefined;
     const skip = (page - 1) * limit;
 
     const where: any = { shopId };
@@ -125,7 +188,11 @@ export class CatalogService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+        {
+          variants: {
+            some: { sku: { contains: search, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
@@ -156,7 +223,7 @@ export class CatalogService {
 
     return {
       data: items,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
@@ -182,7 +249,7 @@ export class CatalogService {
 
   async createProduct(dto: CreateProductDto) {
     const shopId = this.getShopId();
-    
+
     // Prisma transaction or nested create
     return this.prisma.product.create({
       data: {
@@ -191,20 +258,23 @@ export class CatalogService {
         slug: dto.slug,
         description: dto.description,
         categoryId: dto.categoryId,
-        imageUrl: dto.imageUrl,
+        imageUrl: dto.imageUrl ?? dto.images?.[0],
+        images: dto.images || [],
         status: dto.status || 'DRAFT',
-        variants: dto.variants ? {
-          create: dto.variants.map((v, index) => ({
-            shopId,
-            sku: v.sku,
-            price: v.price,
-            weight: v.weight,
-            currency: v.currency || 'VND',
-            isMaster: index === 0, // First variant is master
-          }))
-        } : undefined,
+        variants: dto.variants
+          ? {
+              create: dto.variants.map((v, index) => ({
+                shopId,
+                sku: v.sku,
+                price: v.price,
+                weight: v.weight,
+                currency: v.currency || 'VND',
+                isMaster: index === 0, // First variant is master
+              })),
+            }
+          : undefined,
       },
-      include: { variants: true }
+      include: { variants: true },
     });
   }
 
@@ -222,50 +292,51 @@ export class CatalogService {
           slug: dto.slug,
           description: dto.description,
           categoryId: dto.categoryId,
-          imageUrl: dto.imageUrl,
+          imageUrl: dto.imageUrl ?? dto.images?.[0],
+          images: dto.images,
           status: dto.status,
         },
       });
 
       // 2. Upsert/Delete variants if provided
       if (dto.variants && dto.variants.length > 0) {
-         const incomingSkus = dto.variants.map(v => v.sku);
+        const incomingSkus = dto.variants.map((v) => v.sku);
 
-         // Delete variants not in incoming list
-         await tx.variant.deleteMany({
-           where: {
-             productId: id,
-             shopId,
-             sku: { notIn: incomingSkus }
-           }
-         });
+        // Delete variants not in incoming list
+        await tx.variant.deleteMany({
+          where: {
+            productId: id,
+            shopId,
+            sku: { notIn: incomingSkus },
+          },
+        });
 
-         // Upsert each variant
-         for (const [index, v] of dto.variants.entries()) {
-            await tx.variant.upsert({
-               where: { shopId_sku: { shopId, sku: v.sku } },
-               create: {
-                 shopId,
-                 productId: id,
-                 sku: v.sku,
-                 price: v.price,
-                 weight: v.weight,
-                 currency: v.currency || 'VND',
-                 isMaster: index === 0
-               },
-               update: {
-                 price: v.price,
-                 weight: v.weight,
-                 currency: v.currency,
-                 isMaster: index === 0
-               }
-            });
-         }
+        // Upsert each variant
+        for (const [index, v] of dto.variants.entries()) {
+          await tx.variant.upsert({
+            where: { shopId_sku: { shopId, sku: v.sku } },
+            create: {
+              shopId,
+              productId: id,
+              sku: v.sku,
+              price: v.price,
+              weight: v.weight,
+              currency: v.currency || 'VND',
+              isMaster: index === 0,
+            },
+            update: {
+              price: v.price,
+              weight: v.weight,
+              currency: v.currency,
+              isMaster: index === 0,
+            },
+          });
+        }
       }
 
       return tx.product.findUnique({
-         where: { id: id },
-         include: { variants: true }
+        where: { id: id },
+        include: { variants: true },
       });
     });
   }
@@ -276,8 +347,7 @@ export class CatalogService {
     // Soft delete usually preferred
     return this.prisma.product.update({
       where: { id },
-      data: { status: 'ARCHIVED' }
+      data: { status: 'ARCHIVED' },
     });
   }
 }
-

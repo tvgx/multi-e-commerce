@@ -69,8 +69,24 @@ export function CanvasRenderer() {
 
     const previewContext = previewContextForPage(activePage);
 
+    // The builder is an editor, not a live storefront: clicking a section makes it
+    // "active", which restores pointer-events so its child blocks can be selected.
+    // But that also lets the section's real links/buttons (Hero CTA, header menu,
+    // language/cart, footer links) navigate and kick the owner out of the builder.
+    // We cancel the default action in the capture phase so navigation never happens
+    // — Next.js <Link> bails when `defaultPrevented`, so SPA nav is blocked too —
+    // while still letting the click bubble up to select the section/block.
+    const suppressNavigation = (e: React.MouseEvent) => {
+        const el = (e.target as HTMLElement)?.closest?.('a, button');
+        if (el) e.preventDefault();
+    };
+
     return (
-        <div className="w-full min-h-[600px] flex flex-col bg-white relative">
+        <div
+            className="w-full min-h-[600px] flex flex-col bg-white relative"
+            onClickCapture={suppressNavigation}
+            onAuxClickCapture={suppressNavigation}
+        >
             {/* Header */}
             <CanvasBlock
                 component={headerComponent as UIComponentRef}
@@ -171,7 +187,7 @@ const CanvasBlock = React.memo(function CanvasBlock({
             )}
 
             <div className={isActive ? '' : 'pointer-events-none'}>
-                <Component {...(previewContext || {})} {...(component.props || {})} blocks={component.blocks || []} />
+                <Component {...(previewContext || {})} {...(component.props || {})} previewMode blocks={component.blocks || []} />
             </div>
         </div>
     );

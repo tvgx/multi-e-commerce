@@ -266,5 +266,62 @@
     "search": "Tìm kiếm",
     "actions": "Thao tác",
     "noData": "Không có dữ liệu"
+  },
+  "builder": {
+    "page": {
+      "home": "Trang chủ",
+      "product_listing": "Trang danh sách sản phẩm",
+      "product_detail": "Trang chi tiết sản phẩm"
+    },
+    "guided": {
+      "progress": "Trang {{current}}/{{total}}",
+      "stepHint": "Thiết kế trang này rồi xuất bản để qua trang tiếp theo",
+      "publishContinue": "Xuất bản & tiếp tục",
+      "finish": "Hoàn tất & thiết lập điều hướng",
+      "publishing": "Đang xuất bản…",
+      "pagePublished": "Đã xuất bản trang — qua trang tiếp theo",
+      "error": "Không thể xuất bản. Vui lòng thử lại."
+    }
+  },
+  "navEditor": {
+    "title": "Thiết lập điều hướng",
+    "subtitle": "Chọn nơi mỗi nút trên các trang sẽ đưa khách đến.",
+    "headerLabel": "Đầu trang",
+    "save": "Lưu điều hướng",
+    "saving": "Đang lưu…",
+    "savedShort": "Đã lưu",
+    "saved": "Đã lưu điều hướng",
+    "finish": "Hoàn tất",
+    "published": "Đã xuất bản cửa hàng",
+    "error": "Không thể lưu. Vui lòng thử lại.",
+    "empty": "Chưa có nút nào. Hãy thêm nút vào các trang trước.",
+    "finalize": {
+      "loadingTitle": "Cửa hàng của bạn đang được tạo, chờ một chút nhé…",
+      "loadingSubtitle": "Đang khởi tạo cơ sở dữ liệu và xuất bản giao diện…",
+      "doneTitle": "Hoàn tất! Cửa hàng đã sẵn sàng 🎉",
+      "doneSubtitle": "Đang chuyển bạn đến cửa hàng mới…"
+    },
+    "col": {
+      "page": "Trang",
+      "section": "Section",
+      "button": "Nút",
+      "destination": "Trang đích",
+      "subpage": "Trang con",
+      "url": "URL"
+    },
+    "subpage": {
+      "placeholder": "-- Chọn trang con --"
+    },
+    "page": {
+      "home": "Trang chủ",
+      "all-products": "Tất cả sản phẩm",
+      "collections": "Bộ sưu tập",
+      "products": "Sản phẩm",
+      "pages": "Trang tùy chỉnh",
+      "cart": "Giỏ hàng",
+      "profile": "Tài khoản",
+      "wishlist": "Yêu thích",
+      "custom": "URL tùy chỉnh"
+    }
   }
 }

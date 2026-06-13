@@ -10,12 +10,32 @@ import { createMockPrisma, MockPrisma } from '../../../test/helpers/prisma-mock'
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: MockPrisma;
-  let ownerAuth: { api: { getSession: jest.Mock } };
+  let ownerAuth: {
+    api: {
+      getSession: jest.Mock;
+      signInEmail: jest.Mock;
+      signUpEmail: jest.Mock;
+      forgetPassword: jest.Mock;
+      resetPassword: jest.Mock;
+      changePassword: jest.Mock;
+      revokeSessions: jest.Mock;
+    };
+  };
   let customerAuth: { api: { getSession: jest.Mock } };
 
   beforeEach(async () => {
     prisma = createMockPrisma();
-    ownerAuth = { api: { getSession: jest.fn() } };
+    ownerAuth = {
+      api: {
+        getSession: jest.fn(),
+        signInEmail: jest.fn(),
+        signUpEmail: jest.fn(),
+        forgetPassword: jest.fn(),
+        resetPassword: jest.fn(),
+        changePassword: jest.fn(),
+        revokeSessions: jest.fn(),
+      },
+    };
     customerAuth = { api: { getSession: jest.fn() } };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -198,27 +218,120 @@ describe('AuthService', () => {
     });
   });
 
-  describe('stub auth endpoints', () => {
-    it('register echoes the payload in a success envelope', async () => {
-      const res = await service.register({ email: 'a@b.com' });
-      expect(res.success).toBe(true);
-      expect(res.data).toMatchObject({ data: { email: 'a@b.com' } });
+  describe('auth endpoints via Better Auth API', () => {
+    describe('register', () => {
+      it('calls ownerAuth.api.signUpEmail and returns token + user', async () => {
+        ownerAuth.api.signUpEmail.mockResolvedValue({
+          user: { id: 'u1', email: 'a@b.com', name: 'Test' },
+          session: { id: 's1', token: 'tok123', expiresAt: '2026-12-01' },
+          token: 'tok123',
+        });
+
+        const res = await service.register({
+          email: 'a@b.com',
+          password: 'pass1234',
+          name: 'Test',
+          shopName: 'MyShop',
+        });
+
+        expect(res.success).toBe(true);
+        expect(res.data.token).toBe('tok123');
+        expect(res.data.user.email).toBe('a@b.com');
+        expect(ownerAuth.api.signUpEmail).toHaveBeenCalledWith({
+          body: { email: 'a@b.com', password: 'pass1234', name: 'Test' },
+        });
+      });
+
+      it('throws when signUpEmail fails', async () => {
+        ownerAuth.api.signUpEmail.mockRejectedValue(new Error('User exists'));
+
+        await expect(
+          service.register({
+            email: 'a@b.com',
+            password: 'pass1234',
+            name: 'Test',
+            shopName: 'MyShop',
+          }),
+        ).rejects.toBeInstanceOf(CustomException);
+      });
     });
 
-    it('login/forgotPassword/resetPassword/changePassword/logout all succeed', async () => {
-      await expect(service.login({}).then((r) => r.success)).resolves.toBe(true);
-      await expect(
-        service.forgotPassword({}).then((r) => r.success),
-      ).resolves.toBe(true);
-      await expect(
-        service.resetPassword({}).then((r) => r.success),
-      ).resolves.toBe(true);
-      await expect(
-        service.changePassword('u1', {}).then((r) => r.success),
-      ).resolves.toBe(true);
-      await expect(service.logout('u1').then((r) => r.success)).resolves.toBe(
-        true,
-      );
+    describe('login', () => {
+      it('calls ownerAuth.api.signInEmail and returns token + user', async () => {
+        ownerAuth.api.signInEmail.mockResolvedValue({
+          user: { id: 'u1', email: 'a@b.com', name: 'Test' },
+          session: { id: 's1', token: 'tok456', expiresAt: '2026-12-01' },
+          token: 'tok456',
+        });
+
+        const res = await service.login({
+          email: 'a@b.com',
+          password: 'pass1234',
+        });
+
+        expect(res.success).toBe(true);
+        expect(res.data.token).toBe('tok456');
+        expect(res.data.user.email).toBe('a@b.com');
+      });
+
+      it('throws PASSWORD_NOT_CORRECT when signInEmail fails', async () => {
+        ownerAuth.api.signInEmail.mockRejectedValue(
+          new Error('Invalid credentials'),
+        );
+
+        await expect(
+          service.login({ email: 'a@b.com', password: 'wrong' }),
+        ).rejects.toMatchObject({
+          code: ResponseCodes.PASSWORD_NOT_CORRECT,
+          status: HttpStatus.UNAUTHORIZED,
+        });
+      });
+    });
+
+    describe('forgotPassword', () => {
+      it('always returns success (does not leak email existence)', async () => {
+        ownerAuth.api.forgetPassword.mockResolvedValue({});
+        const res = await service.forgotPassword({ email: 'a@b.com' });
+        expect(res.success).toBe(true);
+      });
+
+      it('returns success even when Better Auth throws', async () => {
+        ownerAuth.api.forgetPassword.mockRejectedValue(new Error('not found'));
+        const res = await service.forgotPassword({ email: 'a@b.com' });
+        expect(res.success).toBe(true);
+      });
+    });
+
+    describe('resetPassword', () => {
+      it('delegates to ownerAuth.api.resetPassword', async () => {
+        ownerAuth.api.resetPassword.mockResolvedValue({});
+        const res = await service.resetPassword({
+          token: 'tok',
+          newPassword: 'new123',
+        });
+        expect(res.success).toBe(true);
+      });
+    });
+
+    describe('changePassword', () => {
+      it('delegates to ownerAuth.api.changePassword', async () => {
+        ownerAuth.api.changePassword.mockResolvedValue({});
+        const res = await service.changePassword('u1', {
+          oldPassword: 'old',
+          newPassword: 'new123',
+        });
+        expect(res.success).toBe(true);
+      });
+    });
+
+    describe('logout', () => {
+      it('revokes sessions via ownerAuth.api.revokeSessions', async () => {
+        ownerAuth.api.revokeSessions.mockResolvedValue({});
+        const res = await service.logout('u1');
+        expect(res.success).toBe(true);
+        expect(ownerAuth.api.revokeSessions).toHaveBeenCalled();
+      });
     });
   });
 });
+

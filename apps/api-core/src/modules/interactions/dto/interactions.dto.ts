@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsNumber, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  Min,
+  Max,
+  IsOptional,
+  IsNumber,
+  IsIn,
+} from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class ToggleWishlistDto {

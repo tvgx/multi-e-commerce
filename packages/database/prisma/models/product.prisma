@@ -10,7 +10,8 @@ model Product {
   description String?  // Mô tả ngắn (Mô tả dài nằm ở MongoDB)
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   categoryId  String?
-  imageUrl    String?  // Ảnh đại diện sản phẩm
+  imageUrl    String?  // Ảnh đại diện sản phẩm (= images[0], giữ cho tương thích)
+  images      String[] @default([]) // Toàn bộ ảnh sản phẩm theo thứ tự hiển thị
   shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants      Variant[]

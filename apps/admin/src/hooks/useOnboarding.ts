@@ -35,7 +35,7 @@ export function useOnboarding(shopId: string | null) {
   const completeStep = async (step: number) => {
     if (!shopId) return;
     try {
-      await apiClient.put(`/api/shops/${shopId}/onboarding/complete/${step}`, {});
+      await apiClient.patch(`/api/shops/${shopId}/onboarding/complete/${step}`, {});
       await fetchStatus();
     } catch (err: any) {
       setError(err.message);

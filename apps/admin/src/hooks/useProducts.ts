@@ -25,8 +25,8 @@ export function useProducts(shopId: string) {
     setError(null);
     try {
       const url = `/api/catalog/products/shop/${shopId}` + (searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '');
-      const res = await apiClient.get<Product[]>(url);
-      setProducts(res.data || []);
+      const res = await apiClient.get<any>(url, { shopId });
+      setProducts(res.data?.data || []);
     } catch (err: any) {
       if (err.message !== "No Data or end of list data") {
         setError(err.message || "Failed to fetch products");

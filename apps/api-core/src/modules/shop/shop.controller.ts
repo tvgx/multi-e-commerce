@@ -3,6 +3,8 @@ import { ShopService } from './shop.service';
 import type { CreateShopDto } from './shop.service';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
+import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
+import { UpdatePaymentMethodsDto } from './dto/update-payment-methods.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
@@ -11,7 +13,7 @@ import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('shops')
 export class ShopController {
-  constructor(private readonly shopService: ShopService) {}
+  constructor(private readonly shopService: ShopService) { }
 
   // ─── PUBLIC endpoints (Storefront) ───────────────────────────────
 
@@ -86,6 +88,24 @@ export class ShopController {
   @Patch(':shopId/onboarding/complete/:step')
   async completeOnboardingStep(@Param('shopId') shopId: string, @Param('step') step: string): Promise<BaseResponseDto<any>> {
     const data = await this.shopService.completeOnboardingStep(shopId, parseInt(step, 10));
+    return BaseResponseDto.success(data);
+  }
+
+  // Địa chỉ kho hàng mặc định (trang Billing & Shipping)
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Patch(':shopId/warehouse')
+  async updateWarehouse(@Param('shopId') shopId: string, @Body() dto: UpdateWarehouseDto): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.upsertWarehouse(shopId, dto);
+    return BaseResponseDto.success(data);
+  }
+
+  // Bật/tắt phương thức thanh toán cơ bản (COD, Chuyển khoản)
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Patch(':shopId/payment-methods')
+  async updatePaymentMethods(@Param('shopId') shopId: string, @Body() dto: UpdatePaymentMethodsDto): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.setPaymentMethods(shopId, dto);
     return BaseResponseDto.success(data);
   }
 

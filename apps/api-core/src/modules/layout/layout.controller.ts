@@ -86,6 +86,18 @@ export class LayoutController {
     return BaseResponseDto.success(data);
   }
 
+  // Publish a single page (copies that page's draftData → publishedData). Used by
+  // the guided design wizard to take each finished page live as the owner advances.
+  @Public()
+  @Post(':shopId/publish/page/:pageType')
+  async publishPage(
+    @Param('shopId') shopId: string,
+    @Param('pageType') pageType: string,
+  ) {
+    const data = await this.layoutService.publishPage(shopId, pageType);
+    return BaseResponseDto.success(data);
+  }
+
   // Seed a brand-new shop with working default pages (header/footer + Home,
   // Product listing, Product detail). Called by the create-shop wizard.
   @Public()

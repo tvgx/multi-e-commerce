@@ -3,6 +3,7 @@ import { AnalyticsService } from './analytics.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
+import { BaseResponseDto } from '../../common/dto/base-response.dto';
 
 // Analytics dành cho chủ shop — mọi endpoint đều scoped theo tenant (x-shop-id)
 @UseGuards(BetterAuthGuard, RolesGuard)
@@ -13,33 +14,33 @@ export class AnalyticsController {
 
   // Composite endpoint: trả toàn bộ dữ liệu dashboard trong 1 request
   @Get('dashboard')
-  getDashboard(@Query('period') period?: string) {
-    return this.analyticsService.getDashboard(period);
+  async getDashboard(@Query('period') period?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getDashboard(period));
   }
 
   @Get('summary')
-  getSummary(@Query('period') period?: string) {
-    return this.analyticsService.getSummary(period);
+  async getSummary(@Query('period') period?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getSummary(period));
   }
 
   @Get('revenue')
-  getRevenueSeries(@Query('period') period?: string) {
-    return this.analyticsService.getRevenueSeries(period);
+  async getRevenueSeries(@Query('period') period?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getRevenueSeries(period));
   }
 
   @Get('orders-by-status')
-  getOrdersByStatus(@Query('period') period?: string) {
-    return this.analyticsService.getOrdersByStatus(period);
+  async getOrdersByStatus(@Query('period') period?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getOrdersByStatus(period));
   }
 
   @Get('top-products')
-  getTopProducts(@Query('period') period?: string, @Query('limit') limit?: string) {
-    return this.analyticsService.getTopProducts(period, limit);
+  async getTopProducts(@Query('period') period?: string, @Query('limit') limit?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getTopProducts(period, limit));
   }
 
   @Get('customers')
-  getCustomerInsights(@Query('period') period?: string, @Query('limit') limit?: string) {
-    return this.analyticsService.getCustomerInsights(period, limit);
+  async getCustomerInsights(@Query('period') period?: string, @Query('limit') limit?: string) {
+    return BaseResponseDto.success(await this.analyticsService.getCustomerInsights(period, limit));
   }
 
   // ==========================================
@@ -54,26 +55,34 @@ export class AnalyticsController {
   }
 
   @Get('platform/dashboard')
-  getPlatformDashboard(@Req() req: any, @Query('period') period?: string) {
-    return this.analyticsService.getPlatformDashboard(this.resolveScope(req), period);
+  async getPlatformDashboard(@Req() req: any, @Query('period') period?: string) {
+    return BaseResponseDto.success(
+      await this.analyticsService.getPlatformDashboard(this.resolveScope(req), period),
+    );
   }
 
   @Get('platform/summary')
-  getPlatformSummary(@Req() req: any, @Query('period') period?: string) {
-    return this.analyticsService.getPlatformSummary(this.resolveScope(req), period);
+  async getPlatformSummary(@Req() req: any, @Query('period') period?: string) {
+    return BaseResponseDto.success(
+      await this.analyticsService.getPlatformSummary(this.resolveScope(req), period),
+    );
   }
 
   @Get('platform/revenue')
-  getPlatformRevenue(@Req() req: any, @Query('period') period?: string) {
-    return this.analyticsService.getPlatformRevenueSeries(this.resolveScope(req), period);
+  async getPlatformRevenue(@Req() req: any, @Query('period') period?: string) {
+    return BaseResponseDto.success(
+      await this.analyticsService.getPlatformRevenueSeries(this.resolveScope(req), period),
+    );
   }
 
   @Get('platform/top-shops')
-  getTopShops(
+  async getTopShops(
     @Req() req: any,
     @Query('period') period?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.analyticsService.getTopShops(this.resolveScope(req), period, limit);
+    return BaseResponseDto.success(
+      await this.analyticsService.getTopShops(this.resolveScope(req), period, limit),
+    );
   }
 }

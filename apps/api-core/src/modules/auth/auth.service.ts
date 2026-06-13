@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus, Inject } from '@nestjs/common';
+import { Injectable, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { Request } from 'express';
 import { fromNodeHeaders } from 'better-auth/node';
 import { PrismaService } from '../../database/prisma.service';
@@ -9,9 +9,12 @@ import type { OwnerAuth } from './owner-auth.config';
 import type { CustomerAuth } from './customer-auth.config';
 import { OWNER_AUTH, CUSTOMER_AUTH } from './auth.constants';
 import { UpdateUserProfileDto } from './dto/auth-update.dto';
+import type { LoginDto, RegisterDto, ChangePasswordDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(OWNER_AUTH) private readonly ownerAuth: OwnerAuth,
@@ -140,34 +143,166 @@ export class AuthService {
     }
   }
 
-  // --- Auth Endpoints implementations --- //
+  // --- Auth Endpoints implementations via Better Auth API --- //
 
-  async register(dto: any): Promise<BaseResponseDto<any>> {
-    // In a real BetterAuth setup, you might redirect to BetterAuth client SDK or proxy to it.
-    // Here we provide a wrapper.
-    return BaseResponseDto.success({ message: 'Register endpoint', data: dto });
+  /**
+   * Register — proxy qua Better Auth signUpEmail.
+   * Tạo user + session, trả về token + user data trong response body.
+   */
+  async register(dto: RegisterDto): Promise<BaseResponseDto<any>> {
+    try {
+      const result = await this.ownerAuth.api.signUpEmail({
+        body: {
+          email: dto.email,
+          password: dto.password,
+          name: dto.name,
+        },
+      });
+
+      if (!result) {
+        throw new CustomException(
+          ResponseCodes.EXCEPTION_ERROR,
+          'Registration failed',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const data = result as any;
+
+      this.logger.log(`Owner registered: ${dto.email}`);
+
+      return BaseResponseDto.success({
+        token: data.token || data.session?.token || null,
+        user: data.user
+          ? { id: data.user.id, email: data.user.email, name: data.user.name }
+          : null,
+        session: data.session
+          ? { id: data.session.id, expiresAt: data.session.expiresAt }
+          : null,
+      });
+    } catch (error: unknown) {
+      if (error instanceof CustomException) throw error;
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      this.logger.error(`Register failed for ${dto.email}: ${message}`);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
-  async login(dto: any): Promise<BaseResponseDto<any>> {
-    // Relying on Better Auth natively is preferred (e.g. signIn.email)
-    return BaseResponseDto.success({ message: 'Login endpoint', data: dto });
+  /**
+   * Login — proxy qua Better Auth signInEmail.
+   * Xác thực credentials, tạo session, trả về token + user data.
+   */
+  async login(dto: LoginDto): Promise<BaseResponseDto<any>> {
+    try {
+      const result = await this.ownerAuth.api.signInEmail({
+        body: {
+          email: dto.email,
+          password: dto.password,
+        },
+      });
+
+      if (!result) {
+        throw new CustomException(
+          ResponseCodes.PASSWORD_NOT_CORRECT,
+          'Invalid email or password',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const data = result as any;
+
+      this.logger.log(`Owner logged in: ${dto.email}`);
+
+      return BaseResponseDto.success({
+        token: data.token || data.session?.token || null,
+        user: data.user
+          ? { id: data.user.id, email: data.user.email, name: data.user.name }
+          : null,
+        session: data.session
+          ? { id: data.session.id, expiresAt: data.session.expiresAt }
+          : null,
+      });
+    } catch (error: unknown) {
+      if (error instanceof CustomException) throw error;
+      const message = error instanceof Error ? error.message : 'Invalid email or password';
+      this.logger.warn(`Login failed for ${dto.email}: ${message}`);
+      throw new CustomException(
+        ResponseCodes.PASSWORD_NOT_CORRECT,
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
   }
 
-  async forgotPassword(dto: any): Promise<BaseResponseDto<any>> {
-    return BaseResponseDto.success({ message: 'Forgot password sent' });
+  async forgotPassword(dto: { email: string }): Promise<BaseResponseDto<any>> {
+    try {
+      await (this.ownerAuth.api as any).forgetPassword({
+        body: { email: dto.email, redirectTo: '/reset-password' },
+      });
+    } catch {
+      // Không leak xem email có tồn tại hay không
+    }
+    return BaseResponseDto.success({
+      message: 'If the email exists, a reset link will be sent.',
+    });
   }
 
-  async resetPassword(dto: any): Promise<BaseResponseDto<any>> {
-    return BaseResponseDto.success({ message: 'Password reset' });
+  async resetPassword(dto: { token: string; newPassword: string }): Promise<BaseResponseDto<any>> {
+    try {
+      await this.ownerAuth.api.resetPassword({
+        body: { token: dto.token, newPassword: dto.newPassword },
+      });
+      return BaseResponseDto.success({ message: 'Password reset successfully' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Password reset failed';
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
-  async changePassword(userId: string, dto: any): Promise<BaseResponseDto<any>> {
-    // Should verify old password and update to new password.
-    return BaseResponseDto.success({ message: 'Password changed successfully' });
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<BaseResponseDto<any>> {
+    try {
+      await this.ownerAuth.api.changePassword({
+        body: {
+          currentPassword: dto.oldPassword,
+          newPassword: dto.newPassword,
+        },
+      });
+      this.logger.log(`Password changed for user: ${userId}`);
+      return BaseResponseDto.success({ message: 'Password changed successfully' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Password change failed';
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   async logout(userId: string): Promise<BaseResponseDto<any>> {
-    return BaseResponseDto.success({ message: 'Logged out successfully' });
+    try {
+      // Revoke all sessions cho user này
+      await this.ownerAuth.api.revokeSessions({
+        body: { userId },
+      } as any);
+      this.logger.log(`Owner logged out: ${userId}`);
+      return BaseResponseDto.success({ message: 'Logged out successfully' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Logout failed';
+      this.logger.error(`Logout failed for ${userId}: ${message}`);
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
-

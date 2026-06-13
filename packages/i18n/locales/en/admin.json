@@ -266,5 +266,62 @@
     "search": "Search",
     "actions": "Actions",
     "noData": "No data available"
+  },
+  "builder": {
+    "page": {
+      "home": "Home page",
+      "product_listing": "Product listing",
+      "product_detail": "Product detail"
+    },
+    "guided": {
+      "progress": "Page {{current}}/{{total}}",
+      "stepHint": "Design this page, then publish to continue to the next one",
+      "publishContinue": "Publish & continue",
+      "finish": "Finish & set up navigation",
+      "publishing": "Publishing…",
+      "pagePublished": "Page published — on to the next one",
+      "error": "Could not publish. Please try again."
+    }
+  },
+  "navEditor": {
+    "title": "Navigation setup",
+    "subtitle": "Choose where each button on your pages takes shoppers.",
+    "headerLabel": "Header",
+    "save": "Save navigation",
+    "saving": "Saving…",
+    "savedShort": "Saved",
+    "saved": "Navigation saved",
+    "finish": "Finish",
+    "published": "Storefront published",
+    "error": "Could not save. Please try again.",
+    "empty": "No buttons found. Add buttons to your pages first.",
+    "finalize": {
+      "loadingTitle": "Your store is being created, hang tight…",
+      "loadingSubtitle": "Setting up the database and publishing your storefront…",
+      "doneTitle": "All done! Your store is ready 🎉",
+      "doneSubtitle": "Taking you to your new store…"
+    },
+    "col": {
+      "page": "Page",
+      "section": "Section",
+      "button": "Button",
+      "destination": "Destination page",
+      "subpage": "Subpage",
+      "url": "URL"
+    },
+    "subpage": {
+      "placeholder": "-- Choose subpage --"
+    },
+    "page": {
+      "home": "Home",
+      "all-products": "All products",
+      "collections": "Collection",
+      "products": "Product",
+      "pages": "Custom page",
+      "cart": "Cart",
+      "profile": "Account",
+      "wishlist": "Wishlist",
+      "custom": "Custom URL"
+    }
   }
 }

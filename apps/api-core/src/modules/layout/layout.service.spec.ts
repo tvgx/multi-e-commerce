@@ -3,6 +3,21 @@ import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { LayoutService } from './layout.service';
 import { TenantService } from '../../common/services/tenant.service';
+import { MinioService } from '../../common/services/minio.service';
+import { PrismaService } from '../../database/prisma.service';
+import { createMockPrisma, MockPrisma } from '../../../test/helpers/prisma-mock';
+
+// ESM-only / native deps the service loads at import time — stub so ts-jest
+// never transforms them. minio.service transitively pulls in @aws-sdk (ESM).
+jest.mock('file-type', () => ({ fileTypeFromBuffer: jest.fn() }));
+jest.mock('../../common/services/minio.service', () => ({
+  MinioService: class MinioService {},
+  LAYOUT_BUCKET: 'shop-layouts',
+  PUBLIC_BUCKET: 'shop-public',
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { fileTypeFromBuffer } = require('file-type');
 
 /** A chainable Mongoose query stub: `.findOne(...).lean().exec()` etc. */
 function query(result: unknown) {
@@ -25,6 +40,8 @@ function makeModel() {
 describe('LayoutService', () => {
   let service: LayoutService;
   let tenant: { getTenantId: jest.Mock };
+  let prisma: MockPrisma;
+  let minio: { listKeys: jest.Mock; uploadFile: jest.Mock; buildPublicUrl: jest.Mock };
   let globalModel: ReturnType<typeof makeModel>;
   let pageModel: ReturnType<typeof makeModel>;
   let uiModel: ReturnType<typeof makeModel>;
@@ -33,6 +50,14 @@ describe('LayoutService', () => {
 
   beforeEach(async () => {
     tenant = { getTenantId: jest.fn().mockReturnValue(SHOP) };
+    prisma = createMockPrisma();
+    prisma.shop.findUnique.mockResolvedValue({ onboardingStep: 1, onboardingStatus: {} });
+    minio = {
+      listKeys: jest.fn().mockResolvedValue([]),
+      uploadFile: jest.fn(),
+      buildPublicUrl: jest.fn(),
+    };
+    (fileTypeFromBuffer as jest.Mock).mockReset();
     globalModel = makeModel();
     pageModel = makeModel();
     uiModel = makeModel();
@@ -41,6 +66,8 @@ describe('LayoutService', () => {
       providers: [
         LayoutService,
         { provide: TenantService, useValue: tenant },
+        { provide: MinioService, useValue: minio },
+        { provide: PrismaService, useValue: prisma },
         { provide: getModelToken('GlobalLayout'), useValue: globalModel },
         { provide: getModelToken('PageLayout'), useValue: pageModel },
         { provide: getModelToken('UIComponentCatalog'), useValue: uiModel },
@@ -186,6 +213,103 @@ describe('LayoutService', () => {
         },
       ]);
       expect(res).toEqual({ status: 'published', shopId: SHOP });
+    });
+
+    it('takes the shop out of DRAFT and marks the design step complete', async () => {
+      globalModel.findOne.mockReturnValue(query({ draftData: {} }));
+      pageModel.find.mockReturnValue(query([]));
+      prisma.shop.findUnique.mockResolvedValue({ onboardingStep: 1, onboardingStatus: { step1: 'COMPLETED' } });
+
+      await service.publishLayoutByShopId(SHOP);
+
+      expect(prisma.shop.update).toHaveBeenCalledWith({
+        where: { id: SHOP },
+        data: expect.objectContaining({
+          status: 'PUBLISHED',
+          onboardingStep: 5,
+          onboardingStatus: expect.objectContaining({ step1: 'COMPLETED', step5: 'COMPLETED' }),
+        }),
+      });
+    });
+  });
+
+  describe('publish-time image materialization', () => {
+    const draftWithBg = (url: string) => ({
+      components: [
+        { id: 's1', componentId: 'Hero', props: { backgroundImageUrl: url, title: 'Hi' } },
+      ],
+    });
+
+    const realFetch = global.fetch;
+    afterEach(() => {
+      global.fetch = realFetch;
+    });
+
+    it('rewrites a non-shop-layouts background image into shop-layouts/<shopId>/ on publish', async () => {
+      const draft = draftWithBg('http://localhost:9000/assets/default-component.png');
+      globalModel.findOne.mockReturnValue(query({ draftData: {} }));
+      pageModel.find.mockReturnValue(query([{ pageType: 'home', draftData: draft }]));
+      // Not materialized before → download bytes then upload a fresh copy.
+      minio.listKeys.mockResolvedValue([]);
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      }) as any;
+      (fileTypeFromBuffer as jest.Mock).mockResolvedValue({ mime: 'image/png', ext: 'png' });
+      minio.uploadFile.mockResolvedValue(
+        'http://localhost:9000/shop-layouts/shop-1/pub-abc.png',
+      );
+
+      await service.publishLayoutByShopId(SHOP);
+
+      // Uploaded into the layout bucket under the shop prefix.
+      const [, key, , bucket] = minio.uploadFile.mock.calls[0];
+      expect(key.startsWith(`${SHOP}/pub-`)).toBe(true);
+      expect(bucket).toBe('shop-layouts');
+
+      // Published JSON references the new URL; draft fixture untouched.
+      const published =
+        pageModel.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.publishedData;
+      expect(published.components[0].props.backgroundImageUrl).toBe(
+        'http://localhost:9000/shop-layouts/shop-1/pub-abc.png',
+      );
+      expect(draft.components[0].props.backgroundImageUrl).toBe(
+        'http://localhost:9000/assets/default-component.png',
+      );
+    });
+
+    it('reuses an already-materialized object instead of re-uploading (idempotent)', async () => {
+      const draft = draftWithBg('http://localhost:9000/assets/default-component.png');
+      globalModel.findOne.mockReturnValue(query({ draftData: {} }));
+      pageModel.find.mockReturnValue(query([{ pageType: 'home', draftData: draft }]));
+      minio.listKeys.mockResolvedValue(['shop-1/pub-abc.png']);
+      minio.buildPublicUrl.mockReturnValue(
+        'http://localhost:9000/shop-layouts/shop-1/pub-abc.png',
+      );
+
+      await service.publishLayoutByShopId(SHOP);
+
+      expect(minio.uploadFile).not.toHaveBeenCalled();
+      const published =
+        pageModel.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.publishedData;
+      expect(published.components[0].props.backgroundImageUrl).toBe(
+        'http://localhost:9000/shop-layouts/shop-1/pub-abc.png',
+      );
+    });
+
+    it('leaves images already under shop-layouts/<shopId>/ untouched', async () => {
+      const url = 'http://localhost:9000/shop-layouts/shop-1/existing.png';
+      const draft = draftWithBg(url);
+      globalModel.findOne.mockReturnValue(query({ draftData: {} }));
+      pageModel.find.mockReturnValue(query([{ pageType: 'home', draftData: draft }]));
+
+      await service.publishLayoutByShopId(SHOP);
+
+      expect(minio.listKeys).not.toHaveBeenCalled();
+      expect(minio.uploadFile).not.toHaveBeenCalled();
+      const published =
+        pageModel.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.publishedData;
+      expect(published.components[0].props.backgroundImageUrl).toBe(url);
     });
   });
 

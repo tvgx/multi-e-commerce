@@ -69,6 +69,25 @@ model ShopBankAccount {
   @@map("shop_bank_accounts")
 }
 
+// Theo dõi tiến độ build/publish shop chạy nền (worker /scripts/shop-builder).
+// UI poll theo shopId (bản mới nhất theo createdAt) — DB row là source-of-truth, Bull job.progress() chỉ là tín hiệu phụ.
+model ShopBuildJob {
+  id            String   @id @default(uuid())
+  shopId        String
+  jobId         String? // Bull job id (tham chiếu chéo)
+  status        String   @default("QUEUED") // QUEUED | RUNNING | COMPLETED | FAILED
+  percent       Int      @default(0)
+  stage         String? // extract | parse | assemble | compile | db-save | minio | published
+  error         String?
+  storefrontUrl String?
+  attempts      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId, createdAt])
+  @@map("shop_build_jobs")
+}
+
 model Customer {
   id             String    @id @default(uuid())
   shopId         String

@@ -62,6 +62,7 @@ export function createMockMinio() {
       .mockResolvedValue('https://cdn.test/test-bucket/object.jpg'),
     deleteFile: jest.fn().mockResolvedValue(undefined),
     fileExists: jest.fn().mockResolvedValue(true),
+    listKeys: jest.fn().mockResolvedValue([]),
     onModuleInit: jest.fn(),
   };
 }

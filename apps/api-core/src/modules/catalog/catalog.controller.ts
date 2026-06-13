@@ -45,8 +45,8 @@ export class CatalogController {
 
   @RequireRoles('ADMIN', 'OWNER')
   @Post('collections/:id/products')
-  async addProductToCollection(@Param('id') id: string, @Body() { productId }: { productId: string }) {
-    const result = await this.catalogService.addProductToCollection(id, productId);
+  async addProductsToCollection(@Param('id') id: string, @Body() { productIds }: { productIds: string[] }) {
+    const result = await this.catalogService.addProductsToCollection(id, productIds);
     return BaseResponseDto.success(result);
   }
 

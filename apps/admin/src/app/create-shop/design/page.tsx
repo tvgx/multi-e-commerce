@@ -1,31 +1,62 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { Topbar } from "./components/topbar";
-import { Canvas } from "./components/canvas";
-import { Sidebar } from "./components/sidebar";
 import { BuilderProvider } from "./components/builder-provider";
-import { PropertiesSidebar } from "./components/properties-sidebar";
+import { GuidedTopbar } from "./components/guided-topbar";
+import { SectionList } from "@/components/builder/SectionList";
+import { PropEditor } from "@/components/builder/PropEditor";
+import { CanvasRenderer } from "@ecommerce/ui-registry/src/components/builder/canvas-renderer";
+import { useBuilderStore } from "@ecommerce/ui-registry/src/store/builder-store";
+import { WizardProgress } from "../components/wizard-progress";
 
 export default function DesignPage() {
   return (
     <BuilderProvider>
-      <div className="flex flex-col h-[calc(100vh-4rem)] bg-white text-zinc-900 overflow-hidden font-sans border-t border-zinc-200">
-        <Suspense fallback={<div className="h-12 border-b border-zinc-200 bg-gray-50 animate-pulse" />}>
-          <Topbar />
-        </Suspense>
-        
-        <div className="flex flex-1 overflow-hidden relative bg-gray-100">
-          <Sidebar />
-          
-          <main className="flex-1 overflow-hidden relative">
-            <Canvas />
-          </main>
-
-          <PropertiesSidebar />
+      <div className="h-screen flex flex-col bg-[#050510] text-white overflow-hidden">
+        {/* Tiến trình wizard tổng — đồng bộ ở mọi bước (Thiết kế → Điều hướng → Billing) */}
+        <div className="h-10 shrink-0 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-center">
+          <WizardProgress current="design" />
         </div>
+
+        <Suspense
+          fallback={<div className="h-14 border-b border-white/5 bg-[#0a0a0f] animate-pulse" />}
+        >
+          <GuidedTopbar />
+        </Suspense>
+
+        <DesignWorkspace />
       </div>
     </BuilderProvider>
   );
 }
 
+function DesignWorkspace() {
+  const deviceMode = useBuilderStore((s) => s.deviceMode);
+
+  return (
+    <div className="flex-1 flex overflow-hidden">
+      {/* Left: section tree */}
+      <div className="w-72 border-r border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0 flex flex-col">
+        <SectionList />
+      </div>
+
+      {/* Center: canvas (navigation is neutralized inside CanvasRenderer) */}
+      <div className="flex-1 bg-[#050510] overflow-auto flex items-start justify-center p-8">
+        <div
+          className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-white/5 ${
+            deviceMode === "mobile"
+              ? "w-[390px] rounded-[2rem]"
+              : "w-full max-w-[1280px] rounded-xl"
+          }`}
+        >
+          <CanvasRenderer />
+        </div>
+      </div>
+
+      {/* Right: properties */}
+      <div className="w-72 border-l border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0">
+        <PropEditor />
+      </div>
+    </div>
+  );
+}

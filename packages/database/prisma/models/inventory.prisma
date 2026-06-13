@@ -10,6 +10,13 @@ model StockLocation {
   active               Boolean  @default(true)
   isDefault            Boolean  @default(false)
 
+  // Địa chỉ kho hàng — nơi shipper sẽ đến lấy hàng (cột phẳng, ref provinces/wards theo code)
+  phone                String?
+  addressLine          String?
+  provinceCode         String?
+  wardCode             String?
+  note                 String?
+
   shop                 Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   stockItems           StockItem[]
 

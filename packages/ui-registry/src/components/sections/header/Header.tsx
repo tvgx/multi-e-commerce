@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { User, ShoppingCart, Menu } from 'lucide-react';
 import { AnnouncementBar } from './AnnouncementBar';
 import { HeaderSearch } from './HeaderSearch';
+import { HeaderLanguageSwitcher } from './HeaderLanguageSwitcher';
 import { SmartImage } from '../../blocks/SmartImage';
 
 export interface HeaderProps {
@@ -13,6 +14,9 @@ export interface HeaderProps {
     logoPosition?: 'left' | 'center';
     backgroundColor?: string;
     textColor?: string;
+    // True when rendered inside the admin builder canvas, so interactive blocks
+    // (language switcher) stay inert instead of navigating / reloading.
+    previewMode?: boolean;
     blocks?: {
         id: string;
         componentId: string;
@@ -26,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
     logoPosition = 'left',
     backgroundColor = '#ffffff',
     textColor = '#000000',
+    previewMode = false,
     blocks = []
 }) => {
     // Extract menu items from blocks
@@ -116,7 +121,9 @@ export const Header: React.FC<HeaderProps> = ({
                             </Link>
                             
                             {(blocks.length === 0 || hasLanguageSwitcher) && (
-                                <div className="text-sm font-medium mx-2 opacity-80 hover:opacity-100 cursor-pointer">VI</div>
+                                <div className="mx-2">
+                                    <HeaderLanguageSwitcher previewMode={previewMode} />
+                                </div>
                             )}
                             
                             {(blocks.length === 0 || hasCartTrigger) && (

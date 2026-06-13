@@ -7,6 +7,8 @@ import { ArrowLeft, Save, Loader2, Image as ImageIcon } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
 import { apiClient } from "@/lib/api-client";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
+import { ProductPickerModal } from "@/components/products/ProductPickerModal";
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
@@ -18,6 +20,8 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [error, setError] = useState("");
+  const [productIds, setProductIds] = useState<string[]>([]);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -60,7 +64,8 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
         finalImageUrl = await uploadFileToMinIO(selectedFile, 'collection', shopId);
       }
 
-      await createCollection({ ...formData, imageUrl: finalImageUrl });
+      await createCollection({ ...formData, imageUrl: finalImageUrl, productIds });
+      toast.success("Collection created successfully");
       router.push(`/dashboard/${shopId}/collections`);
     } catch (err: any) {
       setError(err.message || "Failed to create category");
@@ -142,6 +147,22 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
               />
+            </div>
+
+            <div className="pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-300">Products in Collection</label>
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(true)}
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20"
+                >
+                  + Add Products
+                </button>
+              </div>
+              <div className="text-sm text-slate-400">
+                {productIds.length} product(s) selected to be added.
+              </div>
             </div>
           </div>
         </div>
@@ -226,6 +247,17 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
           </div>
         </div>
       </form>
+
+      <ProductPickerModal
+        shopId={shopId}
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onAdd={async (ids) => {
+          setProductIds(ids);
+          toast.success(`${ids.length} product(s) selected`);
+        }}
+        existingProductIds={[]}
+      />
     </div>
   );
 }

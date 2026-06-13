@@ -34,6 +34,8 @@ const MODEL_FILES = [
   'interactions.prisma',
   'cart.prisma',
   'notifications.prisma',
+  'analytics.prisma',
+  'geo.prisma',
 ];
 
 /**

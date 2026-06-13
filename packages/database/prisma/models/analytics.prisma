@@ -1,0 +1,21 @@
+// ==========================================
+// Analytics Models (Visit tracking)
+// ==========================================
+// Mỗi row ≈ một phiên ghé shop (server chỉ ghi khi lần ghé gần nhất của
+// visitor đã quá 30 phút). visitorId là uuid sinh phía client, lưu
+// localStorage — đếm được cả khách vãng lai chưa đăng nhập.
+// Không FK sang Shop/Customer (giống WishlistItem) để ghi nhanh, xoá shop
+// không cần cascade bảng log.
+
+model ShopVisit {
+  id         String   @id @default(uuid())
+  shopId     String
+  visitorId  String
+  customerId String?  // gắn khi khách đã đăng nhập — nối visit ↔ buyer
+  path       String?  // landing path của phiên
+  createdAt  DateTime @default(now())
+
+  @@index([shopId, createdAt])           // đếm visit/unique visitor theo kỳ
+  @@index([shopId, visitorId, createdAt]) // dedup phiên 30 phút
+  @@map("shop_visits")
+}

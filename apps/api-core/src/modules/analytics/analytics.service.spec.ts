@@ -63,6 +63,9 @@ describe('AnalyticsService', () => {
         aov: 100,
         newCustomers: 7,
         uniqueBuyers: 8,
+        // $queryRaw mock trả [{count: 8}] cho cả buyers lẫn visitors
+        visitors: 8,
+        conversionRate: 100,
         canceledOrders: 2,
         cancelRate: 20,
       });
@@ -195,6 +198,9 @@ describe('AnalyticsService', () => {
       prisma.customer.count.mockResolvedValue(0);
       prisma.customer.findMany.mockResolvedValue([]);
       prisma.variant.findMany.mockResolvedValue([]);
+      prisma.productReview.aggregate.mockResolvedValue({ _avg: { rating: null }, _count: 0 });
+      prisma.productReview.groupBy.mockResolvedValue([]);
+      prisma.productReview.count.mockResolvedValue(0);
       prisma.$queryRaw.mockResolvedValue([]);
 
       const res = await service.getDashboard('30d');
@@ -207,8 +213,177 @@ describe('AnalyticsService', () => {
           'paymentsByState',
           'topProducts',
           'customers',
+          'traffic',
+          'funnel',
+          'retention',
+          'timing',
+          'revenueBreakdown',
+          'reviews',
+          'topSearches',
         ]),
       );
+    });
+  });
+
+  describe('trackVisit', () => {
+    it('records a new visit when no session is open', async () => {
+      prisma.shopVisit.findFirst.mockResolvedValue(null);
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP });
+      prisma.shopVisit.create.mockResolvedValue({});
+
+      const res = await service.trackVisit({ shopId: SHOP, visitorId: 'vis-1', path: '/home' });
+
+      expect(res).toEqual({ recorded: true });
+      expect(prisma.shopVisit.create).toHaveBeenCalledWith({
+        data: { shopId: SHOP, visitorId: 'vis-1', customerId: null, path: '/home' },
+      });
+    });
+
+    it('dedups pings inside the 30-minute session window', async () => {
+      prisma.shopVisit.findFirst.mockResolvedValue({ id: 'v1', customerId: 'c1' });
+
+      const res = await service.trackVisit({ shopId: SHOP, visitorId: 'vis-1' });
+
+      expect(res).toEqual({ recorded: false });
+      expect(prisma.shopVisit.create).not.toHaveBeenCalled();
+      expect(prisma.shopVisit.update).not.toHaveBeenCalled();
+    });
+
+    it('attaches customerId to the open session after login', async () => {
+      prisma.shopVisit.findFirst.mockResolvedValue({ id: 'v1', customerId: null });
+
+      const res = await service.trackVisit({ shopId: SHOP, visitorId: 'vis-1', customerId: 'c9' });
+
+      expect(res).toEqual({ recorded: false });
+      expect(prisma.shopVisit.update).toHaveBeenCalledWith({
+        where: { id: 'v1' },
+        data: { customerId: 'c9' },
+      });
+    });
+
+    it('rejects a missing shopId or visitorId', async () => {
+      await expect(service.trackVisit({ shopId: '', visitorId: 'x' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(service.trackVisit({ shopId: 's', visitorId: '  ' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('rejects an unknown shop to avoid junk rows', async () => {
+      prisma.shopVisit.findFirst.mockResolvedValue(null);
+      prisma.shop.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.trackVisit({ shopId: 'nope', visitorId: 'vis' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('getTrafficInsights', () => {
+    it('zero-fills the visit series and computes the returning visitor rate', async () => {
+      prisma.$queryRaw.mockImplementation((query: any) => {
+        const sql = String(query?.sql ?? query);
+        if (sql.includes('FILTER')) return Promise.resolve([{ returning: 2, total: 8 }]);
+        return Promise.resolve([]);
+      });
+
+      const res = await service.getTrafficInsights('7d');
+
+      expect(res.series).toHaveLength(7);
+      expect(res.series.every((p: any) => p.visits === 0 && p.visitors === 0)).toBe(true);
+      expect(res.returningVisitors).toBe(2);
+      expect(res.totalVisitors).toBe(8);
+      expect(res.returningVisitorRate).toBe(25);
+    });
+  });
+
+  describe('getConversionFunnel', () => {
+    it('maps each funnel stage from its query', async () => {
+      prisma.$queryRaw.mockImplementation((query: any) => {
+        const sql = String(query?.sql ?? query);
+        if (sql.includes('shop_visits')) return Promise.resolve([{ count: 100 }]);
+        if (sql.includes('carts')) return Promise.resolve([{ count: 40 }]);
+        if (sql.includes('NOT IN')) return Promise.resolve([{ count: 25 }]); // buyers
+        return Promise.resolve([{ count: 20 }]); // completed
+      });
+
+      const res = await service.getConversionFunnel('30d');
+
+      expect(res).toEqual({
+        visitors: 100,
+        cartCustomers: 40,
+        buyers: 25,
+        completedBuyers: 20,
+      });
+    });
+  });
+
+  describe('getRepeatPurchase', () => {
+    it('computes the lifetime repeat purchase rate', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ repeat: 3, total: 12 }]);
+
+      const res = await service.getRepeatPurchase();
+
+      expect(res).toEqual({ repeatCustomers: 3, totalPurchasers: 12, repeatPurchaseRate: 25 });
+    });
+  });
+
+  describe('getOrderTiming', () => {
+    it('zero-fills 24 hour buckets and 7 weekday buckets', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([{ hour: 20, orders: 5, revenue: 100 }])
+        .mockResolvedValueOnce([{ dow: 6, orders: 3, revenue: 60 }]);
+
+      const res = await service.getOrderTiming('7d');
+
+      expect(res.byHour).toHaveLength(24);
+      expect(res.byHour[20]).toEqual({ hour: 20, orders: 5, revenue: 100 });
+      expect(res.byHour[0]).toEqual({ hour: 0, orders: 0, revenue: 0 });
+      expect(res.byDow).toHaveLength(7);
+      expect(res.byDow[5]).toEqual({ dow: 6, orders: 3, revenue: 60 });
+    });
+  });
+
+  describe('getRevenueBreakdown', () => {
+    it('returns the revenue composition sums', async () => {
+      prisma.order.aggregate.mockResolvedValue({
+        _sum: { totalAmount: 1000, itemTotal: 800, promoTotal: 50, taxTotal: 80, shipmentTotal: 120 },
+      });
+
+      const res = await service.getRevenueBreakdown('30d');
+
+      expect(res).toEqual({
+        total: 1000,
+        itemTotal: 800,
+        promoTotal: 50,
+        taxTotal: 80,
+        shipmentTotal: 120,
+      });
+    });
+  });
+
+  describe('getReviewStats', () => {
+    it('fills the 1-5 star distribution', async () => {
+      prisma.productReview.aggregate.mockResolvedValue({ _avg: { rating: 4.2 }, _count: 10 });
+      prisma.productReview.groupBy.mockResolvedValue([
+        { rating: 5, _count: 6 },
+        { rating: 4, _count: 4 },
+      ]);
+      prisma.productReview.count.mockResolvedValue(3);
+
+      const res = await service.getReviewStats('30d');
+
+      expect(res.avgRating).toBe(4.2);
+      expect(res.totalReviews).toBe(10);
+      expect(res.newReviews).toBe(3);
+      expect(res.distribution).toEqual([
+        { rating: 1, count: 0 },
+        { rating: 2, count: 0 },
+        { rating: 3, count: 0 },
+        { rating: 4, count: 4 },
+        { rating: 5, count: 6 },
+      ]);
     });
   });
 
@@ -249,6 +424,89 @@ describe('AnalyticsService', () => {
         revenueShare: 80,
       });
       expect(res[1].revenueShare).toBe(20);
+    });
+
+    it('getShopComparison merges per-shop metrics and keeps zero-order shops', async () => {
+      prisma.order.groupBy.mockImplementation(({ where }: any) => {
+        if (where.state?.notIn) {
+          return Promise.resolve([{ shopId: 's1', _sum: { totalAmount: 1000 }, _count: 10 }]);
+        }
+        if (where.state?.not === 'cart') return Promise.resolve([{ shopId: 's1', _count: 12 }]);
+        return Promise.resolve([{ shopId: 's1', _count: 3 }]); // canceled
+      });
+      prisma.customer.groupBy.mockResolvedValue([{ shopId: 's1', _count: 4 }]);
+      prisma.productReview.groupBy.mockResolvedValue([
+        { shopId: 's1', _avg: { rating: 4.5 }, _count: 7 },
+      ]);
+      prisma.$queryRaw.mockImplementation((query: any) => {
+        const sql = String(query?.sql ?? query);
+        if (sql.includes('shop_visits')) return Promise.resolve([{ shopId: 's1', visitors: 50 }]);
+        return Promise.resolve([{ shopId: 's1', buyers: 5 }]);
+      });
+      prisma.shop.findMany.mockResolvedValue([
+        { id: 's1', name: 'Shop One', status: 'PUBLISHED' },
+        { id: 's2', name: 'Shop Two', status: 'DRAFT' },
+      ]);
+
+      const res = await service.getShopComparison(['s1', 's2'], '30d');
+
+      expect(res).toHaveLength(2);
+      expect(res[0]).toMatchObject({
+        shopId: 's1',
+        revenue: 1000,
+        orderCount: 10,
+        aov: 100,
+        cancelRate: 25, // 3 / 12
+        newCustomers: 4,
+        visitors: 50,
+        buyers: 5,
+        conversionRate: 10, // 5 / 50
+        avgRating: 4.5,
+        reviewCount: 7,
+      });
+      // Shop chưa có đơn vẫn xuất hiện với số liệu 0
+      expect(res[1]).toMatchObject({
+        shopId: 's2',
+        revenue: 0,
+        conversionRate: 0,
+        avgRating: null,
+      });
+    });
+
+    it('getRevenueByShopSeries pivots daily revenue per top shop', async () => {
+      prisma.$queryRaw.mockImplementation((query: any) => {
+        const sql = String(query?.sql ?? query);
+        if (sql.includes('to_char')) {
+          // Một ngày bất kỳ trong kỳ — chỉ cần pivot đúng key
+          const date = new Date(new Date().setHours(0, 0, 0, 0)).toISOString().split('T')[0];
+          return Promise.resolve([
+            { date, shopId: 's1', revenue: 100 },
+            { date, shopId: 's2', revenue: 50 },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+      prisma.shop.findMany.mockResolvedValue([
+        { id: 's1', name: 'One' },
+        { id: 's2', name: 'Two' },
+      ]);
+
+      const res = await service.getRevenueByShopSeries(undefined, '7d');
+
+      expect(res.shops[0]).toEqual({ shopId: 's1', name: 'One' });
+      expect(res.series).toHaveLength(7);
+      expect(res.series.some((p: any) => p.s1 === 100 && p.s2 === 50)).toBe(true);
+      // Ngày không có doanh thu được điền 0 cho từng shop
+      expect(res.series.some((p: any) => p.s1 === 0 && p.s2 === 0)).toBe(true);
+    });
+
+    it('getNewCustomersSeries zero-fills days without signups', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      const res = await service.getNewCustomersSeries(['s1'], '7d');
+
+      expect(res).toHaveLength(7);
+      expect(res.every((p: any) => p.count === 0)).toBe(true);
     });
   });
 });

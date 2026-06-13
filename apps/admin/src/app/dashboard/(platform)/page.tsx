@@ -1,8 +1,42 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Store, BarChart3, Package, Palette, CreditCard, Code2, Settings, ArrowRight, Activity, Zap, ShoppingCart } from "lucide-react";
+import { Store, BarChart3, Package, Palette, CreditCard, Code2, Settings, ArrowRight, Activity, Zap, ShoppingCart, Loader2 } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 export default function PlatformOverviewPage() {
+  const { data: session } = useSession();
+  const [stats, setStats] = useState({
+    totalShops: 0,
+    totalProducts: 0,
+    totalOrders: 0,
+    revenue: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await apiClient.get<any>("/api/analytics/platform/dashboard");
+        if (res.data) {
+          setStats({
+            totalShops: res.data.totalShops || 0,
+            totalProducts: res.data.totalProducts || 0,
+            totalOrders: res.data.totalOrders || 0,
+            revenue: res.data.totalRevenue || 0,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch platform stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div className="p-6 md:p-10 text-zinc-100 min-h-full">
       <div className="mx-auto max-w-5xl space-y-10">
@@ -10,7 +44,7 @@ export default function PlatformOverviewPage() {
         {/* Welcome Section */}
         <section className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Welcome back, Administrator 👋</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Welcome back, {session?.user?.name || 'Administrator'} 👋</h1>
             <p className="text-zinc-400 mt-2">Here is what is happening across your platform today.</p>
           </div>
           
@@ -20,7 +54,9 @@ export default function PlatformOverviewPage() {
                 <Store size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Total Shops</span>
               </div>
-              <div className="text-2xl font-bold text-white">2</div>
+              <div className="text-2xl font-bold text-white">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin text-zinc-500" /> : stats.totalShops}
+              </div>
             </div>
             
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 shadow-sm">
@@ -28,7 +64,9 @@ export default function PlatformOverviewPage() {
                 <Package size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Products</span>
               </div>
-              <div className="text-2xl font-bold text-white">48</div>
+              <div className="text-2xl font-bold text-white">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin text-zinc-500" /> : stats.totalProducts}
+              </div>
             </div>
 
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 shadow-sm">
@@ -36,7 +74,9 @@ export default function PlatformOverviewPage() {
                 <ShoppingCart size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Orders Today</span>
               </div>
-              <div className="text-2xl font-bold text-white">12</div>
+              <div className="text-2xl font-bold text-white">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin text-zinc-500" /> : stats.totalOrders}
+              </div>
             </div>
 
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 shadow-sm">
@@ -44,7 +84,9 @@ export default function PlatformOverviewPage() {
                 <Zap size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Revenue</span>
               </div>
-              <div className="text-2xl font-bold text-emerald-400">$1,234.00</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-500" /> : `$${stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
             </div>
           </div>
         </section>

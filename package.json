@@ -15,6 +15,8 @@
     "wsl:test": "bash scripts/wsl-sync-run.sh npm test",
     "sync:layout": "npx tsx scripts/sync-layout.ts",
     "generate:master": "npx tsx scripts/generate-master.ts",
+    "seed:geo": "npx tsx scripts/seed-vn-admin.ts",
+    "worker:shop-builder": "npx ts-node --project scripts/shop-builder/tsconfig.json scripts/shop-builder/worker.ts",
     "dev:loop": "bash scripts/dev-loop.sh up",
     "dev:status": "bash scripts/dev-loop.sh status",
     "dev:down": "bash scripts/dev-loop.sh down",

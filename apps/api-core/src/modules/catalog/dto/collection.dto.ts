@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUrl, IsArray } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateCollectionDto {
@@ -18,6 +18,11 @@ export class CreateCollectionDto {
   @IsString()
   @IsUrl()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[];
 }
 
 export class UpdateCollectionDto extends PartialType(CreateCollectionDto) {}

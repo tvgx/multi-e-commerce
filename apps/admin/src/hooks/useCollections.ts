@@ -23,7 +23,7 @@ export function useCollections(shopId: string) {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<Collection[]>(`/api/catalog/collections?shopId=${shopId}`);
+      const res = await apiClient.get<Collection[]>(`/api/catalog/collections`, { shopId });
       setCollections(res.data || []);
     } catch (err: any) {
       if (err.message !== "No Data or end of list data") {
@@ -35,7 +35,7 @@ export function useCollections(shopId: string) {
     }
   }, [shopId]);
 
-  const createCollection = async (data: Partial<Collection>) => {
+  const createCollection = async (data: Partial<Collection> & { productIds?: string[] }) => {
     setError(null);
     try {
       const res = await apiClient.post<Collection>(`/api/catalog/collections`, data, { shopId });
@@ -61,7 +61,7 @@ export function useCollections(shopId: string) {
 
   const getCollectionDetails = async (slug: string) => {
     try {
-      const res = await apiClient.get<Collection>(`/api/catalog/collections/${slug}?shopId=${shopId}`);
+      const res = await apiClient.get<Collection>(`/api/catalog/collections/${slug}`, { shopId });
       return res.data;
     } catch (err: any) {
       throw err;

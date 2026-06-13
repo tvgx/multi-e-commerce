@@ -16,6 +16,7 @@ import { ChatWidget } from '@ecommerce/ui-registry/src/components/chat/ChatWidge
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 import { getT } from '@/lib/i18n';
+import { VisitTracker } from '@/components/VisitTracker';
 
 interface Props {
     children: React.ReactNode;
@@ -53,6 +54,7 @@ export default async function BuyerLayout({ children, params }: Props) {
             } as React.CSSProperties}
         >
             {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
+            {shopInfo?.id && <VisitTracker shopId={shopInfo.id} customerId={customerId} />}
             <CartSidebar />
             <NotificationToast token={token ?? undefined} />
             

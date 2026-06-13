@@ -19,18 +19,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (res.data.authenticated) {
           setAuthenticated(true);
           
-          // PHASE 2: Onboarding Redirect Logic
-          // Check if user has any shops. If not, and they are not already on /create-shop, redirect them.
-          if (pathname !== '/create-shop' && !pathname.startsWith('/dashboard/')) {
-            try {
-              const shopsRes = await apiClient.get<any[]>('/api/shops/my-shops');
-              if ((shopsRes.data?.length ?? 0) === 0) {
-                router.push('/create-shop');
-              }
-            } catch (shopErr) {
-              console.error('Failed to fetch shops during onboarding check:', shopErr);
-            }
-          }
+          // Onboarding Redirect Logic removed per user request:
+          // Users will now stay on /dashboard and manually go to create shop.
         } else {
           router.push('/login');
         }

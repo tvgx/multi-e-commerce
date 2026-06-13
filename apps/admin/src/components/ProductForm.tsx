@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Loader2, Plus, Trash2, Image as ImageIcon } from "luci
 import { useCollections } from "@/hooks/useCollections";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { ImageUploader } from "./ImageUploader";
+import { uploadFileToMinIO } from "@/lib/upload-minio";
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -22,6 +23,9 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(mode === 'edit');
   const [error, setError] = useState("");
+  // Ảnh mới chọn — chỉ upload khi submit, sau khi đã có productId,
+  // để MinIO đặt tên file theo dạng <productId>-N
+  const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -101,19 +105,23 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
     setFormData({ ...formData, variants: newVariants });
   };
 
-  const handleImageUploaded = (url: string) => {
-    if (!formData.images.includes(url)) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, url],
-      }));
-    }
+  const handleFileSelected = (file: File) => {
+    setPendingImages(prev => [...prev, { file, preview: URL.createObjectURL(file) }]);
   };
 
   const removeImage = (index: number) => {
     const newImages = [...formData.images];
     newImages.splice(index, 1);
     setFormData({ ...formData, images: newImages });
+  };
+
+  const removePendingImage = (index: number) => {
+    setPendingImages(prev => {
+      URL.revokeObjectURL(prev[index].preview);
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
   };
 
   const toggleCollection = (collectionId: string) => {
@@ -151,9 +159,21 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
       };
 
       if (mode === 'create') {
-        await createProduct(payload);
+        const created = await createProduct(payload);
+        if (pendingImages.length > 0) {
+          if (!created?.id) throw new Error("Tạo sản phẩm xong nhưng không nhận được id để upload ảnh");
+          const uploaded: string[] = [];
+          for (const { file } of pendingImages) {
+            uploaded.push(await uploadFileToMinIO(file, 'product', shopId, created.id));
+          }
+          await updateProduct(created.id, { images: [...formData.images, ...uploaded] });
+        }
       } else {
-        await updateProduct(productId!, payload);
+        const uploaded: string[] = [];
+        for (const { file } of pendingImages) {
+          uploaded.push(await uploadFileToMinIO(file, 'product', shopId, productId!));
+        }
+        await updateProduct(productId!, { ...payload, images: [...formData.images, ...uploaded] });
       }
       router.push(`/dashboard/${shopId}/products`);
     } catch (err: any) {
@@ -244,9 +264,9 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
             <h2 className="text-lg font-bold text-white">Media (Images)</h2>
             
-            <ImageUploader shopId={shopId} onUpload={handleImageUploaded} />
+            <ImageUploader onFileSelected={handleFileSelected} busy={loading} />
 
-            {formData.images.length > 0 ? (
+            {(formData.images.length > 0 || pendingImages.length > 0) ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {formData.images.map((url, i) => (
                   <div key={i} className="relative group aspect-square rounded-xl border border-white/10 bg-black/40 overflow-hidden">
@@ -254,6 +274,19 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                {pendingImages.map(({ preview }, i) => (
+                  <div key={preview} className="relative group aspect-square rounded-xl border border-dashed border-indigo-500/40 bg-black/40 overflow-hidden">
+                    <img src={preview} alt={`New image ${i+1}`} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-indigo-500/80 text-[10px] font-bold text-white">Chưa lưu</span>
+                    <button
+                      type="button"
+                      onClick={() => removePendingImage(i)}
                       className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-500"
                     >
                       <Trash2 size={14} />

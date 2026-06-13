@@ -34,7 +34,7 @@ export class ResponseLoggerInterceptor implements NestInterceptor {
 
         this.logger.log(
           `[${method}] ${url} - Status: ${statusCode} - Time: ${responseTime}ms` +
-          (this.logBodies ? `\nResponse Body: ${JSON.stringify(data)}` : '')
+          (this.logBodies ? ` - Body: ${JSON.stringify(data)}` : '')
         );
       }),
     );

@@ -5,6 +5,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
+import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
+import { UpdatePaymentMethodsDto } from './dto/update-payment-methods.dto';
 
 export class CreateShopDto {
   name: string;
@@ -54,7 +56,10 @@ export class ShopService {
   async getShopById(shopId: string) {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      include: { bankAccount: true },
+      include: { 
+        bankAccount: true,
+        stockLocations: { where: { isDefault: true } }
+      },
     });
     if (!shop) throw new NotFoundException('Shop not found');
     return shop;
@@ -128,6 +133,57 @@ export class ShopService {
         accountHolder: dto.accountHolder,
       },
     });
+  }
+
+  // Địa chỉ kho hàng mặc định (nơi shipper đến lấy hàng) — upsert StockLocation isDefault.
+  async upsertWarehouse(shopId: string, dto: UpdateWarehouseDto) {
+    const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
+    if (!shop) throw new NotFoundException('Shop not found');
+    if (!dto || (!dto.addressLine && !dto.provinceCode && !dto.wardCode)) {
+      throw new BadRequestException('Warehouse address is required');
+    }
+
+    const data = {
+      name: dto.name?.trim() || 'Kho mặc định',
+      phone: dto.phone ?? null,
+      addressLine: dto.addressLine ?? null,
+      provinceCode: dto.provinceCode ?? null,
+      wardCode: dto.wardCode ?? null,
+      note: dto.note ?? null,
+      isDefault: true,
+      active: true,
+    };
+
+    const existing = await this.prisma.stockLocation.findFirst({
+      where: { shopId, isDefault: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing) {
+      return this.prisma.stockLocation.update({ where: { id: existing.id }, data });
+    }
+    return this.prisma.stockLocation.create({ data: { shopId, ...data } });
+  }
+
+  // Bật/tắt phương thức thanh toán cơ bản (COD, Chuyển khoản) — upsert theo (shopId, type).
+  async setPaymentMethods(shopId: string, dto: UpdatePaymentMethodsDto) {
+    const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
+    if (!shop) throw new NotFoundException('Shop not found');
+
+    const results: any[] = [];
+    const upsert = (type: string, name: string, active: boolean) =>
+      this.prisma.paymentMethod.upsert({
+        where: { shopId_type: { shopId, type } },
+        create: { shopId, type, name, active },
+        update: { active, name },
+      });
+
+    if (dto.cod !== undefined) {
+      results.push(await upsert('COD', 'Thanh toán khi nhận hàng (COD)', !!dto.cod));
+    }
+    if (dto.bankTransfer !== undefined) {
+      results.push(await upsert('BankTransfer', 'Chuyển khoản ngân hàng', !!dto.bankTransfer));
+    }
+    return results;
   }
 
   async getOnboardingProgress(shopId: string) {

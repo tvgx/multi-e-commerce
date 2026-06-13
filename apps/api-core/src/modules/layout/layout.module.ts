@@ -13,7 +13,8 @@ import { GlobalLayoutSchema, PageLayoutSchema, UIComponentCatalogSchema } from '
     ]),
   ],
   controllers: [LayoutController],
-  providers: [LayoutService]
+  providers: [LayoutService],
+  exports: [LayoutService],
 })
 export class LayoutModule {}
 

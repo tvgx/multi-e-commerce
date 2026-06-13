@@ -17,7 +17,7 @@ import type { CustomerAuth } from './modules/auth/customer-auth.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['warn', 'error', 'debug', 'fatal'],
+    logger: ['log', 'warn', 'error', 'debug', 'fatal'],
   });
 
   // Enable CORS cho admin và storefront

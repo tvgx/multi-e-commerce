@@ -1,0 +1,22 @@
+// ==========================================
+// Đơn vị hành chính VN (2 cấp sau sáp nhập 2025: Tỉnh/Thành → Phường/Xã, bỏ Quận/Huyện)
+// Dữ liệu tham chiếu — seed từ packages/database/data/vn-admin-2cap.json (npm run seed:geo)
+// ==========================================
+
+model Province {
+  code  String @id // mã hành chính chính thức
+  name  String
+  wards Ward[]
+
+  @@map("provinces")
+}
+
+model Ward {
+  code         String   @id
+  name         String
+  provinceCode String
+  province     Province @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+
+  @@index([provinceCode])
+  @@map("wards")
+}
