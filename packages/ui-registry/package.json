@@ -2,12 +2,18 @@
     "name": "@ecommerce/ui-registry",
     "version": "0.1.0",
     "private": true,
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
     "main": "src/registry.ts",
     "scripts": {
         "lint": "eslint \"src/**/*.ts*\"",
         "build": "tsc"
     },
     "dependencies": {
+        "@ecommerce/i18n": "*",
+        "@ecommerce/schema": "*",
         "@radix-ui/react-label": "^2.1.2",
         "@radix-ui/react-progress": "^1.1.2",
         "@radix-ui/react-slot": "^1.1.2",

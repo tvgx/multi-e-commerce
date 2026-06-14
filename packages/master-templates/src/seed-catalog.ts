@@ -10,15 +10,6 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecomme
 
 const TEMPLATES = [
   {
-    templateKey: 'MASTER_FASHION',
-    templateType: 'visual',
-    industry: 'fashion',
-    displayName: 'Thời trang',
-    description: 'Layout thời trang, phụ kiện.',
-    icon: '👗',
-    isCustom: false,
-  },
-  {
     templateKey: 'MASTER_HOME_APPLIANCES',
     templateType: 'technical',
     industry: 'electronics',

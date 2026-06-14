@@ -5,6 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -26,6 +30,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@better-auth/prisma-adapter": "^1.5.5",
     "@ecommerce/database": "*",
+    "@ecommerce/ui-registry": "*",
     "@nestjs/bull": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",
@@ -81,6 +86,7 @@
     "@types/sharp": "^0.31.1",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "ansis": "^4.2.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

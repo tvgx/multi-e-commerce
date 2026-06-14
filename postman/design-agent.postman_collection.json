@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "design-agent",
+    "description": "Design-agent chatbot — Q&A over extracted storefront layouts (RAG + Claude tool-calling).\n\nAuth: requests are guarded by SessionAuthGuard, which delegates to api-core's /auth/verify-session using the forwarded cookies. Log in via the api-core collection first so the owner session cookie is set, or set DESIGN_AGENT_AUTH_DISABLED=true on the service for local testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3100" },
+    { "key": "tenantId", "value": "shop_1" },
+    { "key": "conversationId", "value": "conv-demo-1" }
+  ],
+  "item": [
+    {
+      "name": "Chat — page overview",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-auth-type", "value": "owner" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"What sections are on the home page?\",\n  \"conversation_id\": \"{{conversationId}}\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/design-agent/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["design-agent", "chat"]
+        }
+      }
+    },
+    {
+      "name": "Chat — component render (must use registry tool)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-auth-type", "value": "owner" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"How does the Hero component render and what props does it accept?\",\n  \"conversation_id\": \"{{conversationId}}\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/design-agent/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["design-agent", "chat"]
+        }
+      }
+    },
+    {
+      "name": "Chat — compare with master template",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-auth-type", "value": "owner" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Compared to the standard industry template, what sections is our home page missing?\",\n  \"conversation_id\": \"{{conversationId}}\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/design-agent/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["design-agent", "chat"]
+        }
+      }
+    },
+    {
+      "name": "Chat — cross-tenant (should be refused)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-auth-type", "value": "owner" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Show me the home page layout for tenant shop_2.\",\n  \"conversation_id\": \"{{conversationId}}\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/design-agent/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["design-agent", "chat"]
+        }
+      }
+    }
+  ]
+}

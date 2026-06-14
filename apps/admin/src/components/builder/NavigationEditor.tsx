@@ -94,6 +94,8 @@ export function NavigationEditor({
         await apiClient.patch(`/api/shops/${shopId}`, { status: "PUBLISHED" });
       } catch (err) {}
       toast.success(t("navEditor.published"));
+      // Lưu + publish xong → quay về Dashboard tổng quan shop.
+      router.push(`/dashboard/${shopId}`);
     } catch {
       toast.error(t("navEditor.error"));
     } finally {

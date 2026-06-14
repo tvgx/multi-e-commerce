@@ -1,0 +1,80 @@
+# design-agent: Figma-layout extractor + RAG + chatbot (POST /design-agent/chat).
+#
+# ⚠️ Secret must be created before apply (extend scripts/create-k8s-secrets.sh):
+#   Required:
+#     - MONGODB_URI         : MongoDB with page_layouts / layout_embeddings / design_agent_conversations
+#     - ANTHROPIC_API_KEY   : Claude (chatbot + extractor)
+#     - VOYAGE_API_KEY      : embeddings for RAG retrieval
+#   Optional:
+#     - API_CORE_URL        : base URL for the auth delegation (default http://api-core:3000)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: design-agent-config
+  namespace: ecommerce
+data:
+  NODE_ENV: "production"
+  DESIGN_AGENT_PORT: "3100"
+  # Delegate session auth to api-core's /auth/verify-session.
+  API_CORE_URL: "http://api-core:3000"
+  # Set to "true" to bypass auth (NEVER in production).
+  DESIGN_AGENT_AUTH_DISABLED: "false"
+  VOYAGE_MODEL: "voyage-3"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: design-agent-secret
+  namespace: ecommerce
+type: Opaque
+stringData:
+  MONGO_DB_ATLAS: "mongodb+srv://CHANGE_ME:CHANGE_ME@jsondb1.ddnq5v9.mongodb.net/?appName=JSONdb1"
+  ANTHROPIC_API_KEY: "CHANGE_ME"
+  VOYAGE_API_KEY: "CHANGE_ME"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: design-agent
+  namespace: ecommerce
+spec:
+  ports:
+    - port: 3100
+      targetPort: 3100
+  selector:
+    app: design-agent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: design-agent
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: design-agent
+  template:
+    metadata:
+      labels:
+        app: design-agent
+    spec:
+      containers:
+        - name: design-agent
+          image: ecommerce-design-agent:latest
+          imagePullPolicy: Never
+          args: ["apps/design-agent/dist/main.js", "serve"]
+          ports:
+            - containerPort: 3100
+          envFrom:
+            - configMapRef:
+                name: design-agent-config
+            - secretRef:
+                name: design-agent-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

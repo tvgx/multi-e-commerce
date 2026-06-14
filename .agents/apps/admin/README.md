@@ -1,63 +1,20 @@
-# 🛡️ Admin Dashboard — Overview
+# admin — Bảng điều khiển người bán
 
-**Location**: `/home/troll/workspaces/ecommerce-platform/apps/admin`
+**Stack**: Next.js (App Router), better-auth, Tailwind. Dev cổng **3001** (`npm run dev`).
 
-**Tech Stack**: Next.js 15, React, Better Auth, Tailwind, Recharts
+Trung tâm vận hành của người bán. Gọi api-core qua `src/lib/api-client.ts`.
 
----
+## Tính năng & API liên quan
 
-## Overview
+| Tính năng | Trang (`src/app`) | API (xem [api-doc](../../../api-doc/)) |
+|-----------|-------------------|-----------------------------------------|
+| Xác thực người bán | `(auth)/*` | [auth](../../../api-doc/auth/) |
+| Tạo & khởi tạo gian hàng | `create-shop/*` (wizard → billing-shipping) | [shop](../../../api-doc/shop/), [build](../../../api-doc/build/), [geo](../../../api-doc/geo/) |
+| Builder giao diện | `dashboard/[shopId]/online-store/*` | [layout](../../../api-doc/layout/), [templates](../../../api-doc/templates/), [media](../../../api-doc/media/) |
+| Sản phẩm & danh mục | `dashboard/[shopId]/products`, `collections`, `inventory` | [catalog](../../../api-doc/catalog/), [inventory](../../../api-doc/inventory/) |
+| Đơn hàng | `dashboard/[shopId]/orders/*` | [order](../../../api-doc/order/) |
+| Khuyến mãi / Thanh toán / Ship | `promotions`, `payments`, `settings/shipping` | [promotions](../../../api-doc/promotions/), [payment](../../../api-doc/payment/), [shipping](../../../api-doc/shipping/) |
+| Ví / Analytics | `wallets`, `analytics` | [wallet](../../../api-doc/wallet/), [analytics](../../../api-doc/analytics/) |
+| Quản trị nền tảng | `dashboard/(platform)/*` | analytics platform, shops |
 
-Admin Dashboard is the **merchant-facing control center** for managing e-commerce operations.
-
-### Key Features
-
-- **Layout Builder**: Visual drag-drop interface for storefront customization
-- **Shop Management**: Create, configure, enable/disable shops
-- **Products**: Full product catalog management (categories, SKU, variants)
-- **Orders**: Track orders, manage fulfillment, payments
-- **Analytics**: Dashboard with revenue, conversion,  metrics
-- **Auth**: Role-based access (super admin, shop owner)
-
----
-
-## Quick Start
-
-```bash
-cd apps/admin
-npm install
-npm run dev  # http://localhost:5200
-```
-
----
-
-## Directory Structure
-
-```
-src/
-├── app/               # Next.js App Router pages
-├── components/        # React components
-├── lib/
-│   ├── auth.ts       # Better Auth integration
-│   └── api.ts        # API client
-├── hooks/            # Custom React hooks
-└── styles/           # Tailwind + global styles
-```
-
----
-
-## Development
-
-- **Linting**: `npm run lint`
-- **Testing**: `npm run test` (Playwright E2E)
-- **Hot reload**: Automatic on file save
-
----
-
-## docs for detailed architecture & features
-
-See directory: `features/` → layout-builder.md, shop-management.md, products.md, orders.md, analytics.md
-
----
-
-See [../README.md](../README.md) for all apps
+Đa ngôn ngữ qua `@ecommerce/i18n` (cookie `NEXT_LOCALE`, `useTranslations`). Lint `npm run lint`, E2E `npm run test:ui` (Playwright).

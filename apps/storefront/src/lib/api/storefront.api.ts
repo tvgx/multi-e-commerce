@@ -10,6 +10,8 @@
  *  - Shop info: revalidate every 300s (rarely changes)
  */
 
+import { loggedFetch } from './_logged-fetch';
+
 const API_BASE_URL =
     process.env.API_CORE_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
@@ -55,7 +57,7 @@ interface ResolvedShop {
 
 export async function getShopBootstrapData(shopIdentifier: string): Promise<any | null> {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/shops/bootstrap/${encodeURIComponent(shopIdentifier)}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/shops/bootstrap/${encodeURIComponent(shopIdentifier)}`, {
             next: {
                 tags: [`shop-bootstrap-${shopIdentifier}`],
                 revalidate: 60, // 1 minute revalidate
@@ -80,7 +82,7 @@ function getTenantHeaders(shopId: string): HeadersInit {
 
 export async function resolveShopContext(shopIdentifier: string): Promise<ResolvedShop | null> {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/shops/resolve/${encodeURIComponent(shopIdentifier)}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/shops/resolve/${encodeURIComponent(shopIdentifier)}`, {
             next: {
                 tags: [`shop-resolve-${shopIdentifier}`],
                 revalidate: 120,
@@ -112,7 +114,7 @@ export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | nu
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/shops/${encodeURIComponent(shopId)}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/shops/${encodeURIComponent(shopId)}`, {
             headers: getTenantHeaders(shopId),
             next: {
                 tags: [`shop-${shopId}`],
@@ -148,7 +150,7 @@ export async function getShopGlobalLayout(shopIdentifier: string) {
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}/global`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/layouts/${encodeURIComponent(shopId)}/global`, {
             headers: getTenantHeaders(shopId),
             next: {
                 tags: [`layout-${shopId}-global`],
@@ -183,7 +185,7 @@ export async function getShopPageLayout(shopIdentifier: string, pageType: string
             url += `?slug=${encodeURIComponent(slug)}`;
         }
 
-        const res = await fetch(url, {
+        const res = await loggedFetch(url, {
             headers: getTenantHeaders(shopId),
             next: {
                 tags: [`layout-${shopId}-page-${pageType}`],
@@ -237,7 +239,7 @@ export async function getShopProducts(
         if (options?.minPrice !== undefined) params.set('minPrice', String(options.minPrice));
         if (options?.maxPrice !== undefined) params.set('maxPrice', String(options.maxPrice));
 
-        const res = await fetch(
+        const res = await loggedFetch(
             `${API_BASE_URL}/api/products/shop/${encodeURIComponent(shopId)}?${params}`,
             {
                 headers: getTenantHeaders(shopId),
@@ -289,7 +291,7 @@ export async function getShopProductDetails(shopIdentifier: string, productId: s
         if (!resolvedShop?.id) return { product: null };
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/products/${encodeURIComponent(productId)}`, {
             headers: getTenantHeaders(shopId),
             next: {
                 tags: [`product-${productId}`],
@@ -321,7 +323,7 @@ export async function getMyOrders(shopIdentifier: string, token: string) {
         if (!resolvedShop?.id) return [];
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/orders/my`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/orders/my`, {
             headers: {
                 ...getTenantHeaders(shopId),
                 'Authorization': `Bearer ${token}`
@@ -351,7 +353,7 @@ export async function recordSearchHistory(shopIdentifier: string, token: string,
         const resolvedShop = await resolveShopContext(shopIdentifier);
         if (!resolvedShop?.id) return;
 
-        await fetch(`${API_BASE_URL}/api/interactions/search-history`, {
+        await loggedFetch(`${API_BASE_URL}/api/interactions/search-history`, {
             method: 'POST',
             headers: {
                 ...getTenantHeaders(resolvedShop.id),
@@ -378,7 +380,7 @@ export async function getMyProfile(shopIdentifier: string, token: string) {
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/storefront-auth/me`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/storefront-auth/me`, {
             headers: {
                 ...getTenantHeaders(shopId),
                 'Authorization': `Bearer ${token}`
@@ -408,7 +410,7 @@ export async function getWishlist(shopIdentifier: string, token: string) {
         if (!resolvedShop?.id) return [];
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/interactions/wishlist`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/interactions/wishlist`, {
             headers: {
                 ...getTenantHeaders(shopId),
                 'Authorization': `Bearer ${token}`
@@ -436,7 +438,7 @@ export async function getNavigationMenu(shopIdentifier: string, handle: string) 
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/navigation/${handle}?shopId=${shopId}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/navigation/${handle}?shopId=${shopId}`, {
             headers: getTenantHeaders(shopId),
             next: { revalidate: 300, tags: [`nav-${shopId}-${handle}`] }
         });
@@ -455,7 +457,7 @@ export async function getCollectionBySlug(shopIdentifier: string, slug: string) 
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/collections/${slug}?shopId=${shopId}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/collections/${slug}?shopId=${shopId}`, {
             headers: getTenantHeaders(shopId),
             next: { revalidate: 30, tags: [`collection-${shopId}-${slug}`] }
         });
@@ -474,7 +476,7 @@ export async function getShopPageBySlug(shopIdentifier: string, slug: string) {
         if (!resolvedShop?.id) return null;
 
         const shopId = resolvedShop.id;
-        const res = await fetch(`${API_BASE_URL}/api/pages/${slug}?shopId=${shopId}`, {
+        const res = await loggedFetch(`${API_BASE_URL}/api/pages/${slug}?shopId=${shopId}`, {
             headers: getTenantHeaders(shopId),
             next: { revalidate: 60, tags: [`page-${shopId}-${slug}`] }
         });

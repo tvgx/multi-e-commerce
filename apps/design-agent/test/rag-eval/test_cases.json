@@ -1,0 +1,54 @@
+{
+  "description": "RAG retrieval eval cases for the layout index. `expected_section_ids` are the ground-truth section_id(s) a good retriever should surface in the top-k. These ids must match real section_ids in your page_layouts (a section_id is the UIComponentRef `id` of a top-level component). The seed ids below mirror the master-templates blueprint structure (standard.ts) — adjust them to whatever your extractor actually produced before trusting the numbers. Set `tenant_id` to scope a case to one tenant (multi-tenant isolation), or omit to search across all.",
+  "cases": [
+    {
+      "id": "home-hero-by-page",
+      "query": "What is the hero banner section on the home page?",
+      "expected_section_ids": ["home-hero"],
+      "rationale": "Page-specific: locate the hero on home."
+    },
+    {
+      "id": "category-grid-by-component",
+      "query": "Which section shows a grid of product categories?",
+      "expected_section_ids": ["popular_categories"],
+      "rationale": "Component-driven: category_grid retrieval."
+    },
+    {
+      "id": "product-listing-header",
+      "query": "Where is the best sellers heading on the product listing page?",
+      "expected_section_ids": ["listing-header"],
+      "rationale": "Page + component: page_header on product_listing."
+    },
+    {
+      "id": "navbar-global",
+      "query": "navigation bar with search and cart at the top of the store",
+      "expected_section_ids": ["global-navbar"],
+      "rationale": "Global component retrieval (navbar/Header)."
+    },
+    {
+      "id": "footer-global",
+      "query": "footer with company links and copyright",
+      "expected_section_ids": ["global-footer"],
+      "rationale": "Global component retrieval (footer/Footer)."
+    },
+    {
+      "id": "tenant-scoped-hero",
+      "query": "hero slider on the landing page",
+      "tenant_id": "MASTER_STANDARD",
+      "expected_section_ids": ["home-hero"],
+      "rationale": "Tenant-scoped: same query, restricted to one tenant."
+    },
+    {
+      "id": "industry-standard-template",
+      "query": "ecommerce storefront like the standard retail template with categories and best sellers",
+      "expected_section_ids": ["popular_categories", "listing-header"],
+      "rationale": "Industry/master-template flavored multi-section query."
+    },
+    {
+      "id": "checkout-by-pagetype",
+      "query": "checkout page payment and order summary section",
+      "expected_section_ids": ["checkout-summary"],
+      "rationale": "Page-type driven retrieval (checkout)."
+    }
+  ]
+}

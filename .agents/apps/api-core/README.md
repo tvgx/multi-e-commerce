@@ -1,89 +1,20 @@
-# 🚀 API Core — Overview
+# api-core — Backend đa tenant
 
-**Location**: `/home/troll/workspaces/ecommerce-platform/apps/api-core`
+**Stack**: NestJS 11, Prisma/PostgreSQL (dữ liệu chính) + Mongoose/MongoDB (chỉ `layout` & `chat`), Bull/Redis (queue `build`, `email`, `payment`), better-auth, AWS-S3 SDK→MinIO, socket.io, Swagger. Dev cổng **3000** (`npm run dev`).
 
-**Tech Stack**: NestJS 11, Prisma (PostgreSQL), Mongoose (MongoDB), TypeScript, OpenAPI
+Phục vụ admin, storefront, cli-tool. Đa tenant: hầu hết truy vấn gắn `shopId` (tenant context / header `x-shop-id` / path).
 
----
+## Quy ước quan trọng (dễ sai)
 
-## Overview
+- **Prefix `/api`** (`setGlobalPrefix('api')`) — route là `/api/<controller>`. Controller dùng số nhiều (`shops`, `orders`...).
+- **Response envelope** `{ code, message, data }` (`BaseResponseDto`), `code "1000"` = OK. KHÔNG có interceptor bọc → controller phải tự `BaseResponseDto.success()`, quên thì UI trắng.
+- **Không có global ValidationPipe** → validate tay trong service (DTO decorators không tự chạy).
+- Bảng mã response: [response-codes.constant.ts](../../../apps/api-core/src/common/constants/response-codes.constant.ts) → tổng hợp ở [api-doc/README](../../../api-doc/README.md).
 
-API Core is the **backend engine** serving Admin Dashboard, Storefront, CLI Tool, and integration partners.
+## Module (`src/modules/*`)
 
-### Key Characteristics
+shop · catalog (product/category/option-type/storefront) · cart · order · payment · shipping · promotions · inventory · layout · build · media · analytics · auth · storefront-auth · customer-address · wallet · interactions · chat · notifications · geo · templates · email.
 
-- **Multi-Tenant**: AsyncLocalStorage + TenantInterceptor (automatic shopId scoping)
-- **Hybrid Database**: PostgreSQL (structured data) + MongoDB (flexible config)
-- **RESTful API**: OpenAPI 3.0 documented
-- **Authentication**: JWT tokens, role-based access
+→ Endpoint chi tiết từng module: [api-doc](../../../api-doc/). Phần `apis/` ở đây chỉ là tóm tắt.
 
----
-
-## Quick Start
-
-```bash
-cd apps/api-core
-npm install
-npm run dev  # http://localhost:3000
-```
-
----
-
-## Directory Structure
-
-```
-src/
-├── app.module.ts           # Root module
-├── common/
-│   ├── decorator/          # Custom decorators (@Auth, @Tenant)
-│   └── interceptor/        # TenantInterceptor
-├── modules/
-│   ├── shops/
-│   ├── products/
-│   ├── orders/
-│   ├── layouts/
-│   └── analytics/
-├── database/
-│   ├── prisma/            # Prisma schema + migrations
-│   └── mongodb/           # Mongoose models
-└── test/                  # Jest test files
-```
-
----
-
-## Key APIs
-
-- `GET /api/v1/shops` — List shops
-- `POST /api/v1/products` — Create product
-- `GET /api/v1/orders/:id` — Get order
-- `POST /api/v1/layouts/publish` — Publish layout
-- `GET /api/v1/analytics/shop/:shopId/summary` — Shop metrics
-
----
-
-## Multi-Tenancy Pattern
-
-Every request stored with `shopId`:
-```typescript
-// TenantInterceptor auto-extracts shopId from header or domain
-// Database queries auto-scoped to current tenant
-const products = await this.db.products.findMany({
-  where: { shopId: getCurrentTenantId() }  // Auto-added
-});
-```
-
----
-
-## development
-
-- **Linting**: `npm run lint`
-- **Testing**: `npm run test` (Jest + integration DB)
-- **Database**: `npm run prisma migrate` (add migrations)
-
----
-
-See detailed docs: `apis/`, `database/`, `testing.md`
-
----
-
-See [../README.md](../README.md) for all apps
+Test `npm run test` (jest). Lint `npm run lint`. Build `npm run build` (tsc).

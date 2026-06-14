@@ -2,6 +2,10 @@
     "name": "@ecommerce/database",
     "version": "0.1.0",
     "private": true,
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
     "main": "dist/src/index.js",
     "types": "dist/src/index.d.ts",
     "exports": {

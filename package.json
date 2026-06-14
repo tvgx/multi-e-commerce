@@ -4,6 +4,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "npm run dev --workspace=api-core",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev:storefront": "npm run dev --workspace=storefront",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
@@ -16,6 +19,7 @@
     "sync:layout": "npx tsx scripts/sync-layout.ts",
     "generate:master": "npx tsx scripts/generate-master.ts",
     "seed:geo": "npx tsx scripts/seed-vn-admin.ts",
+    "design-agent": "npm run extract --workspace=design-agent --",
     "worker:shop-builder": "npx ts-node --project scripts/shop-builder/tsconfig.json scripts/shop-builder/worker.ts",
     "dev:loop": "bash scripts/dev-loop.sh up",
     "dev:status": "bash scripts/dev-loop.sh status",
@@ -42,11 +46,16 @@
     "typescript": "5.9.2"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   },
   "packageManager": "npm@10.9.4",
   "overrides": {
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "esbuild": "^0.28.1",
+    "bull": {
+      "uuid": "^14.0.0"
+    }
   },
   "workspaces": [
     "apps/*",

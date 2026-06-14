@@ -37,6 +37,9 @@
     "readyTitle": "You're ready for takeoff!",
     "readyBody": "All checklist items are complete. Your store is now public.",
     "openStoreNow": "Open Store Now",
+    "shopLiveTitle": "Store is Live",
+    "shopLiveBody": "Congratulations! Your store is ready to welcome customers. Share this link with everyone.",
+    "visitStore": "Visit Store",
     "actions": {
       "addProduct": "Add Product",
       "createCollection": "Create Collection",

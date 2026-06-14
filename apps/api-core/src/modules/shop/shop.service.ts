@@ -192,19 +192,23 @@ export class ShopService {
       select: {
         onboardingStep: true,
         onboardingStatus: true,
-        domainVerified: true,
+        domain: true,
       },
     });
     if (!shop) throw new NotFoundException('Shop not found');
 
     let productCount = 0;
     let collectionCount = 0;
-    let menuCount = 0;
+    let paymentMethodCount = 0;
+    let shippingMethodCount = 0;
+    let stockLocationCount = 0;
 
     try {
       productCount = await (this.prisma as any).product.count({ where: { shopId } });
       collectionCount = await (this.prisma as any).collection.count({ where: { shopId } });
-      menuCount = await (this.prisma as any).navigationMenu.count({ where: { shopId } });
+      paymentMethodCount = await (this.prisma as any).paymentMethod.count({ where: { shopId, active: true } });
+      shippingMethodCount = await (this.prisma as any).shippingMethod.count({ where: { shopId, active: true } });
+      stockLocationCount = await (this.prisma as any).stockLocation.count({ where: { shopId, isDefault: true } });
     } catch (e) {
       // Models might be missing in some schema versions, fail silently
     }
@@ -213,15 +217,14 @@ export class ShopService {
 
     return {
       currentStep: shop.onboardingStep,
+      domain: shop.domain,
       steps: {
         step1: { status: 'COMPLETED', label: 'Create Store' },
         step2: { status: productCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Add Products' },
-        step3: { status: collectionCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Create Collections' },
-        step4: { status: menuCount >= 2 ? 'COMPLETED' : 'PENDING', label: 'Setup Header/Footer' },
-        step5: { status: status.step5 || 'PENDING', label: 'Design Homepage' },
-        step6: { status: status.step6 || 'PENDING', label: 'Setup Payment' },
-        step7: { status: status.step7 || 'PENDING', label: 'Shipping & Tax' },
-        step8: { status: shop.domainVerified ? 'COMPLETED' : 'PENDING', label: 'Verify Domain' },
+        step3: { status: collectionCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Add Collections' },
+        step4: { status: status.step4 || 'PENDING', label: 'Design UI' },
+        step5: { status: paymentMethodCount > 0 ? 'COMPLETED' : 'PENDING', label: 'Setup Payment' },
+        step6: { status: (shippingMethodCount > 0 && stockLocationCount > 0) ? 'COMPLETED' : 'PENDING', label: 'Shipping & Tax' },
       },
     };
   }
@@ -243,7 +246,7 @@ export class ShopService {
       data: {
         onboardingStep: Math.max(shop.onboardingStep, step),
         onboardingStatus: updatedStatus,
-        status: step === 8 ? 'PUBLISHED' : undefined,
+        status: step === 6 ? 'PUBLISHED' : undefined,
       },
     });
 

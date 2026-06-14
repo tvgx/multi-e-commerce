@@ -1,4 +1,3 @@
-
 services:
   postgres-shard-1:
     image: postgres:15-alpine
@@ -49,15 +48,7 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb myminio/shop-public || true;
-      /usr/bin/mc mb myminio/shop-private || true;
-      /usr/bin/mc mb myminio/shop-images || true;
-      /usr/bin/mc anonymous set public myminio/shop-public;
-      /usr/bin/mc anonymous set public myminio/shop-images;
-      exit 0;
-      "
+      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb myminio/shop-public || true; /usr/bin/mc mb myminio/shop-private || true; /usr/bin/mc mb myminio/shop-images || true; /usr/bin/mc anonymous set public myminio/shop-public; /usr/bin/mc anonymous set public myminio/shop-images; exit 0; "
 
   imgproxy:
     image: darthsim/imgproxy:latest

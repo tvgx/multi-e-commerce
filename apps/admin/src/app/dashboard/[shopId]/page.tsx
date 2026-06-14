@@ -8,8 +8,6 @@ import { storefrontUrl } from "@/lib/urls";
 import { apiClient } from "@/lib/api-client";
 import {
   Rocket,
-  Settings,
-  LayoutTemplate,
   Package,
   ArrowRight,
   CheckCircle2,
@@ -20,7 +18,6 @@ import {
   Circle,
   Lock,
   Layers,
-  Store,
   Palette,
   CreditCard,
   Truck,
@@ -140,17 +137,15 @@ const STEP_ICONS: Record<string, React.ReactNode> = {
   step1: <Rocket className="w-5 h-5" />,
   step2: <Package className="w-5 h-5" />,
   step3: <Layers className="w-5 h-5" />,
-  step4: <Store className="w-5 h-5" />,
-  step5: <Palette className="w-5 h-5" />,
-  step6: <CreditCard className="w-5 h-5" />,
-  step7: <Truck className="w-5 h-5" />,
-  step8: <Globe className="w-5 h-5" />,
+  step4: <Palette className="w-5 h-5" />,
+  step5: <CreditCard className="w-5 h-5" />,
+  step6: <Truck className="w-5 h-5" />,
 };
 
 function DashboardContent({ shopId }: { shopId: string }) {
   const searchParams = useSearchParams();
   const finalizing = searchParams?.get("finalizing") === "true";
-  const { status, loading, progressPercentage, refresh } = useOnboarding(shopId);
+  const { status, loading, progressPercentage, allCompleted, shopDomain, refresh } = useOnboarding(shopId);
   const t = useTranslations("admin");
 
   // Sau khi bấm "Lưu và Hoàn tất" ở Billing & Shipping: hiển thị màn build nền.
@@ -161,11 +156,9 @@ function DashboardContent({ shopId }: { shopId: string }) {
   const STEP_ACTIONS: Record<string, { label: string; href: string }> = {
     step2: { label: t("dashboard.actions.addProduct"), href: "/products" },
     step3: { label: t("dashboard.actions.createCollection"), href: "/collections" },
-    step4: { label: t("dashboard.actions.setupMenus"), href: "/online-store/navigation" },
-    step5: { label: t("dashboard.actions.customizeTheme"), href: "/online-store/themes" },
-    step6: { label: t("dashboard.actions.setupPayment"), href: "/payments" },
-    step7: { label: t("dashboard.actions.configureShipping"), href: "/settings/shipping" },
-    step8: { label: t("dashboard.actions.verifyDomain"), href: "/settings/domain" },
+    step4: { label: t("dashboard.actions.customizeTheme"), href: "/online-store/themes" },
+    step5: { label: t("dashboard.actions.setupPayment"), href: "/payments" },
+    step6: { label: t("dashboard.actions.configureShipping"), href: "/settings/shipping" },
   };
 
   if (loading && !status) {
@@ -177,11 +170,12 @@ function DashboardContent({ shopId }: { shopId: string }) {
   }
 
   const stepsArray = status ? Object.entries(status.steps).sort() : [];
+  const shopUrl = shopDomain ? storefrontUrl(shopDomain) : storefrontUrl(shopId);
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
-      {/* Analytics Dashboard */}
-      {progressPercentage === 100 && (
+      {/* Analytics Dashboard + Live Support — shown when all steps are complete */}
+      {allCompleted && (
         <>
           <AnalyticsDashboard shopId={shopId} />
           
@@ -196,51 +190,87 @@ function DashboardContent({ shopId }: { shopId: string }) {
           </div>
         </>
       )}
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-violet-700 to-indigo-900 p-10 text-white shadow-2xl">
-         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[150%] bg-white/10 blur-[80px] -rotate-45 pointer-events-none" />
-         
-         <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+
+      {/* Banner: Shop URL (when all complete) or Progress (when in progress) */}
+      {allCompleted ? (
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 p-10 text-white shadow-2xl">
+          <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[150%] bg-white/10 blur-[80px] -rotate-45 pointer-events-none" />
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
             <div className="flex-1 space-y-4 text-center md:text-left">
-               <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">
-                 <Rocket size={14} /> {t("dashboard.missionControl")}
-               </div>
-               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">{t("dashboard.welcomeTitle")}</h1>
-               <p className="text-indigo-100/80 text-lg max-w-xl">
-                 {t("dashboard.completedPrefix")} <span className="text-white font-bold">{progressPercentage}%</span> {t("dashboard.setupSuffix")}
-               </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">
+                <CheckCircle2 size={14} /> {t("dashboard.shopLiveTitle")}
+              </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">{t("dashboard.readyTitle")}</h1>
+              <p className="text-emerald-100/80 text-lg max-w-xl">
+                {t("dashboard.shopLiveBody")}
+              </p>
+              <a
+                href={shopUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-emerald-200 font-mono text-sm hover:underline break-all"
+              >
+                <Globe size={16} /> {shopUrl}
+              </a>
             </div>
 
-            <div className="relative h-40 w-40 flex items-center justify-center">
-               <svg className="h-full w-full -rotate-90">
-                 <circle
-                   cx="80"
-                   cy="80"
-                   r="70"
-                   fill="transparent"
-                   stroke="rgba(255,255,255,0.1)"
-                   strokeWidth="10"
-                 />
-                 <circle
-                   cx="80"
-                   cy="80"
-                   r="70"
-                   fill="transparent"
-                   stroke="white"
-                   strokeWidth="10"
-                   strokeDasharray={440}
-                   strokeDashoffset={440 - (440 * progressPercentage) / 100}
-                   strokeLinecap="round"
-                   className="transition-all duration-1000 ease-in-out"
-                 />
-               </svg>
-               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-4xl font-extrabold">{progressPercentage}%</span>
-                  <span className="text-[10px] uppercase font-bold text-white/60">{t("dashboard.done")}</span>
-               </div>
-            </div>
-         </div>
-      </div>
+            <a
+              href={shopUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-white hover:bg-slate-100 text-emerald-700 font-bold rounded-2xl shadow-xl shadow-emerald-900/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              {t("dashboard.visitStore")} <ExternalLink size={18} />
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-violet-700 to-indigo-900 p-10 text-white shadow-2xl">
+           <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[150%] bg-white/10 blur-[80px] -rotate-45 pointer-events-none" />
+           
+           <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+              <div className="flex-1 space-y-4 text-center md:text-left">
+                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">
+                   <Rocket size={14} /> {t("dashboard.missionControl")}
+                 </div>
+                 <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">{t("dashboard.welcomeTitle")}</h1>
+                 <p className="text-indigo-100/80 text-lg max-w-xl">
+                   {t("dashboard.completedPrefix")} <span className="text-white font-bold">{progressPercentage}%</span> {t("dashboard.setupSuffix")}
+                 </p>
+              </div>
+
+              <div className="relative h-40 w-40 flex items-center justify-center">
+                 <svg className="h-full w-full -rotate-90">
+                   <circle
+                     cx="80"
+                     cy="80"
+                     r="70"
+                     fill="transparent"
+                     stroke="rgba(255,255,255,0.1)"
+                     strokeWidth="10"
+                   />
+                   <circle
+                     cx="80"
+                     cy="80"
+                     r="70"
+                     fill="transparent"
+                     stroke="white"
+                     strokeWidth="10"
+                     strokeDasharray={440}
+                     strokeDashoffset={440 - (440 * progressPercentage) / 100}
+                     strokeLinecap="round"
+                     className="transition-all duration-1000 ease-in-out"
+                   />
+                 </svg>
+                 <div className="absolute inset-0 flex items-center justify-center flex-col">
+                    <span className="text-4xl font-extrabold">{progressPercentage}%</span>
+                    <span className="text-[10px] uppercase font-bold text-white/60">{t("dashboard.done")}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Checklist Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -307,28 +337,6 @@ function DashboardContent({ shopId }: { shopId: string }) {
           );
         })}
       </div>
-
-      {/* Launch CTA */}
-      {progressPercentage === 100 && (
-        <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 animate-bounce-subtle">
-           <div className="flex items-center gap-4 text-center md:text-left">
-              <div className="p-4 bg-emerald-500 rounded-2xl shadow-lg">
-                <Globe className="text-white w-8 h-8" />
-              </div>
-              <div>
-                 <h2 className="text-2xl font-bold text-white">{t("dashboard.readyTitle")}</h2>
-                 <p className="text-emerald-200/60">{t("dashboard.readyBody")}</p>
-              </div>
-           </div>
-           <a 
-             href={storefrontUrl(shopId)}
-             target="_blank"
-             className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
-           >
-             {t("dashboard.openStoreNow")}
-           </a>
-        </div>
-      )}
     </div>
   );
 }

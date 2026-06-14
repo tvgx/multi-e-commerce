@@ -1,48 +1,15 @@
-# 🔨 Troubleshooting — README
+# Troubleshooting
 
-Common issues, diagnosis steps, and solutions.
+Lỗi hay gặp & cách xử lý nhanh.
 
----
+| Triệu chứng | Nguyên nhân thường gặp | Cách xử lý |
+|-------------|------------------------|-----------|
+| UI trắng/không có data sau khi gọi API | Controller quên `BaseResponseDto.success()` | Bọc response đúng envelope |
+| Jest vỡ trên WSL | Thiếu `@unrs/resolver-binding-linux-x64-gnu` | Cài lại `--no-save` sau reinstall |
+| Build sai thứ tự / vỡ trên devbox | Import `@ecommerce/*` chưa khai báo `dependencies` | Thêm vào `dependencies`, sync loại trừ `dist/` |
+| Prisma client lệch schema | Chưa `prisma generate` / quên thêm model vào `MODEL_FILES` | generate lại + cập nhật `build-prisma-schema.js` |
+| "No API logs" khi publish | Store kẹt Fast Refresh | Hard-reload trang admin |
+| 401/403 bất ngờ | Sai guard/role, thiếu `x-shop-id`, `credentials` | Kiểm guard + header tenant |
+| Migrate lỗi pooler | Deploy qua transaction pooler | Dùng session pooler (5432) |
 
-## Quick Index
-
-| Problem | Diagnosis | Solution |
-|---------|---------|----------|
-| **Local dev not starting** | See [development-issues.md](development-issues.md) | Check Node version, reinstall dependencies |
-| **Deployment failed** | See [deployment-issues.md](deployment-issues.md) | Check logs, rollback, verify manifest |
-| **Database connection error** | See [database-issues.md](database-issues.md) | Connection string, credentials, firewall |
-| **"Permission denied" on CLI** | See [auth-permission-issues.md](auth-permission-issues.md) | Check AGENTS.md, verify API key role |
-
----
-
-## How to Use This Section
-
-1. **Identify category** of your problem (above)
-2. **Read relevant file** for diagnosis steps
-3. **Follow solution** instructions
-4. **Still stuck?** Escalate: See `../escalation/support-levels.md`
-
----
-
-## Files
-
-1. **[development-issues.md](development-issues.md)** — Local dev problems (npm install, builds, hot reload)
-2. **[deployment-issues.md](deployment-issues.md)** — K8s, Docker, staging/prod deploy failures
-3. **[database-issues.md](database-issues.md)** — PostgreSQL, MongoDB, migrations, connection errors
-4. **[auth-permission-issues.md](auth-permission-issues.md)** — Access denied, token expiry, RBAC issues
-
----
-
-## Before Escalating
-
-- [ ] Check relevant troubleshooting file (above)
-- [ ] Review error logs (`kubectl logs`, app console)
-- [ ] Try basic fixes (restart, reinstall, clear cache)
-- [ ] Google error message ("Error 500 NestJS PostgreSQL" + site:stackoverflow.com)
-- [ ] Ask in #engineering Slack
-
-Then escalate: See `../escalation/support-levels.md`
-
----
-
-**Need help?** Pick a file above or ask teammates.
+Sự cố prod → [escalation/support-levels.md](../escalation/support-levels.md).

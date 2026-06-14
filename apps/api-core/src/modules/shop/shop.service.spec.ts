@@ -113,21 +113,20 @@ describe('ShopService', () => {
     it('derives step completion from entity counts and flags', async () => {
       prisma.shop.findUnique.mockResolvedValue({
         onboardingStep: 3,
-        onboardingStatus: { step5: 'COMPLETED' },
-        domainVerified: false,
+        onboardingStatus: { step4: 'COMPLETED' },
+        domain: 'mystore.example',
       });
       prisma.product.count.mockResolvedValue(2);
       prisma.collection.count.mockResolvedValue(0);
-      prisma.navigationMenu.count.mockResolvedValue(2);
 
       const res = await service.getOnboardingProgress(SHOP);
 
       expect(res.currentStep).toBe(3);
       expect(res.steps.step2.status).toBe('COMPLETED'); // products > 0
       expect(res.steps.step3.status).toBe('PENDING'); // collections 0
-      expect(res.steps.step4.status).toBe('COMPLETED'); // menus >= 2
-      expect(res.steps.step5.status).toBe('COMPLETED'); // from status map
-      expect(res.steps.step8.status).toBe('PENDING'); // domain not verified
+      expect(res.steps.step4.status).toBe('COMPLETED'); // from status map
+      expect(res.steps.step5.status).toBe('PENDING'); // no payment methods
+      expect((res.steps as Record<string, unknown>).step7).toBeUndefined(); // Verify Domain step removed
     });
   });
 
@@ -139,20 +138,20 @@ describe('ShopService', () => {
       );
     });
 
-    it('marks the step complete and publishes on step 8', async () => {
+    it('marks the step complete and publishes on the final step (6)', async () => {
       prisma.shop.findUnique.mockResolvedValue({
-        onboardingStep: 7,
+        onboardingStep: 5,
         onboardingStatus: {},
       });
       prisma.shop.update.mockResolvedValue({ id: SHOP });
 
-      await service.completeOnboardingStep(SHOP, 8);
+      await service.completeOnboardingStep(SHOP, 6);
 
       expect(prisma.shop.update).toHaveBeenCalledWith({
         where: { id: SHOP },
         data: expect.objectContaining({
-          onboardingStep: 8,
-          onboardingStatus: { step8: 'COMPLETED' },
+          onboardingStep: 6,
+          onboardingStatus: { step6: 'COMPLETED' },
           status: 'PUBLISHED',
         }),
       });

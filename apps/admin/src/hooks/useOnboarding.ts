@@ -8,6 +8,7 @@ export interface OnboardingStep {
 
 export interface OnboardingStatus {
   currentStep: number;
+  domain?: string;
   steps: {
     [key: string]: OnboardingStep;
   };
@@ -47,15 +48,23 @@ export function useOnboarding(shopId: string | null) {
     fetchStatus();
   }, [fetchStatus]);
 
-  const progressPercentage = status
-    ? Math.round((Object.values(status.steps).filter((s) => s.status === "COMPLETED").length / 8) * 100)
+  const totalSteps = 6;
+  const completedCount = status
+    ? Object.values(status.steps).filter((s) => s.status === "COMPLETED").length
     : 0;
+  const progressPercentage = status
+    ? Math.round((completedCount / totalSteps) * 100)
+    : 0;
+  const allCompleted = completedCount === totalSteps;
+  const shopDomain = status?.domain || null;
 
   return {
     status,
     loading,
     error,
     progressPercentage,
+    allCompleted,
+    shopDomain,
     refresh: fetchStatus,
     completeStep,
   };

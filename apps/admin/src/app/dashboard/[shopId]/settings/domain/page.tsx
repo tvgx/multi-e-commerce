@@ -18,20 +18,19 @@ import { apiClient } from "@/lib/api-client";
 
 export default function DomainSettings({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
-  const { status, completeStep, refresh } = useOnboarding(shopId);
+  const { status, refresh } = useOnboarding(shopId);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const verificationRecord = `shopVolo-verification=${shopId}`;
-  const shopDomain = status?.steps?.step8?.label || "mystore.omnicommerce.com";
+  const shopDomain = status?.domain || "mystore.omnicommerce.com";
 
   const handleVerify = async () => {
     setVerifying(true);
     setError(null);
     setSuccess(false);
     try {
-      await completeStep(8);
       // Trigger background build process
       await apiClient.post(`/api/shops/${shopId}/build`, {}, { shopId });
       setSuccess(true);
@@ -49,7 +48,7 @@ export default function DomainSettings({ params }: { params: Promise<{ shopId: s
     toast.success("Đã sao chép vào clipboard");
   };
 
-  const isVerified = status?.steps?.step8?.status === "COMPLETED";
+  const isVerified = success;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -61,7 +60,7 @@ export default function DomainSettings({ params }: { params: Promise<{ shopId: s
            <ArrowLeft size={16} /> Back to Dashboard
          </Link>
          <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
-           Step 8: Domain Verification
+           Domain Verification
          </div>
       </div>
 

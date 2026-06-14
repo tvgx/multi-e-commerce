@@ -2,6 +2,10 @@
     "name": "cli-tool-node",
     "version": "1.0.0",
     "private": true,
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
     "scripts": {
         "sync:layout": "tsx scripts/sync-layout.ts",
         "watch:layout": "tsx scripts/watch-layout.ts"

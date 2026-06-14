@@ -16,7 +16,7 @@ import {
   Wallet
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
-import { useOnboarding } from "@/hooks/useOnboarding";
+import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import Link from "next/link";
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
@@ -24,7 +24,12 @@ export default function PaymentSetupPage() {
   const params = useParams();
   const shopId = params.shopId as string;
   const router = useRouter();
-  const { completeStep } = useOnboarding(shopId);
+
+  const { completeAndNavigate } = useOnboardingAutoNav({
+    shopId,
+    currentStep: 5,
+    nextRoute: `/dashboard/${shopId}/settings/shipping`,
+  });
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,11 +72,14 @@ export default function PaymentSetupPage() {
         accountHolder: bankAccount.accountHolder,
       }, { shopId });
 
-      // 2. Complete Step 6
-      await completeStep(6);
-      
-      toast.success("Thiết lập thanh toán thành công!");
-      router.push(`/dashboard/${shopId}`);
+      // 2. Enable payment methods (COD + Bank Transfer)
+      await apiClient.patch(`/api/shops/${shopId}/payment-methods`, {
+        cod: true,
+        bankTransfer: true,
+      }, { shopId });
+
+      // 3. Complete step 5 and auto-navigate to shipping
+      await completeAndNavigate();
     } catch (err: any) {
       toast.error(`Lỗi: ${err.message}`);
     } finally {
@@ -100,7 +108,7 @@ export default function PaymentSetupPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest border border-indigo-500/20">
-            Step 6 of 8
+            Step 5 of 7
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-white">Thiết lập Thanh toán</h1>
           <p className="text-slate-400 text-lg">Cung cấp thông tin tài khoản ngân hàng để khách hàng có thể thanh toán qua QR.</p>
@@ -173,7 +181,7 @@ export default function PaymentSetupPage() {
                 {saving ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...</>
                 ) : (
-                  <><Save className="w-5 h-5" /> Lưu & Hoàn tất Bước 6</>
+                  <><Save className="w-5 h-5" /> Lưu & Tiếp tục</>
                 )}
               </button>
             </div>

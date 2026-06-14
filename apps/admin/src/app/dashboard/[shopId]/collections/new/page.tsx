@@ -9,12 +9,19 @@ import { apiClient } from "@/lib/api-client";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
 import { ProductPickerModal } from "@/components/products/ProductPickerModal";
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const router = useRouter();
   const { createCollection } = useCollections(shopId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { completeAndNavigate } = useOnboardingAutoNav({
+    shopId,
+    currentStep: 3,
+    nextRoute: `/create-shop/design?shopId=${shopId}&mode=guided`,
+  });
   
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -66,7 +73,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
 
       await createCollection({ ...formData, imageUrl: finalImageUrl, productIds });
       toast.success("Collection created successfully");
-      router.push(`/dashboard/${shopId}/collections`);
+      completeAndNavigate();
     } catch (err: any) {
       setError(err.message || "Failed to create category");
       setLoading(false);

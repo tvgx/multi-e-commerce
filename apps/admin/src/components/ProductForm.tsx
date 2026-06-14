@@ -13,9 +13,10 @@ interface ProductFormProps {
   mode: "create" | "edit";
   shopId: string;
   productId?: string;
+  onSuccess?: () => void;
 }
 
-export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
+export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormProps) {
   const router = useRouter();
   const { collections, fetchCollections } = useCollections(shopId);
   const { fetchProductById, createProduct, updateProduct } = useProducts(shopId);
@@ -175,7 +176,11 @@ export function ProductForm({ mode, shopId, productId }: ProductFormProps) {
         }
         await updateProduct(productId!, { ...payload, images: [...formData.images, ...uploaded] });
       }
-      router.push(`/dashboard/${shopId}/products`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/dashboard/${shopId}/products`);
+      }
     } catch (err: any) {
       setError(err.message || `Failed to ${mode} product`);
       setLoading(false);

@@ -2,16 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Auto Sync to Devbox",
+      "label": "Start Dev Server",
       "type": "shell",
-      "command": "./scripts/sync_devbox.sh",
-      "isBackground": true,
-      "runOptions": {
-        "runOn": "folderOpen"
-      },
+      "command": "npm run dev",
       "presentation": {
-        "reveal": "silent",
-        "panel": "shared",
+        "reveal": "always",
+        "panel": "new",
         "clear": true
       }
     }

@@ -37,6 +37,9 @@
     "readyTitle": "Bạn đã sẵn sàng cất cánh!",
     "readyBody": "Tất cả checklist đã hoàn tất. Cửa hàng của bạn đã được công khai.",
     "openStoreNow": "Mở cửa hàng ngay",
+    "shopLiveTitle": "Cửa hàng đã Online",
+    "shopLiveBody": "Chúc mừng! Cửa hàng của bạn đã sẵn sàng đón khách. Hãy chia sẻ đường dẫn này với mọi người.",
+    "visitStore": "Truy cập cửa hàng",
     "actions": {
       "addProduct": "Thêm sản phẩm",
       "createCollection": "Tạo bộ sưu tập",

@@ -1,0 +1,49 @@
+{
+  "name": "design-agent",
+  "version": "0.0.1",
+  "description": "Extracts page layouts from Figma, has Claude map them to storefront layout schema, and upserts to MongoDB.",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "extract": "ts-node --transpile-only -P tsconfig.json src/main.ts extract",
+    "build-index": "ts-node --transpile-only -P tsconfig.json src/main.ts build-index",
+    "rag-query": "ts-node --transpile-only -P tsconfig.json src/main.ts rag-query",
+    "rag-eval": "ts-node --transpile-only -P tsconfig.json test/rag-eval/evaluate.ts",
+    "serve": "ts-node --transpile-only -P tsconfig.json src/main.ts serve",
+    "chat-eval": "ts-node --transpile-only -P tsconfig.json test/chatbot-eval/evaluate.ts",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@ecommerce/master-templates": "*",
+    "@ecommerce/schema": "*",
+    "@ecommerce/ui-registry": "*",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/mongoose": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "mongoose": "^8.2.0",
+    "nest-commander": "^3.17.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.7",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

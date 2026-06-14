@@ -2,6 +2,10 @@
     "name": "@ecommerce/schema",
     "version": "0.1.0",
     "private": true,
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "exports": {

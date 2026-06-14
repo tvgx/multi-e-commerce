@@ -19,6 +19,7 @@ import Link from "next/link";
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
 import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useGeo } from "@/hooks/useGeo";
 
@@ -57,8 +58,16 @@ export default function ShippingSettingsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   
   // Onboarding hooks
-  const { status, completeStep } = useOnboarding(shopId);
-  const isOnboarding = status && status.steps.step7?.status !== "COMPLETED";
+  const { status } = useOnboarding(shopId);
+  const isOnboarding = status && status.steps.step6?.status !== "COMPLETED";
+
+  const { completeAndNavigate } = useOnboardingAutoNav({
+    shopId,
+    currentStep: 6,
+    // Shipping là bước cuối của onboarding (đã bỏ "Verify Domain") → quay về Dashboard.
+    nextRoute: `/dashboard/${shopId}`,
+    isLastStep: true,
+  });
 
   // Warehouse hooks
   const { provinces, wards, loadWards, loadingWards } = useGeo();
@@ -192,9 +201,7 @@ export default function ShippingSettingsPage() {
       );
       
       if (isOnboarding) {
-        await completeStep(7);
-        toast.success("Thiết lập vận chuyển thành công!");
-        router.push(`/dashboard/${shopId}`);
+        await completeAndNavigate();
       } else {
         toast.success("Đã lưu địa chỉ kho hàng!");
       }
@@ -222,7 +229,7 @@ export default function ShippingSettingsPage() {
         <div className="space-y-2">
           {isOnboarding && (
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest border border-indigo-500/20">
-              Step 7 of 8
+              Step 6 of 7
             </div>
           )}
           <h1 className="text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
@@ -376,7 +383,7 @@ export default function ShippingSettingsPage() {
                 {savingWarehouse ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...</>
                 ) : (
-                  <><CheckCircle2 className="w-5 h-5" /> {isOnboarding ? "Lưu & Hoàn tất Bước 7" : "Lưu Địa chỉ Kho"}</>
+                  <><CheckCircle2 className="w-5 h-5" /> {isOnboarding ? "Lưu & Tiếp tục" : "Lưu Địa chỉ Kho"}</>
                 )}
               </button>
             </div>

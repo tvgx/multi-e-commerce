@@ -23,5 +23,8 @@
     "jsx": "react-jsx",
     "types": ["jest", "node"]
   },
-  "exclude": ["node_modules", "dist", "archive-v1", "src/admin-archive"]
+  "exclude": ["node_modules", "dist", "archive-v1", "src/admin-archive"],
+  "watchOptions": {
+    "excludeDirectories": ["node_modules", "dist", ".git", ".turbo"]
+  }
 }

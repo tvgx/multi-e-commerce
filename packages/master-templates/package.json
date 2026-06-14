@@ -2,6 +2,10 @@
     "name": "@ecommerce/master-templates",
     "version": "0.1.0",
     "private": true,
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "exports": {
@@ -12,6 +16,9 @@
     },
     "scripts": {
         "build": "tsc"
+    },
+    "dependencies": {
+        "@ecommerce/database": "*"
     },
     "devDependencies": {
         "typescript": "^5.0.0"

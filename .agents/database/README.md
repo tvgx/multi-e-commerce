@@ -1,58 +1,15 @@
-# 💾 Database & Data Operations — README
+# Database
 
----
+CSDL chính: **PostgreSQL qua Prisma** (`packages/database`). MongoDB chỉ cho `layout` & `chat`.
 
-## Quick Start
+- [schema-changes.md](schema-changes.md) — sửa schema Prisma đúng cách (model files + registry).
+- [migrations.md](migrations.md) — migration **viết tay**, deploy qua session pooler.
+- [backup-restore.md](backup-restore.md) — lịch backup, restore (CRITICAL, 2 approval).
 
-**Schema changes**: Write migration (up + down scripts), test locally → staging → production  
-**Backup**: Auto-run daily CronJob (00:00 UTC), 30-day retention  
-**Restore**: CRITICAL operation, requires 2-person approval + dry-run  
+## Cốt lõi (đặc thù dự án)
+- Schema Prisma ghép từ `packages/database/prisma/models/*.prisma` qua `build-prisma-schema.js`; **file model mới phải thêm vào `MODEL_FILES`** nếu không sẽ bị bỏ qua.
+- `packages/database` re-export `@prisma/client` → sau đổi schema phải `prisma generate`.
+- Migration **viết tay** (không có `DIRECT_URL`; `DATABASE_URL` là pooler transaction-mode). Deploy SQL qua **session pooler (port 5432)**.
 
----
-
-## Files
-
-1. **schema-changes.md** — Migration naming, format, testing
-2. **migrations.md** — How to run/rollback migrations
-3. **backup-restore.md** — Backup schedule, restore approval,procedures
-
----
-
-## Migration Checklist
-
-- [ ] Migration file created (`001_add_column_x.sql`)
-- [ ] Both up & down scripts (rollback plan)
-- [ ] Backward-compatible (old code works with new schema)
-- [ ] Tested locally (apply + rollback + apply)
-- [ ] Tested on staging + production (with copy of prod data)
-- [ ] Estimate downtime
-- [ ] PR with migration + code changes
-
----
-
-## Backup & Restore
-
-**Backup**:
-```bash
-backup create --shop <id> --name "pre-migration-snapshot"
-```
-
-**Restore** (requires approval):
-```bash
-backup restore --shop <id> --backup-id <id> --dry-run
-# → See critical approval workflow in high-risk-ops/
-```
-
----
-
-## Retention Policy
-
-| Environment | Retention | Auto-cleanup |
-|---|---|---|
-| Dev | 7 days | Yes (auto-delete > 7 days) |
-| Staging | 30 days | Yes (auto-delete > 30 days) |
-| Prod | 90 days | Manual (for compliance) |
-
----
-
-**See detailed files→** [schema-changes.md](schema-changes.md), [migrations.md](migrations.md), [backup-restore.md](backup-restore.md)
+## Backup retention
+Dev 7 ngày · Staging 30 ngày · Prod 90 ngày. Restore prod: dry-run + 2 approval ([high-risk-ops/](../high-risk-ops/)).
