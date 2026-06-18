@@ -16,9 +16,10 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
 
   // Form State
   const [formData, setFormData] = useState<Partial<Promotion>>({
+    name: '',
     code: '',
-    type: 'PERCENTAGE',
-    value: 10,
+    discountType: 'percentage',
+    discountValue: 10,
     isActive: true,
   });
 
@@ -33,9 +34,10 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
     } else {
       setEditingPromo(null);
       setFormData({
+        name: '',
         code: '',
-        type: 'PERCENTAGE',
-        value: 10,
+        discountType: 'percentage',
+        discountValue: 10,
         isActive: true,
       });
     }
@@ -118,7 +120,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                     {promo.code}
                   </span>
                   <div className="text-emerald-400 font-medium mt-3">
-                    {promo.type === 'PERCENTAGE' ? `${promo.value}% OFF` : `${formatPrice(promo.value)} OFF`}
+                    {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : `${formatPrice(promo.discountValue)} OFF`}
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -133,7 +135,6 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
               <div className="space-y-2 text-sm text-slate-400">
                 <p>Status: <span className={promo.isActive ? 'text-emerald-400' : 'text-slate-500'}>{promo.isActive ? 'Active' : 'Inactive'}</span></p>
                 <p>Used: {promo.usedCount || 0} times</p>
-                {promo.minOrderValue && <p>Min order: {formatPrice(promo.minOrderValue)}</p>}
                 {promo.usageLimit && <p>Limit: {promo.usageLimit} uses</p>}
               </div>
             </div>
@@ -155,11 +156,23 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
             <div className="p-6 overflow-y-auto">
               <form id="promoForm" onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Discount Code</label>
-                  <input 
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Name</label>
+                  <input
                     type="text"
                     required
-                    value={formData.code}
+                    value={formData.name || ''}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="Summer Sale"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Discount Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.code || ''}
                     onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none uppercase font-mono"
                     placeholder="SUMMER2026"
@@ -170,36 +183,25 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Type</label>
                     <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                      value={formData.discountType}
+                      onChange={(e) => setFormData({...formData, discountType: e.target.value as any})}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     >
-                      <option value="PERCENTAGE">Percentage (%)</option>
-                      <option value="FIXED">Fixed Amount</option>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Value</label>
-                    <input 
+                    <input
                       type="number"
                       required
                       min="0"
-                      value={formData.value}
-                      onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
+                      value={formData.discountValue}
+                      onChange={(e) => setFormData({...formData, discountValue: parseFloat(e.target.value) || 0})}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Minimum Order Value (Optional)</label>
-                  <input 
-                    type="number"
-                    min="0"
-                    value={formData.minOrderValue || ''}
-                    onChange={(e) => setFormData({...formData, minOrderValue: parseFloat(e.target.value) || undefined})}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
                 </div>
 
                 <div>

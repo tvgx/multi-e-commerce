@@ -68,12 +68,24 @@ export class PromotionsService {
     const shopId = this.getShopId();
     await this.findOne(id); // verify ownership
 
+    // PROMO-1: trước đây chỉ ghi name/description/isActive nên sửa giá trị giảm/
+    // loại giảm/ngày/giới hạn bị âm thầm bỏ qua (UI báo "đã lưu" mà không đổi).
+    // Chỉ map field nào được gửi (!== undefined) để partial update không xoá field khác.
     return this.prisma.promotion.update({
       where: { id },
       data: {
-        name: dto.name,
-        description: dto.description,
-        isActive: dto.isActive,
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.discountType !== undefined ? { discountType: dto.discountType } : {}),
+        ...(dto.discountValue !== undefined ? { discountValue: dto.discountValue } : {}),
+        ...(dto.startsAt !== undefined
+          ? { startsAt: dto.startsAt ? new Date(dto.startsAt) : null }
+          : {}),
+        ...(dto.expiresAt !== undefined
+          ? { expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null }
+          : {}),
+        ...(dto.usageLimit !== undefined ? { usageLimit: dto.usageLimit } : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       }
     });
   }

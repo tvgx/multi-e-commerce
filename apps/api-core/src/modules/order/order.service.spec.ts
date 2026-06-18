@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { getQueueToken } from '@nestjs/bull';
 import { OrderService } from './order.service';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
@@ -23,6 +24,7 @@ describe('OrderService', () => {
   let gateway: { notifyUser: jest.Mock };
   let email: { sendOrderConfirmation: jest.Mock; sendOrderShipped: jest.Mock };
   let wallet: { getOrCreate: jest.Mock; debit: jest.Mock; credit: jest.Mock };
+  let timeoutQueue: { add: jest.Mock };
 
   const SHOP = 'shop-1';
   const CUSTOMER = 'cust-1';
@@ -44,6 +46,7 @@ describe('OrderService', () => {
       debit: jest.fn().mockResolvedValue(undefined),
       credit: jest.fn().mockResolvedValue(undefined),
     };
+    timeoutQueue = { add: jest.fn().mockResolvedValue({ id: 'job-1' }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +57,7 @@ describe('OrderService', () => {
         { provide: NotificationsGateway, useValue: gateway },
         { provide: EmailService, useValue: email },
         { provide: WalletService, useValue: wallet },
+        { provide: getQueueToken('payment-timeout'), useValue: timeoutQueue },
       ],
     }).compile();
 
@@ -141,6 +145,12 @@ describe('OrderService', () => {
         }),
       );
       expect(prisma.paymentConfirmToken.create).toHaveBeenCalled();
+      // PAY-2: bank-transfer orders schedule a timeout that auto-cancels + restocks
+      expect(timeoutQueue.add).toHaveBeenCalledWith(
+        'check-payment-status',
+        { orderId: expect.any(String) },
+        expect.objectContaining({ delay: expect.any(Number) }),
+      );
       expect(res.qrCodeUrl).toBe('data:image/png;base64,QR');
       expect(gateway.notifyUser).toHaveBeenCalledWith(
         SHOP,
@@ -404,6 +414,40 @@ describe('OrderService', () => {
         expect.any(Object),
       );
     });
+
+    it('canceled: voids the order — restocks and refunds a paid order (ORD-1)', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        number: 'ORD-1',
+        state: 'confirmed',
+        paymentState: 'paid',
+        customerId: CUSTOMER,
+        totalAmount: 2000,
+        shopId: SHOP,
+      });
+      prisma.order.update.mockResolvedValue({ id: 'o1', state: 'canceled' });
+
+      await service.updateOrderStatus('o1', { status: 'canceled' } as any);
+
+      expect(inventory.restoreStock).toHaveBeenCalledWith('o1', prisma);
+      expect(wallet.credit).toHaveBeenCalledWith(
+        prisma,
+        'w1',
+        SHOP,
+        2000,
+        'refund',
+        expect.objectContaining({ orderId: 'o1', createdBy: 'admin' }),
+      );
+      expect(gateway.notifyUser).toHaveBeenCalledWith(
+        SHOP,
+        CUSTOMER,
+        'CUSTOMER',
+        'ORDER_REFUNDED',
+        expect.any(String),
+        expect.any(String),
+        { orderId: 'o1' },
+      );
+    });
   });
 
   describe('cancelOrder', () => {
@@ -539,6 +583,40 @@ describe('OrderService', () => {
         expect.any(String),
         { orderId: 'o1' },
       );
+    });
+
+    it('restores stock when refunding an undelivered order (ORD-2)', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        number: 'ORD-1',
+        state: 'confirmed',
+        paymentState: 'paid',
+        customerId: CUSTOMER,
+        totalAmount: 2000,
+        shopId: SHOP,
+      });
+      prisma.order.update.mockResolvedValue({ id: 'o1', paymentState: 'refunded' });
+
+      await service.refundOrder('o1');
+
+      expect(inventory.restoreStock).toHaveBeenCalledWith('o1', prisma);
+    });
+
+    it('does NOT restock when refunding a delivered order (goods already shipped)', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        number: 'ORD-1',
+        state: 'delivered',
+        paymentState: 'paid',
+        customerId: CUSTOMER,
+        totalAmount: 2000,
+        shopId: SHOP,
+      });
+      prisma.order.update.mockResolvedValue({ id: 'o1', paymentState: 'refunded' });
+
+      await service.refundOrder('o1');
+
+      expect(inventory.restoreStock).not.toHaveBeenCalled();
     });
   });
 });

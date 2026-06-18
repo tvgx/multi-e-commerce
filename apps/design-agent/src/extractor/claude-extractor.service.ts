@@ -18,6 +18,17 @@ export interface ExtractPageOptions {
   validComponentIds: string[];
   /** Optional rendered-frame image URL for visual grounding (`--with-images`). */
   imageUrl?: string | null;
+  /**
+   * Per-component editable prop hint (`ComponentId: prop1, prop2, …`) from the
+   * editor's component-schemas, so the model fills correct prop keys.
+   */
+  propSchema?: string;
+  /**
+   * Map of Figma node id -> permanent MinIO image URL produced by the asset
+   * pipeline. Listed in the prompt so the model places each image on the
+   * matching section's image prop.
+   */
+  assetUrls?: Record<string, string>;
 }
 
 /**
@@ -49,7 +60,7 @@ export class ClaudeExtractorService {
     frame: ReducedNode,
     opts: ExtractPageOptions,
   ): Promise<ShopPageLayout> {
-    const system = this.buildSystemPrompt(opts.validComponentIds);
+    const system = this.buildSystemPrompt(opts.validComponentIds, opts.propSchema);
 
     const userContent: Anthropic.ContentBlockParam[] = [];
     if (opts.imageUrl) {
@@ -58,13 +69,26 @@ export class ClaudeExtractorService {
         source: { type: 'url', url: opts.imageUrl },
       });
     }
+
+    const assetLines = Object.entries(opts.assetUrls ?? {})
+      .map(([nodeId, url]) => `- node ${nodeId}: ${url}`)
+      .join('\n');
+    const assetBlock = assetLines
+      ? `\n\nRe-hosted images for nodes in this frame (use these exact URLs for ` +
+        `the matching section's image prop, e.g. backgroundImageUrl / url / ` +
+        `imageBefore / logoUrl):\n${assetLines}`
+      : '';
+
     userContent.push({
       type: 'text',
       text:
-        `Figma frame "${frame.name}" (id ${frame.id}). Reduced node tree:\n\n` +
+        `Figma frame "${frame.name}" (id ${frame.id}). Reduced node tree ` +
+        '(includes text, font, backgroundColor, and imageRef where present):\n\n' +
         '```json\n' +
         JSON.stringify(frame, null, 2) +
-        '\n```\n\nReturn ONLY the page layout JSON.',
+        '\n```' +
+        assetBlock +
+        '\n\nReturn ONLY the page layout JSON.',
     });
 
     const messages: Anthropic.MessageParam[] = [
@@ -131,10 +155,28 @@ export class ClaudeExtractorService {
       .trim();
   }
 
-  private buildSystemPrompt(validComponentIds: string[]): string {
+  private buildSystemPrompt(
+    validComponentIds: string[],
+    propSchema?: string,
+  ): string {
     const pageTypes = PageTypeEnum.options.join(', ');
+    const componentSection = propSchema
+      ? [
+          'The "componentId" MUST be chosen from this registry. Each line lists a',
+          'component and the prop keys it accepts — fill props using ONLY these keys:',
+          propSchema,
+        ]
+      : [
+          'The "componentId" MUST be chosen from this registry list (closest match):',
+          validComponentIds.join(', '),
+          '',
+          'Common section props you may set: title, subtitle, ctaText, ctaLink,',
+          'backgroundImageUrl, backgroundColor, textColor, fontFamily, columns.',
+        ];
     return [
-      'You convert a single Figma frame into a storefront page layout.',
+      'You convert a single Figma frame into a storefront page layout that ',
+      'reproduces the design as closely as possible USING THE EXISTING components ',
+      '(no pixel positioning — pick the closest section and fill its props).',
       '',
       'Output a JSON object with this exact shape:',
       '{ "pageType": <one of the page types>, "slug"?: string, "components": UIComponentRef[] }',
@@ -147,12 +189,15 @@ export class ClaudeExtractorService {
       `Valid "pageType" values: ${pageTypes}.`,
       '',
       'Each top-level component is a section; nested layers become its "blocks".',
-      'The "componentId" MUST be chosen from this registry list (closest match):',
-      validComponentIds.join(', '),
+      ...componentSection,
       '',
       'Rules:',
       '- Map each meaningful Figma layer/group to one component; ignore purely decorative wrappers.',
       '- Preserve top-to-bottom visual order via the "order" field (0-based).',
+      '- Copy real text from the node tree into props (title/subtitle/ctaText/etc.).',
+      '- Use node "backgroundColor" for backgroundColor/textColor and "font" for fontFamily.',
+      '- For images, use ONLY the re-hosted MinIO URLs provided in the user message ' +
+        '(never invent URLs or reuse expiring Figma links).',
       '- If unsure which registry component fits, pick the closest and still use a valid id.',
       '- Respond with ONLY the JSON object. No prose, no markdown code fences.',
     ].join('\n');

@@ -56,6 +56,28 @@ export class UpdatePromotionDto {
   @IsOptional()
   description?: string;
 
+  @IsEnum(['percentage', 'fixed'])
+  @IsOptional()
+  discountType?: 'percentage' | 'fixed';
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  discountValue?: number;
+
+  @IsDateString()
+  @IsOptional()
+  startsAt?: string;
+
+  @IsDateString()
+  @IsOptional()
+  expiresAt?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  usageLimit?: number;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

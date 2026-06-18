@@ -1,16 +1,40 @@
 "use client";
 
-import React, { use } from "react";
-import { Palette, Play, Layout, ArrowLeft, Paintbrush, Zap } from "lucide-react";
+import React, { useState } from "react";
+import { Palette, Play, Layout, ArrowLeft, Paintbrush, Zap, Save, FolderHeart, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
 
 export default function ThemesPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
+  const router = useRouter();
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", category: "" });
+
+  const submitSave = async () => {
+    if (!form.title.trim()) {
+      toast.error("Vui lòng nhập tên theme.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiClient.post(`/api/themes/from-shop/${shopId}`, form);
+      toast.success("Đã lưu thiết kế thành theme (bản nháp).");
+      setSaveOpen(false);
+      router.push(`/dashboard/${shopId}/online-store/themes/mine`);
+    } catch (err: any) {
+      toast.error(`Lưu thất bại: ${err.message}`);
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
-         <Link 
+         <Link
            href={`/dashboard/${shopId}`}
            className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
          >
@@ -26,7 +50,79 @@ export default function ThemesPage({ params }: { params: Promise<{ shopId: strin
           <h1 className="text-4xl font-extrabold text-white">Giao diện cửa hàng</h1>
           <p className="text-slate-400 max-w-xl">Quản lý và tùy chỉnh giao diện người dùng. OmniCommerce sử dụng <strong>Zero-File Engine</strong> để render giao diện siêu tốc.</p>
         </div>
+        <div className="flex flex-wrap gap-3 shrink-0">
+          <button
+            onClick={() => setSaveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 font-semibold text-white transition-all hover:bg-white/10"
+          >
+            <Save size={18} /> Lưu thành theme
+          </button>
+          <Link
+            href={`/dashboard/${shopId}/online-store/themes/mine`}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 font-semibold text-white transition-all hover:bg-white/10"
+          >
+            <FolderHeart size={18} /> Theme của tôi
+          </Link>
+          <Link
+            href={`/dashboard/${shopId}/online-store/themes/market`}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-3 font-semibold text-white transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+          >
+            <Zap size={18} /> Chợ giao diện
+          </Link>
+        </div>
       </div>
+
+      {saveOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-8 space-y-5">
+            <div>
+              <h3 className="text-xl font-bold text-white">Lưu thiết kế thành theme</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Chụp lại thiết kế <strong>bản nháp hiện tại</strong> của shop thành một theme. Bạn có thể gửi duyệt để đăng lên chợ.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <input
+                autoFocus
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Tên theme *"
+                className="w-full rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none"
+              />
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Mô tả (tuỳ chọn)"
+                rows={3}
+                className="w-full rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none resize-none"
+              />
+              <input
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="Ngành hàng / danh mục (tuỳ chọn)"
+                className="w-full rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setSaveOpen(false)}
+                disabled={saving}
+                className="rounded-full px-5 py-2.5 font-medium text-slate-300 hover:text-white disabled:opacity-50"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={submitSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-semibold text-black hover:bg-slate-200 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+                Lưu theme
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Current Theme Card */}

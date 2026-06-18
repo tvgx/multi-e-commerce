@@ -30,6 +30,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@better-auth/prisma-adapter": "^1.5.5",
     "@ecommerce/database": "*",
+    "@ecommerce/schema": "*",
     "@ecommerce/ui-registry": "*",
     "@nestjs/bull": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.2",

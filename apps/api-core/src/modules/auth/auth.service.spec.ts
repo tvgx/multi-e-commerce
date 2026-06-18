@@ -314,13 +314,19 @@ describe('AuthService', () => {
     });
 
     describe('changePassword', () => {
-      it('delegates to ownerAuth.api.changePassword', async () => {
+      it('delegates to ownerAuth.api.changePassword with session headers', async () => {
         ownerAuth.api.changePassword.mockResolvedValue({});
-        const res = await service.changePassword('u1', {
-          oldPassword: 'old',
-          newPassword: 'new123',
-        });
+        const req = { headers: { cookie: 'owner.session_token=abc' } } as any;
+        const res = await service.changePassword(
+          'u1',
+          { oldPassword: 'old', newPassword: 'new123' },
+          req,
+        );
         expect(res.success).toBe(true);
+        // AUTH-1: phải truyền headers, nếu không better-auth không có session.
+        expect(ownerAuth.api.changePassword).toHaveBeenCalledWith(
+          expect.objectContaining({ headers: expect.anything() }),
+        );
       });
     });
 

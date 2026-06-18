@@ -68,6 +68,40 @@ describe('PromotionsService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.promotion.update).not.toHaveBeenCalled();
     });
+
+    // PROMO-1: discount value/type/dates/limit phải được lưu, không chỉ name/desc/isActive.
+    it('persists discount fields and parses dates', async () => {
+      prisma.promotion.findFirst.mockResolvedValue({ id: 'p1', shopId: SHOP });
+      prisma.promotion.update.mockResolvedValue({ id: 'p1' });
+      await service.update('p1', {
+        discountType: 'fixed',
+        discountValue: 250,
+        startsAt: '2026-07-01T00:00:00.000Z',
+        expiresAt: '2026-07-31T00:00:00.000Z',
+        usageLimit: 100,
+      } as any);
+      expect(prisma.promotion.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: {
+          discountType: 'fixed',
+          discountValue: 250,
+          startsAt: new Date('2026-07-01T00:00:00.000Z'),
+          expiresAt: new Date('2026-07-31T00:00:00.000Z'),
+          usageLimit: 100,
+        },
+      });
+    });
+
+    // PROMO-1: field không gửi thì không được ghi (partial update, tránh xoá nhầm).
+    it('omits fields that were not supplied', async () => {
+      prisma.promotion.findFirst.mockResolvedValue({ id: 'p1', shopId: SHOP });
+      prisma.promotion.update.mockResolvedValue({ id: 'p1' });
+      await service.update('p1', { name: 'New' } as any);
+      expect(prisma.promotion.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { name: 'New' },
+      });
+    });
   });
 
   describe('remove', () => {

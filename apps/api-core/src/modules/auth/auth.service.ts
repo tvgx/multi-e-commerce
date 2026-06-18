@@ -267,13 +267,20 @@ export class AuthService {
     }
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<BaseResponseDto<any>> {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    request: Request,
+  ): Promise<BaseResponseDto<any>> {
     try {
+      // AUTH-1: truyền session headers để better-auth xác định đúng owner đang
+      // đăng nhập và xác minh currentPassword với tài khoản đó.
       await this.ownerAuth.api.changePassword({
         body: {
           currentPassword: dto.oldPassword,
           newPassword: dto.newPassword,
         },
+        headers: fromNodeHeaders(request.headers),
       });
       this.logger.log(`Password changed for user: ${userId}`);
       return BaseResponseDto.success({ message: 'Password changed successfully' });

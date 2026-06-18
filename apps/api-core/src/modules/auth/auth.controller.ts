@@ -127,8 +127,15 @@ export class AuthController {
   }
 
   @Post('change-password')
-  async changePassword(@CurrentUser() user: any, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(user.id, dto);
+  async changePassword(
+    @CurrentUser() user: any,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: any,
+  ) {
+    // AUTH-1: better-auth.changePassword cần session headers để biết đổi mật
+    // khẩu cho user nào + xác minh currentPassword. Trước đây không truyền headers
+    // nên luôn báo lỗi. Forward req để service dựng lại headers từ cookie.
+    return this.authService.changePassword(user.id, dto, req);
   }
 
   @Post('logout')

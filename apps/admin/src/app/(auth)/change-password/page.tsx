@@ -17,7 +17,10 @@ export default function ChangePasswordPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const res = await fetch(`${apiUrl}/api/auth/change-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // AUTH-1: credentials:'include' để gửi cookie session owner — thiếu nó
+        // BE không có session, đổi mật khẩu luôn fail.
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'x-auth-type': 'owner' },
         body: JSON.stringify({ newPassword, currentPassword, revokeOtherSessions: true }),
       });
       

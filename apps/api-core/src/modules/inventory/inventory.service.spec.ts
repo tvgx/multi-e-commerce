@@ -109,6 +109,17 @@ describe('InventoryService', () => {
         data: expect.objectContaining({ quantityDelta: 4, reason: 'order_refund' }),
       });
     });
+
+    it('is idempotent — skips when a refund movement already exists (INV-1)', async () => {
+      prisma.stockMovement.findFirst.mockResolvedValue({ id: 'm-refund' });
+
+      const res = await service.restoreStock('order-9');
+
+      expect(res).toBe(false);
+      expect(prisma.stockMovement.findMany).not.toHaveBeenCalled();
+      expect(prisma.stockItem.update).not.toHaveBeenCalled();
+      expect(prisma.stockMovement.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('adjustStock', () => {

@@ -133,12 +133,87 @@ export const UIComponentCatalogSchema: Schema = new Schema({
     allowedBlocks: [{ type: String }],
 }, { timestamps: true, collection: 'ui_component_catalog' });
 
+// ------------------------------------------
+// 5. Theme Market (curated, ready-to-apply themes)
+// ------------------------------------------
+
+/**
+ * A reusable, multi-page theme browsable in the admin "Theme Market" and
+ * applied to a shop's draft layout in one click. Curated by admins from
+ * design-agent Figma extractions (the `source` traces the origin).
+ *
+ * Storage note: images are NEVER stored here — only MinIO URLs inside
+ * `global`/`pages` props and `previewImageUrl`. The document is small JSON
+ * (well under Atlas's 16MB/doc limit). `global`/`pages` are already in the
+ * builder's editor shape so applying a theme is a direct copy into
+ * GlobalLayout.draftData / PageLayout.draftData.
+ */
+export interface IThemeTemplate extends Document {
+    themeId: string; // unique slug, e.g. "minimal-fashion"
+    title: string;
+    description?: string;
+    category?: string; // industry/category label
+    status: 'draft' | 'pending' | 'published'; // pending = awaiting admin review
+    previewImageUrl?: string;
+    thumbnails: string[];
+    source?: { figmaFileKey?: string; figmaNodeIds: string[] };
+    global: Record<string, unknown>; // { theme, globalComponents }
+    pages: Record<string, unknown>; // { home: [...], product_listing: [...], ... }
+    assetKeys: string[]; // MinIO object keys for cleanup on delete
+    tenantId: string | null; // null = shared market theme
+    ownerUserId: string | null; // creator; null = admin/platform-owned
+    ownerShopId: string | null; // shop a "save as theme" was captured from
+    // Commerce fields — reserved; everything is free for now (no payment wired).
+    pricing: { isPaid: boolean; priceCents: number; currency: string };
+    // Review workflow metadata.
+    review: {
+        submittedAt?: Date;
+        reviewedAt?: Date;
+        reviewedBy?: string; // admin userId
+        rejectionReason?: string;
+    };
+    version: number;
+}
+
+export const ThemeTemplateSchema: Schema = new Schema({
+    themeId: { type: String, required: true, unique: true, index: true },
+    title: { type: String, required: true },
+    description: { type: String, default: '' },
+    category: { type: String, index: true },
+    status: { type: String, enum: ['draft', 'pending', 'published'], default: 'draft', index: true },
+    previewImageUrl: { type: String },
+    thumbnails: [{ type: String }],
+    source: {
+        figmaFileKey: { type: String },
+        figmaNodeIds: [{ type: String }],
+    },
+    global: { type: Schema.Types.Mixed, default: {} },
+    pages: { type: Schema.Types.Mixed, default: {} },
+    assetKeys: [{ type: String }],
+    tenantId: { type: String, default: null, index: true },
+    ownerUserId: { type: String, default: null, index: true },
+    ownerShopId: { type: String, default: null },
+    pricing: {
+        isPaid: { type: Boolean, default: false },
+        priceCents: { type: Number, default: 0 },
+        currency: { type: String, default: 'VND' },
+    },
+    review: {
+        submittedAt: { type: Date },
+        reviewedAt: { type: Date },
+        reviewedBy: { type: String },
+        rejectionReason: { type: String },
+    },
+    version: { type: Number, default: 1 },
+}, { timestamps: true, collection: 'theme_templates' });
+
 // Exports
 export const GlobalLayout = mongoose.models.GlobalLayout || mongoose.model<IGlobalLayout>('GlobalLayout', GlobalLayoutSchema);
 export const PageLayout = mongoose.models.PageLayout || mongoose.model<IPageLayout>('PageLayout', PageLayoutSchema);
 export const ProductLayout = mongoose.models.ProductLayout || mongoose.model<IProductLayout>('ProductLayout', ProductLayoutSchema);
 export const MasterTemplateCatalog = mongoose.models.MasterTemplateCatalog || mongoose.model<IMasterTemplateCatalog>('MasterTemplateCatalog', MasterTemplateCatalogSchema);
 export const UIComponentCatalog = mongoose.models.UIComponentCatalog || mongoose.model<IUIComponentCatalog>('UIComponentCatalog', UIComponentCatalogSchema);
+export const ThemeTemplate = mongoose.models.ThemeTemplate || mongoose.model<IThemeTemplate>('ThemeTemplate', ThemeTemplateSchema);
 
 /**
  * @deprecated Use ProductLayout instead. Kept for backward compatibility during migration.

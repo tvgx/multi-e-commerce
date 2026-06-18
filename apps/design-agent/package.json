@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "extract": "ts-node --transpile-only -P tsconfig.json src/main.ts extract",
+    "promote-theme": "ts-node --transpile-only -P tsconfig.json src/main.ts promote-theme",
     "build-index": "ts-node --transpile-only -P tsconfig.json src/main.ts build-index",
     "rag-query": "ts-node --transpile-only -P tsconfig.json src/main.ts rag-query",
     "rag-eval": "ts-node --transpile-only -P tsconfig.json test/rag-eval/evaluate.ts",
@@ -23,6 +24,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0",
+    "@aws-sdk/client-s3": "^3.883.0",
     "@ecommerce/master-templates": "*",
     "@ecommerce/schema": "*",
     "@ecommerce/ui-registry": "*",

@@ -25,6 +25,7 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { LayoutModule } from './modules/layout/layout.module';
+import { ThemeMarketModule } from './modules/theme-market/theme-market.module';
 import { MediaModule } from './modules/media/media.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { EmailModule } from './modules/email/email.module';
@@ -91,6 +92,7 @@ import { BuildModule } from './modules/build/build.module';
     ChatModule,
     NotificationsModule,
     LayoutModule,
+    ThemeMarketModule,
     MediaModule,
     TemplatesModule,
     PromotionsModule,

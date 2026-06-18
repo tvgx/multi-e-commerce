@@ -6,6 +6,7 @@ import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { EmailService } from '../email/email.service';
+import { OrderService } from '../order/order.service';
 
 @Injectable()
 export class PaymentService {
@@ -14,7 +15,8 @@ export class PaymentService {
     private readonly tenantService: TenantService,
     @InjectQueue('payment-timeout') private readonly timeoutQueue: Queue,
     private readonly notificationsGateway: NotificationsGateway,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly orderService: OrderService,
   ) {}
 
   private getShopId(): string {
@@ -105,27 +107,26 @@ export class PaymentService {
            }
          }
        } else {
-         await tx.payment.update({
-           where: { id: payment.id },
-           data: { state: 'failed' }
+         if (!order) throw new NotFoundException('Order not found');
+
+         // PAY-1: từ chối thanh toán phải HOÀN KHO — đơn chuyển khoản đã trừ kho
+         // lúc checkout. Trước đây chỉ set state 'canceled' nên rò rỉ tồn kho.
+         // voidOrder cũng đánh dấu payment đang chờ là 'failed' (failPayments).
+         await this.orderService.voidOrder(tx, order, {
+           restock: true,
+           failPayments: true,
+           createdBy: 'system',
          });
 
-         await tx.order.update({
-           where: { id: confirmToken.orderId },
-           data: { state: 'canceled', paymentState: 'failed' }
-         });
-
-         if (order) {
-           this.notificationsGateway.notifyUser(
-             order.shopId,
-             order.customerId,
-             'CUSTOMER',
-             'PAYMENT_REJECTED',
-             'Payment Rejected',
-             `Your payment for order ${order.number || order.id} has been rejected.`,
-             { orderId: order.id, paymentId: payment.id }
-           ).catch(err => console.error('Notification error', err));
-         }
+         this.notificationsGateway.notifyUser(
+           order.shopId,
+           order.customerId,
+           'CUSTOMER',
+           'PAYMENT_REJECTED',
+           'Payment Rejected',
+           `Your payment for order ${order.number || order.id} has been rejected.`,
+           { orderId: order.id, paymentId: payment.id }
+         ).catch(err => console.error('Notification error', err));
        }
 
        return { success: true, action };

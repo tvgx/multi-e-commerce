@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { EmailService } from '../email/email.service';
+import { OrderService } from '../order/order.service';
 import {
   CreateShippingMethodDto,
   UpdateShippingMethodDto,
@@ -27,6 +28,7 @@ export class ShippingService {
     private readonly tenantService: TenantService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly emailService: EmailService,
+    private readonly orderService: OrderService,
   ) {}
 
   private getShopId(): string {
@@ -183,19 +185,36 @@ export class ShippingService {
       if (dto.state === 'delivered') data.deliveredAt = new Date();
     }
 
+    let refunded = false;
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.shipment.update({ where: { id }, data });
 
       // Đồng bộ shipmentState (và state nếu hợp lệ) trên Order
       if (data.state) {
-        const orderData: any = { shipmentState: data.state };
-        if (data.state === 'shipped' && ['confirmed', 'processing'].includes(shipment.order.state)) {
-          orderData.state = 'shipped';
+        // SHIP-1 (chủ đề xuyên suốt #1): shipment trả/huỷ phải hoàn kho + hoàn ví —
+        // trước đây chỉ đổi state, kho không phục hồi và khách trả ví bị mất tiền.
+        // returned: hàng quay về kho; canceled: chỉ từ pending/ready nên hàng chưa đi.
+        // restoreStock idempotent nên không sợ cộng kho gấp đôi với các đường huỷ khác.
+        if (data.state === 'returned' || data.state === 'canceled') {
+          const res = await this.orderService.voidOrder(tx, shipment.order, {
+            nextState: data.state === 'returned' ? 'returned' : 'canceled',
+            restock: true,
+            refund: true,
+            createdBy: 'admin',
+          });
+          refunded = res.refunded;
+          // voidOrder đặt order.state; còn lại đồng bộ shipmentState cho khớp shipment.
+          await tx.order.update({ where: { id: shipment.orderId }, data: { shipmentState: data.state } });
+        } else {
+          const orderData: any = { shipmentState: data.state };
+          if (data.state === 'shipped' && ['confirmed', 'processing'].includes(shipment.order.state)) {
+            orderData.state = 'shipped';
+          }
+          if (data.state === 'delivered' && shipment.order.state === 'shipped') {
+            orderData.state = 'delivered';
+          }
+          await tx.order.update({ where: { id: shipment.orderId }, data: orderData });
         }
-        if (data.state === 'delivered' && shipment.order.state === 'shipped') {
-          orderData.state = 'delivered';
-        }
-        await tx.order.update({ where: { id: shipment.orderId }, data: orderData });
       }
 
       return result;
@@ -228,6 +247,19 @@ export class ShippingService {
           this.emailService.sendOrderShipped(customer.email, shipment.order).catch(console.error);
         }
       }
+    }
+
+    // SHIP-1: báo khách đã được hoàn tiền vào ví (voidOrder đã cộng store credit).
+    if (refunded) {
+      this.notificationsGateway.notifyUser(
+        shopId,
+        shipment.order.customerId,
+        'CUSTOMER',
+        'ORDER_REFUNDED',
+        'Order Refunded',
+        `${shipment.order.totalAmount.toLocaleString('vi-VN')}đ for order ${shipment.order.number} has been refunded to your wallet.`,
+        { orderId: shipment.orderId },
+      ).catch(err => console.error('Notification error', err));
     }
 
     return updated;

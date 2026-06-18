@@ -118,13 +118,25 @@ export class InventoryService {
     return this.prisma.$transaction(run);
   }
 
+  /**
+   * Hoàn kho cho một đơn (cộng lại theo các movement `order_fulfillment`).
+   *
+   * - Idempotent (INV-1): nếu đơn đã có movement `order_refund` thì bỏ qua, tránh
+   *   cộng kho gấp đôi khi nhiều đường huỷ cùng chạy cho 1 đơn (reject + timeout,
+   *   admin huỷ + khách tự huỷ, retry job...).
+   * - Không phụ thuộc tenant context: shopId lấy từ chính movement gốc nên gọi được
+   *   cả từ Bull worker (payment-timeout) không có request scope. orderId là UUID
+   *   định danh đơn toàn cục nên không cần lọc thêm theo shop.
+   */
   async restoreStock(orderId: string, txPrisma?: any) {
-    const shopId = this.tenantService.getTenantId();
-    if (!shopId) throw new BadRequestException('Shop context required');
-
     const run = async (tx: any) => {
+      const alreadyRestored = await tx.stockMovement.findFirst({
+        where: { orderId, reason: 'order_refund' },
+      });
+      if (alreadyRestored) return false;
+
       const movements = await tx.stockMovement.findMany({
-        where: { shopId, orderId, reason: 'order_fulfillment' }
+        where: { orderId, reason: 'order_fulfillment' }
       });
 
       for (const movement of movements) {
@@ -135,7 +147,7 @@ export class InventoryService {
 
          await tx.stockMovement.create({
             data: {
-               shopId,
+               shopId: movement.shopId,
                variantId: movement.variantId,
                stockItemId: movement.stockItemId,
                quantityDelta: Math.abs(movement.quantityDelta),

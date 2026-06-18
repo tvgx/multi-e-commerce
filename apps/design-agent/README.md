@@ -7,14 +7,21 @@ tiên của design-agent lớn hơn (RAG + chatbot hỏi đáp về layout).
 ## Pipeline
 
 ```
-Figma REST file ──► NodeTreeReducer ──► ClaudeExtractorService ──► ComponentMapperService ──► MongoRepository
- (FigmaClient)      (bỏ styling)        (claude-sonnet-4-6,         (đối chiếu id với           (upsert theo
-                                         Zod parse + retry≤2)        UI registry)                figma_node_id)
+Figma REST file ─► NodeTreeReducer ─► AssetPipeline ─► ClaudeExtractor ─► ComponentMapper ─► MongoRepository
+ (FigmaClient)      (giữ text/font/     (ảnh fill →       (sonnet-4-6 +        (đối chiếu id      (upsert theo
+                     color/imageRef)     MinIO URL bền)    prop-schema)         với UI registry)   figma_node_id)
 ```
 
 - **Schema đích là `ShopPageLayout` của `@ecommerce/schema`** — kết quả trích xuất
   render được ngay trên storefront. `FigmaPageExtractionSchema` chỉ là lớp bọc
   mỏng thêm metadata Figma (`figma_node_id`, `figma_version`, `tenant_id`, …).
+- **Trích xuất bám sát thiết kế bằng section có sẵn.** Reducer giữ thêm text,
+  font, màu nền (SOLID fill → hex) và `imageRef` (IMAGE fill); `AssetPipeline`
+  tải ảnh fill từ Figma rồi up vào MinIO (`shop-layouts/_themes/<fileKey>/`,
+  idempotent theo sha1) trả về **URL bền**; prompt Claude được nạp thêm
+  prop-schema từng component (đọc `component-schemas.ts`) + map ảnh để điền đúng
+  prop (`backgroundImageUrl`/`logoUrl`/…). Không pixel-perfect — chọn section gần
+  nhất rồi điền props.
 - **Không dùng structured outputs.** `UIComponentRef` đệ quy (`blocks[]`), mà
   `output_config.format` của Claude không nhận schema đệ quy — nên ta prompt lấy
   JSON rồi validate bằng `ShopPageLayoutSchema.parse()`, retry tối đa 2 lần, lỗi
@@ -79,6 +86,13 @@ ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
 MONGO_DB_ATLAS=mongodb://localhost:27017/ecommerce
 VOYAGE_API_KEY=pa-xxxxxxxxxxxx          # chỉ cần cho RAG (build-index / rag-query / rag-eval)
 # VOYAGE_MODEL=voyage-3                 # tuỳ chọn, mặc định voyage-3
+
+# MinIO — để AssetPipeline re-host ảnh fill (dùng chung cấu hình với api-core)
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+# CDN_BASE_URL=http://localhost:9000    # tuỳ chọn; mặc định = http://MINIO_ENDPOINT:MINIO_PORT
 ```
 
 ### 5. Chạy thử (dry-run — không ghi DB)
@@ -111,8 +125,8 @@ npm run design-agent -- --file-key=AbCdEf123456
 # gắn tenant
 npm run design-agent -- --file-key=AbCdEf123456 --tenant=shop_1
 
-# gửi kèm ảnh export của frame cho Claude (chính xác hơn, tốn token hơn)
-npm run design-agent -- --file-key=AbCdEf123456 --with-images
+# tắt ảnh render frame nếu muốn tiết kiệm token (mặc định đã bật)
+npm run design-agent -- --file-key=AbCdEf123456 --no-images
 ```
 
 ### 7. Các option của lệnh `extract`
@@ -121,8 +135,8 @@ npm run design-agent -- --file-key=AbCdEf123456 --with-images
 |--------|---------|
 | `--file-key <key>` | File key Figma. Không truyền thì lấy `FIGMA_FILE_KEY` trong `.env`. |
 | `--tenant <id>` | Gắn `tenant_id` cho bản ghi (đa tenant). Bỏ trống = `null` (dùng chung). |
-| `--dry-run` | In JSON ra stdout, **không** ghi DB. |
-| `--with-images` | Gọi thêm `/v1/images` và đính ảnh frame vào prompt Claude. |
+| `--dry-run` | In JSON ra stdout, **không** ghi MongoDB (vẫn có thể re-host ảnh lên MinIO). |
+| `--no-images` | **Tắt** việc đính ảnh render frame vào prompt (mặc định bật để bám sát thiết kế). |
 
 Xem trợ giúp:
 
@@ -139,6 +153,35 @@ mongosh "$MONGO_DB_ATLAS" --eval 'db.page_layouts.find({}, {figma_node_id:1, nam
 
 Chạy lại cùng file → các document được **cập nhật** (không nhân bản) nhờ unique
 index trên `figma_node_id`.
+
+---
+
+## Theme Market (curate → apply)
+
+Sau khi extract, admin biến các bản trích xuất thành **theme dùng chung** cho
+người dùng chọn-và-áp-dụng. Lệnh `promote-theme` đọc `page_layouts`, chuyển sang
+định dạng editor (`convertExtractionsToTheme` của `@ecommerce/schema`: tách
+Header/Footer/AnnouncementBar ra `globalComponents`, gom còn lại theo `pageType`)
+rồi upsert vào collection **`theme_templates`**.
+
+```bash
+# gom theo tenant (hoặc bỏ --tenant để lấy phần dùng chung tenant_id=null)
+npm run promote-theme -- --theme-id=minimal-fashion --title="Minimal Fashion" \
+  --category=fashion --tenant=shop_1
+
+# hoặc chỉ định đúng các frame, và publish luôn ra market
+npm run promote-theme -- --theme-id=tech-store --title="Tech Store" \
+  --node-ids=1:23,1:88 --publish
+```
+
+- **Ảnh** trong theme là URL MinIO bền do AssetPipeline tạo lúc extract; theme
+  **không** lưu bytes ảnh, chỉ lưu URL (an toàn dưới giới hạn 16MB/doc Atlas).
+- **Áp dụng:** admin mở *Chợ giao diện* (`/dashboard/<shopId>/online-store/themes/market`)
+  → `POST /api/themes/:themeId/apply/:shopId` (api-core) ghi theme vào
+  `GlobalLayout.draftData` + `PageLayout.draftData` của shop **(chỉ bản nháp)** rồi
+  điều hướng sang builder. Khi shop publish, `LayoutService` tự materialize ảnh
+  URL vào bucket riêng của shop.
+- `PATCH /api/themes/:themeId/publish` (ADMIN) để duyệt theme draft → published.
 
 ---
 

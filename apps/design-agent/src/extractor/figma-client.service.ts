@@ -79,4 +79,30 @@ export class FigmaClient {
     const data = (await res.json()) as { images?: Record<string, string | null> };
     return data.images ?? {};
   }
+
+  /**
+   * GET /v1/files/:key/images — map of `imageRef` -> original uploaded image
+   * URL for every IMAGE fill in the file. Used by the asset pipeline to fetch
+   * the real source asset behind a node's image fill (vs the flattened node
+   * render from {@link getImages}). The URLs are short-lived S3 links, so the
+   * pipeline downloads + re-hosts them on MinIO.
+   */
+  async getImageFills(fileKey: string): Promise<Record<string, string>> {
+    const res = await fetch(`${this.baseUrl}/files/${fileKey}/images`, {
+      headers: { 'X-Figma-Token': this.token },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      this.logger.warn(
+        `Figma getImageFills failed: ${res.status} ${res.statusText} ${body}`,
+      );
+      return {};
+    }
+
+    const data = (await res.json()) as {
+      meta?: { images?: Record<string, string> };
+    };
+    return data.meta?.images ?? {};
+  }
 }

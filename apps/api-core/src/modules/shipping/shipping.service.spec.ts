@@ -5,6 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { EmailService } from '../email/email.service';
+import { OrderService } from '../order/order.service';
 import { createMockPrisma, MockPrisma } from '../../../test/helpers/prisma-mock';
 
 describe('ShippingService', () => {
@@ -13,6 +14,7 @@ describe('ShippingService', () => {
   let tenant: { getTenantId: jest.Mock };
   let gateway: { notifyUser: jest.Mock };
   let email: { sendOrderShipped: jest.Mock };
+  let orderService: { voidOrder: jest.Mock };
 
   const SHOP = 'shop-1';
   const CUSTOMER = 'cust-1';
@@ -22,6 +24,7 @@ describe('ShippingService', () => {
     tenant = { getTenantId: jest.fn().mockReturnValue(SHOP) };
     gateway = { notifyUser: jest.fn().mockResolvedValue(undefined) };
     email = { sendOrderShipped: jest.fn().mockResolvedValue(undefined) };
+    orderService = { voidOrder: jest.fn().mockResolvedValue({ order: {}, refunded: false }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +33,7 @@ describe('ShippingService', () => {
         { provide: TenantService, useValue: tenant },
         { provide: NotificationsGateway, useValue: gateway },
         { provide: EmailService, useValue: email },
+        { provide: OrderService, useValue: orderService },
       ],
     }).compile();
 
@@ -182,6 +186,39 @@ describe('ShippingService', () => {
         expect.objectContaining({ orderId: 'o1', shipmentId: 'sh1', state: 'shipped' }),
       );
       expect(email.sendOrderShipped).toHaveBeenCalledWith('buyer@test.dev', expect.any(Object));
+    });
+
+    it('SHIP-1: a returned shipment voids the order (restock + refund) and notifies', async () => {
+      prisma.shipment.findFirst.mockResolvedValue({
+        id: 'sh1',
+        state: 'delivered',
+        orderId: 'o1',
+        order: {
+          id: 'o1', number: 'ORD-1', state: 'delivered', customerId: CUSTOMER,
+          totalAmount: 250000, paymentState: 'paid', shopId: SHOP,
+        },
+      });
+      prisma.shipment.update.mockResolvedValue({ id: 'sh1', state: 'returned' });
+      orderService.voidOrder.mockResolvedValue({ order: {}, refunded: true });
+
+      await service.updateShipment('sh1', { state: 'returned' } as any);
+
+      expect(orderService.voidOrder).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ id: 'o1', paymentState: 'paid' }),
+        expect.objectContaining({ nextState: 'returned', restock: true, refund: true }),
+      );
+      // shipmentState synced, order.state left to voidOrder
+      expect(prisma.order.update).toHaveBeenCalledWith({
+        where: { id: 'o1' },
+        data: { shipmentState: 'returned' },
+      });
+      // refund notification fired
+      expect(gateway.notifyUser).toHaveBeenCalledWith(
+        SHOP, CUSTOMER, 'CUSTOMER', 'ORDER_REFUNDED',
+        'Order Refunded', expect.stringContaining('order ORD-1'),
+        expect.objectContaining({ orderId: 'o1' }),
+      );
     });
   });
 

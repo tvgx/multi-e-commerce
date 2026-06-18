@@ -11,6 +11,21 @@ import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import { WalletService, WALLET_PAYMENT_TYPE } from '../wallet/wallet.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
+
+/** Đơn tối thiểu cần để huỷ/hoàn — dùng order.shopId nên voidOrder không phụ thuộc tenant context. */
+export interface VoidableOrder {
+  id: string;
+  number: string;
+  customerId: string;
+  totalAmount: number;
+  paymentState: string;
+  state?: string;
+  shopId?: string;
+}
+
+const PAYMENT_TIMEOUT_MS = 15 * 60 * 1000; // 15' chờ xác nhận chuyển khoản
 
 @Injectable()
 export class OrderService {
@@ -21,6 +36,7 @@ export class OrderService {
     private readonly notificationsGateway: NotificationsGateway,
     private readonly emailService: EmailService,
     private readonly walletService: WalletService,
+    @InjectQueue('payment-timeout') private readonly paymentTimeoutQueue: Queue,
   ) {}
 
   private getShopId(): string {
@@ -254,6 +270,15 @@ export class OrderService {
       qrCodeUrl: txOrder.confirmUrl ? await QRCode.toDataURL(txOrder.confirmUrl) : null,
     };
 
+    // PAY-2: đơn chuyển khoản đã trừ kho lúc checkout nhưng chưa trả tiền — lên lịch
+    // tự huỷ (hoàn kho) sau PAYMENT_TIMEOUT_MS nếu không có ai xác nhận. Trước đây
+    // schedulePaymentTimeout không nơi nào gọi → đơn treo, giữ kho vĩnh viễn.
+    if (validPaymentMethod.type === 'BankTransfer') {
+      await this.paymentTimeoutQueue
+        .add('check-payment-status', { orderId }, { delay: PAYMENT_TIMEOUT_MS })
+        .catch((err) => console.error('Failed to schedule payment timeout', err));
+    }
+
     // Notify customer
     this.notificationsGateway.notifyUser(
       shopId,
@@ -351,7 +376,14 @@ export class OrderService {
        throw new BadRequestException(`Cannot transition order state from ${order.state} to ${dto.status}`);
     }
 
-    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+    const { updatedOrder, refunded } = await this.prisma.$transaction(async (tx) => {
+      // ORD-1: admin huỷ đơn phải hoàn kho + hoàn ví (nếu đã thu tiền) — trước đây
+      // updateOrderStatus chỉ đổi state, khách trả ví bị mất tiền và kho không phục hồi.
+      if (dto.status === 'canceled') {
+        const res = await this.voidOrder(tx, order, { restock: true, refund: true, createdBy: 'admin' });
+        return { updatedOrder: res.order, refunded: res.refunded };
+      }
+
       // Đồng bộ shipment khi admin chuyển trạng thái đơn ở cấp order
       if (dto.status === 'shipped') {
         await tx.shipment.updateMany({
@@ -368,11 +400,6 @@ export class OrderService {
           where: { orderId: id, shopId, state: { in: ['shipped', 'delivered'] } },
           data: { state: 'returned' },
         });
-      } else if (dto.status === 'canceled') {
-        await tx.shipment.updateMany({
-          where: { orderId: id, shopId, state: { in: ['pending', 'ready'] } },
-          data: { state: 'canceled' },
-        });
       }
 
       const shipmentStateByOrderStatus: Record<string, string> = {
@@ -381,7 +408,7 @@ export class OrderService {
         returned: 'returned',
       };
 
-      return tx.order.update({
+      const updated = await tx.order.update({
         where: { id, shopId },
         data: {
           state: dto.status,
@@ -390,7 +417,12 @@ export class OrderService {
             : {}),
         },
       });
+      return { updatedOrder: updated, refunded: false };
     });
+
+    if (refunded) {
+      this.notifyWalletRefund(shopId, order);
+    }
 
     // Notify customer about status change
     this.notificationsGateway.notifyUser(
@@ -425,35 +457,11 @@ export class OrderService {
        throw new BadRequestException(`Cannot cancel order in ${order.state} state`);
     }
 
-    const wasPaid = order.paymentState === 'paid';
+    const { order: canceledOrder, refunded } = await this.prisma.$transaction((tx) =>
+      this.voidOrder(tx, order, { restock: true, refund: true, createdBy: 'system' }),
+    );
 
-    const canceledOrder = await this.prisma.$transaction(async (tx) => {
-       const updated = await tx.order.update({
-          where: { id },
-          data: {
-            state: 'canceled',
-            ...(wasPaid ? { paymentState: 'refunded' } : {}),
-          }
-       });
-
-       // Restore stock
-       await this.inventoryService.restoreStock(id, tx);
-
-       // Huỷ shipment chưa giao
-       await tx.shipment.updateMany({
-         where: { orderId: id, shopId, state: { in: ['pending', 'ready'] } },
-         data: { state: 'canceled' },
-       });
-
-       // Đơn đã thanh toán: hoàn tiền vào ví khách (store credit)
-       if (wasPaid) {
-         await this.refundToWallet(tx, order, 'system');
-       }
-
-       return updated;
-    });
-
-    if (wasPaid) {
+    if (refunded) {
       this.notifyWalletRefund(shopId, order);
     }
 
@@ -467,37 +475,97 @@ export class OrderService {
     if (order.paymentState === 'refunded') {
       throw new BadRequestException('Order has already been refunded');
     }
-    const wasPaid = order.paymentState === 'paid';
 
-    const refunded = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id },
-        data: { paymentState: 'refunded', state: 'canceled' },
-      });
+    // ORD-2: refund giờ cũng hoàn kho như cancelOrder — TRỪ khi hàng đã tới tay khách
+    // (delivered/completed/returned) thì giữ nguyên kho (hàng không quay về).
+    const goodsWithCustomer = ['delivered', 'completed', 'returned'].includes(order.state);
 
-      await tx.payment.updateMany({
-        where: { orderId: id, state: 'completed' },
-        data: { state: 'refunded' },
-      });
+    const { order: refundedOrder, refunded } = await this.prisma.$transaction((tx) =>
+      this.voidOrder(tx, order, { restock: !goodsWithCustomer, refund: true, createdBy: 'admin' }),
+    );
 
-      // Đơn đã thu tiền: hoàn vào ví khách (store credit)
-      if (wasPaid) {
-        await this.refundToWallet(tx, order, 'admin');
-      }
-
-      return updated;
-    });
-
-    if (wasPaid) {
+    if (refunded) {
       this.notifyWalletRefund(shopId, order);
     }
 
-    return refunded;
+    return refundedOrder;
+  }
+
+  /**
+   * Đường huỷ đơn DÙNG CHUNG cho mọi nhánh huỷ — khách tự huỷ, admin huỷ,
+   * từ chối/timeout thanh toán, refund (chủ đề xuyên suốt #1 trong DIAGNOSTIC-HANDOFF:
+   * logic hoàn kho + hoàn ví trước đây chỉ nối vào cancelOrder).
+   *
+   * PHẢI gọi bên trong một transaction. Dùng order.shopId thay vì tenant context
+   * nên gọi được cả từ Bull worker (payment-timeout) không có request scope.
+   *
+   * @returns { order: hàng đơn đã cập nhật, refunded: có hoàn ví hay không }
+   */
+  async voidOrder(
+    tx: any,
+    order: VoidableOrder,
+    opts: {
+      nextState?: string;     // trạng thái đích, mặc định 'canceled'
+      restock?: boolean;      // hoàn kho (idempotent ở InventoryService), mặc định true
+      refund?: boolean;       // hoàn ví nếu đơn đã 'paid'
+      failPayments?: boolean; // đánh dấu payment đang chờ là 'failed' (reject/timeout)
+      createdBy?: string;     // 'system' | 'admin' | 'customer'
+    } = {},
+  ): Promise<{ order: any; refunded: boolean }> {
+    const {
+      nextState = 'canceled',
+      restock = true,
+      refund = false,
+      failPayments = false,
+      createdBy = 'system',
+    } = opts;
+
+    const willRefund = refund && order.paymentState === 'paid' && order.totalAmount > 0;
+
+    const updated = await tx.order.update({
+      where: { id: order.id },
+      data: {
+        state: nextState,
+        ...(willRefund
+          ? { paymentState: 'refunded' }
+          : failPayments
+            ? { paymentState: 'failed' }
+            : {}),
+      },
+    });
+
+    if (restock) {
+      await this.inventoryService.restoreStock(order.id, tx);
+    }
+
+    // Huỷ shipment chưa giao (shipment đã shipped/delivered giữ nguyên)
+    await tx.shipment.updateMany({
+      where: { orderId: order.id, shopId: order.shopId, state: { in: ['pending', 'ready'] } },
+      data: { state: 'canceled' },
+    });
+
+    if (willRefund) {
+      // Đơn đã thu tiền: đánh dấu payment đã hoàn + cộng store credit vào ví khách
+      await tx.payment.updateMany({
+        where: { orderId: order.id, state: 'completed' },
+        data: { state: 'refunded' },
+      });
+      await this.refundToWallet(tx, order, createdBy);
+    } else if (failPayments) {
+      // Nhánh reject/timeout: đánh dấu payment chưa hoàn tất là thất bại
+      await tx.payment.updateMany({
+        where: { orderId: order.id, state: { in: ['checkout', 'pending'] } },
+        data: { state: 'failed' },
+      });
+    }
+
+    return { order: updated, refunded: willRefund };
   }
 
   /** Cộng lại tiền đơn hàng vào ví khách. Gọi bên trong transaction. */
-  private async refundToWallet(tx: any, order: { id: string; number: string; customerId: string; totalAmount: number }, createdBy: string) {
-    const shopId = this.getShopId();
+  private async refundToWallet(tx: any, order: VoidableOrder, createdBy: string) {
+    // order.shopId khi gọi từ worker (không tenant context); fallback tenant cho request scope.
+    const shopId = order.shopId ?? this.getShopId();
     if (order.totalAmount <= 0) return;
     const wallet = await this.walletService.getOrCreate(order.customerId, shopId, tx);
     await this.walletService.credit(tx, wallet.id, shopId, order.totalAmount, 'refund', {

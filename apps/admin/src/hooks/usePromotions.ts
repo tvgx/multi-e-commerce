@@ -2,15 +2,19 @@ import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
+// PROMO-1: field names phải khớp BE (DTO + Prisma + order.createOrder).
+// Trước đây FE dùng type/value/startDate/minOrderValue — không khớp DB nên
+// tạo/sửa khuyến mãi âm thầm hỏng. discountType là lowercase 'percentage'|'fixed'
+// (đúng theo order.createOrder & validate()); không có cột minOrderValue/maxDiscount.
 export interface Promotion {
   id: string;
-  code: string;
-  type: 'PERCENTAGE' | 'FIXED';
-  value: number;
-  minOrderValue?: number;
-  maxDiscount?: number;
-  startDate: string;
-  endDate?: string;
+  name: string;
+  code?: string;
+  description?: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  startsAt?: string;
+  expiresAt?: string;
   usageLimit?: number;
   usedCount: number;
   isActive: boolean;

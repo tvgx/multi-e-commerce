@@ -11,6 +11,9 @@ module.exports = {
     '^better-auth/adapters/prisma$':
       '<rootDir>/test/stubs/better-auth-prisma-adapter.js',
     '^better-auth$': '<rootDir>/test/stubs/better-auth.js',
+    // uuid v14 is ESM-only; bull `require`s it and ts-jest only transforms .ts(x).
+    // Map to a tiny CJS shim so bull-importing suites (order/payment/email) load.
+    '^uuid$': '<rootDir>/test/stubs/uuid.js',
   },
   modulePaths: ['<rootDir>/../../packages'],
   transform: {

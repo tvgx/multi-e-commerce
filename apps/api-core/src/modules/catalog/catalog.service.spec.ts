@@ -123,18 +123,19 @@ describe('CatalogService', () => {
   });
 
   describe('collections', () => {
-    it('addProductToCollection throws NotFound when either is missing', async () => {
+    it('addProductsToCollection throws NotFound when a product is missing', async () => {
       prisma.collection.findFirst.mockResolvedValue({ id: 'col1' });
-      prisma.product.findFirst.mockResolvedValue(null);
+      // One id requested but none belong to the shop → length mismatch.
+      prisma.product.findMany.mockResolvedValue([]);
       await expect(
-        service.addProductToCollection('col1', 'p1'),
+        service.addProductsToCollection('col1', ['p1']),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('addProductToCollection upserts the join row', async () => {
+    it('addProductsToCollection upserts a join row per product', async () => {
       prisma.collection.findFirst.mockResolvedValue({ id: 'col1' });
-      prisma.product.findFirst.mockResolvedValue({ id: 'p1' });
-      await service.addProductToCollection('col1', 'p1');
+      prisma.product.findMany.mockResolvedValue([{ id: 'p1' }]);
+      await service.addProductsToCollection('col1', ['p1']);
       expect(prisma.productCollection.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { productId_collectionId: { productId: 'p1', collectionId: 'col1' } },

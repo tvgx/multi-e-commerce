@@ -1,27 +1,22 @@
 import { Logger } from '@nestjs/common';
 import { Command, CommandRunner, Option } from 'nest-commander';
-import { FigmaPageExtractionSchema } from '@ecommerce/schema';
 import { FigmaClient } from '../figma-client.service';
-import { ClaudeExtractorService } from '../claude-extractor.service';
-import { ComponentMapperService } from '../component-mapper.service';
-import { MongoRepository } from '../mongo.repository';
-import { getTopLevelFrames, reduceNode } from '../node-tree-reducer';
-import { IndexBuilderService } from '../../rag/index-builder.service';
+import { ExtractorService } from '../extractor.service';
 
 interface ExtractOptions {
   fileKey?: string;
   tenant?: string;
   dryRun?: boolean;
-  withImages?: boolean;
+  noImages?: boolean;
   skipIndex?: boolean;
 }
 
 /**
- * `design-agent extract --file-key=XXX [--tenant=YYY] [--dry-run] [--with-images]`
+ * `design-agent extract --file-key=XXX [--tenant=YYY] [--dry-run] [--no-images]`
  *
- * Fetches a Figma file, reduces each top-level frame, has Claude map it to a
- * storefront page layout, reconciles component ids against the registry, and
- * (unless --dry-run) upserts the result into MongoDB.
+ * Thin CLI wrapper over {@link ExtractorService.extractFrames}: fetches a Figma
+ * file, reduces each top-level frame, has Claude map it to a storefront page
+ * layout, and (unless --dry-run) upserts the result into MongoDB + refreshes RAG.
  */
 @Command({
   name: 'extract',
@@ -32,10 +27,7 @@ export class ExtractCommand extends CommandRunner {
 
   constructor(
     private readonly figma: FigmaClient,
-    private readonly extractor: ClaudeExtractorService,
-    private readonly mapper: ComponentMapperService,
-    private readonly repo: MongoRepository,
-    private readonly indexBuilder: IndexBuilderService,
+    private readonly extractorService: ExtractorService,
   ) {
     super();
   }
@@ -46,73 +38,29 @@ export class ExtractCommand extends CommandRunner {
       throw new Error('No file key: pass --file-key or set FIGMA_FILE_KEY.');
     }
 
-    this.logger.log(`Fetching Figma file ${fileKey}…`);
-    const file = await this.figma.getFile(fileKey);
-    const frames = getTopLevelFrames(file.document);
-    this.logger.log(`Found ${frames.length} top-level frame(s).`);
+    const result = await this.extractorService.extractFrames({
+      fileKey,
+      tenant: options.tenant ?? null,
+      noImages: options.noImages,
+      persist: !options.dryRun,
+    });
 
-    const validComponentIds = this.mapper.getValidComponentIds();
-    const images = options.withImages
-      ? await this.figma.getImages(fileKey, frames.map((f) => f.id))
-      : {};
-
-    let ok = 0;
-    for (const frame of frames) {
-      try {
-        const reduced = reduceNode(frame);
-        const page = await this.extractor.extractPage(reduced, {
-          validComponentIds,
-          imageUrl: images[frame.id],
-        });
-        const mappedPage = this.mapper.mapPage(page);
-
-        const extraction = FigmaPageExtractionSchema.parse({
-          figma_node_id: frame.id,
-          figma_file_key: fileKey,
-          figma_version: file.version,
-          name: frame.name,
-          tenant_id: options.tenant ?? null,
-          extracted_at: new Date().toISOString(),
-          page: mappedPage,
-        });
-
-        if (options.dryRun) {
-          // eslint-disable-next-line no-console
-          console.log(JSON.stringify(extraction, null, 2));
-        } else {
-          await this.repo.upsertPage(extraction);
-          this.logger.log(`Upserted page_layouts/${frame.id} ("${frame.name}").`);
-        }
-        ok++;
-      } catch (err) {
-        this.logger.error(
-          `Frame "${frame.name}" (${frame.id}) failed: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
+    if (options.dryRun) {
+      for (const e of result.extractions) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(e, null, 2));
       }
     }
 
     this.logger.log(
-      `Done: ${ok}/${frames.length} frame(s) extracted${options.dryRun ? ' (dry-run, nothing written)' : ''}.`,
+      `Done: ${result.ok}/${result.total} frame(s) extracted${
+        options.dryRun ? ' (dry-run, nothing written)' : ''
+      }.`,
     );
 
-    // Auto-refresh the RAG index for this tenant once extraction wrote something.
-    // Best-effort: a missing VOYAGE_API_KEY (or any embed error) must not fail
-    // the extraction that already succeeded. Skip on dry-run or --no-index.
-    if (!options.dryRun && !options.skipIndex && ok > 0) {
-      try {
-        this.logger.log('Refreshing RAG index…');
-        const res = await this.indexBuilder.buildIndex(options.tenant);
-        this.logger.log(
-          `Index: ${res.embedded} embedded, ${res.skipped} unchanged, ${res.pruned} pruned.`,
-        );
-      } catch (err) {
-        this.logger.warn(
-          `Skipped RAG index refresh: ${err instanceof Error ? err.message : String(err)}. ` +
-            'Run `build-index` manually once VOYAGE_API_KEY is set.',
-        );
-      }
+    // Refresh the RAG index once extraction wrote something (skip on dry-run/opt-out).
+    if (!options.dryRun && !options.skipIndex && result.ok > 0) {
+      await this.extractorService.refreshIndex(options.tenant);
     }
   }
 
@@ -132,10 +80,10 @@ export class ExtractCommand extends CommandRunner {
   }
 
   @Option({
-    flags: '--with-images',
-    description: 'Also send rendered frame images to Claude',
+    flags: '--no-images',
+    description: 'Do not send rendered frame images to Claude (images on by default)',
   })
-  parseWithImages(): boolean {
+  parseNoImages(): boolean {
     return true;
   }
 
