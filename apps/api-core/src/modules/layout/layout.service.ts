@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { MasterTemplateCatalog } from '@ecommerce/database';
 import { randomUUID, createHash } from 'crypto';
 import { fileTypeFromBuffer } from 'file-type';
 import { TenantService } from '../../common/services/tenant.service';
@@ -95,10 +96,34 @@ export class LayoutService {
     return shopId;
   }
 
+  // LAY-1: previously a no-op that returned {status:'created'} without writing
+  // anything — calling it did nothing. Now it persists a custom entry to the
+  // MasterTemplateCatalog (same collection TemplatesService reads), storing the
+  // supplied layout JSON in the `schema` field. App has no global ValidationPipe
+  // so validate by hand.
   async createMasterTemplate(dto: CreateMasterTemplateDto) {
-    // Usually master templates are globally defined without a shop context
-    // This is a placeholder since the master template uses MasterTemplateCatalog
-    return { status: 'created', industry: dto.industry };
+    const industry = dto.industry?.trim();
+    if (!industry) throw new BadRequestException('industry is required');
+    if (!dto.schema || typeof dto.schema !== 'object' || Array.isArray(dto.schema)) {
+      throw new BadRequestException('schema (layout object) is required');
+    }
+
+    const slug = industry.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const templateKey = `custom-${slug || 'template'}-${randomUUID().slice(0, 8)}`;
+
+    const created = await MasterTemplateCatalog.create({
+      templateKey,
+      templateType: 'custom',
+      industry,
+      displayName: industry,
+      description: `Custom master template for ${industry}`,
+      icon: 'layout-template',
+      isCustom: true,
+      layoutSchema: dto.schema,
+    });
+
+    this.logger.log(`Created master template "${templateKey}" (${industry}).`);
+    return { status: 'created', industry, templateKey, id: (created as any).templateKey };
   }
 
   async getTenantLayout() {

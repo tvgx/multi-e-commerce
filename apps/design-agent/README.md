@@ -87,6 +87,13 @@ MONGO_DB_ATLAS=mongodb://localhost:27017/ecommerce
 VOYAGE_API_KEY=pa-xxxxxxxxxxxx          # chỉ cần cho RAG (build-index / rag-query / rag-eval)
 # VOYAGE_MODEL=voyage-3                 # tuỳ chọn, mặc định voyage-3
 
+# Bắt buộc cho "Import Figma từ web" (api-core → design-agent /extract-theme).
+# PHẢI giống HỆT giá trị INTERNAL_API_KEY của api-core. Trong monorepo cả 2 app
+# đọc chung file .env gốc này nên tự khớp; khi deploy tách 2 service thì phải đặt
+# cùng giá trị ở cả hai. Thiếu/ lệch ⇒ mọi import bị 401 "Import thất bại".
+# `design-agent serve` sẽ fail-fast lúc bootstrap nếu thiếu key này.
+INTERNAL_API_KEY=replace-with-a-shared-secret
+
 # MinIO — để AssetPipeline re-host ảnh fill (dùng chung cấu hình với api-core)
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
@@ -324,6 +331,8 @@ npm test         # unit test: reducer + schema-validation + chunker + cosine + t
 | `Could not load @ecommerce/master-templates` (warning) | Chưa build master-templates — phần đối chiếu blueprint bị bỏ qua, vẫn chạy được. Build để bật lại. |
 | Treo / `MongooseServerSelectionError` lúc khởi động | MongoDB chưa chạy hoặc `MONGO_DB_ATLAS` sai. App connect Mongo ngay khi bootstrap. |
 | `FIGMA_TOKEN is not set` | Thiếu `FIGMA_TOKEN` trong `.env`. |
+| `serve` thoát ngay với `INTERNAL_API_KEY is not set` | Đặt `INTERNAL_API_KEY` trong `.env` (bằng đúng giá trị của api-core). Đây là fail-fast có chủ đích để tránh import 401 câm. |
+| Import Figma từ web báo `401`/`Import thất bại` | `INTERNAL_API_KEY` lệch giữa api-core và design-agent. Cho hai giá trị bằng nhau (cùng `.env` gốc khi chạy monorepo). |
 | Figma trả `403` | Token hết hạn/không có quyền truy cập file đó. |
 | Lỗi auth khi gọi Claude | Thiếu/sai `ANTHROPIC_API_KEY`. Key chỉ được yêu cầu khi thực sự gọi model (kể cả `--dry-run`). |
 | `Failed to extract a valid layout … Raw response logged to logs/…` | Claude trả JSON không hợp schema sau 3 lần thử. Mở file raw trong `logs/` để xem model trả gì rồi chỉnh prompt/registry. |

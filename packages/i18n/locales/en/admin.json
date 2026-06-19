@@ -249,7 +249,11 @@
     "noTransactions": "No transactions yet.",
     "by": "by",
     "balanceLabel": "Balance",
-    "errorPrefix": "Error"
+    "errorPrefix": "Error",
+    "summaryWallets": "Wallets",
+    "summaryBalance": "Total balance",
+    "summaryPendingCount": "Pending requests",
+    "summaryPendingAmount": "Pending amount"
   },
   "txTypes": {
     "deposit": "Deposit",

@@ -14,8 +14,10 @@ export interface PageLayoutRecord {
 }
 
 /**
- * Persists extracted page layouts to MongoDB, upserting by `figma_node_id` so
- * re-running extraction updates the existing document instead of duplicating.
+ * Persists extracted page layouts to MongoDB, upserting by the compound key
+ * `(figma_node_id, tenant_id)` so re-running extraction updates the existing
+ * document instead of duplicating — and so two tenants importing the same Figma
+ * file keep separate documents instead of overwriting each other (EXTR-1).
  */
 @Injectable()
 export class MongoRepository {
@@ -27,7 +29,10 @@ export class MongoRepository {
   async upsertPage(extraction: FigmaPageExtraction): Promise<void> {
     await this.model
       .findOneAndUpdate(
-        { figma_node_id: extraction.figma_node_id },
+        {
+          figma_node_id: extraction.figma_node_id,
+          tenant_id: extraction.tenant_id ?? null,
+        },
         {
           $set: {
             figma_file_key: extraction.figma_file_key,

@@ -100,6 +100,15 @@ export class ShopController {
     return BaseResponseDto.success(data);
   }
 
+  // Chỉ đọc địa chỉ kho mặc định (trang cài đặt vận chuyển) — tránh GET cả shop
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Get(':shopId/warehouse')
+  async getWarehouse(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.getWarehouse(shopId);
+    return BaseResponseDto.success(data);
+  }
+
   // Bật/tắt phương thức thanh toán cơ bản (COD, Chuyển khoản)
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')

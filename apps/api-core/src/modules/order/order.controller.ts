@@ -39,6 +39,33 @@ export class OrderController {
     return this.orderService.cancelOrder(id, customerId);
   }
 
+  // Customer endpoint: POST /orders/:id/received — confirm delivery completes order
+  @UseGuards(StorefrontAuthGuard)
+  @Post(':id/received')
+  confirmReceived(@Req() req: any, @Param('id') id: string) {
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
+    return this.orderService.confirmReceived(id, customerId);
+  }
+
+  // Customer endpoint: POST /orders/:id/reorder — re-add this order's items to cart
+  @UseGuards(StorefrontAuthGuard)
+  @Post(':id/reorder')
+  reorder(@Req() req: any, @Param('id') id: string) {
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
+    return this.orderService.reorder(id, customerId);
+  }
+
+  // Customer endpoint: POST /orders/:id/resend-payment — fresh bank-transfer link/QR
+  @UseGuards(StorefrontAuthGuard)
+  @Post(':id/resend-payment')
+  resendPayment(@Req() req: any, @Param('id') id: string) {
+    const customerId = req.user?.id;
+    if (!customerId) throw new UnauthorizedException('Customer authentication required');
+    return this.orderService.resendPaymentLink(id, customerId);
+  }
+
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
   @Get()
@@ -51,6 +78,14 @@ export class OrderController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderService.findOneOrder(id);
+  }
+
+  // Admin endpoint: GET /orders/:id/timeline — full lifecycle event feed
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Get(':id/timeline')
+  timeline(@Param('id') id: string) {
+    return this.orderService.getOrderTimeline(id);
   }
 
   @UseGuards(BetterAuthGuard, RolesGuard)

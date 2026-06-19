@@ -93,6 +93,75 @@ describe('InventoryService', () => {
         }),
       });
     });
+
+    it('spills across locations when the default runs out (INV-2)', async () => {
+      // Default location only has 2; another location has 5. Order of 4 should
+      // take 2 from the default then 2 from the second location.
+      prisma.stockItem.findMany.mockResolvedValue([
+        { id: 'si2', variantId: 'v1', stockLocation: { isDefault: false } },
+        { id: 'si1', variantId: 'v1', stockLocation: { isDefault: true } },
+      ]);
+      prisma.$queryRawUnsafe.mockImplementation((_sql: string, id: string) =>
+        Promise.resolve([
+          id === 'si1'
+            ? { id: 'si1', countOnHand: 2, backorderable: false }
+            : { id: 'si2', countOnHand: 5, backorderable: false },
+        ]),
+      );
+
+      await service.decrementStock([{ variantId: 'v1', quantity: 4 }], 'order-9');
+
+      expect(prisma.stockItem.update).toHaveBeenCalledWith({
+        where: { id: 'si1' },
+        data: { countOnHand: { decrement: 2 } },
+      });
+      expect(prisma.stockItem.update).toHaveBeenCalledWith({
+        where: { id: 'si2' },
+        data: { countOnHand: { decrement: 2 } },
+      });
+      expect(prisma.stockMovement.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('does NOT report out-of-stock while another location can cover it (INV-2)', async () => {
+      prisma.stockItem.findMany.mockResolvedValue([
+        { id: 'si1', variantId: 'v1', stockLocation: { isDefault: true } },
+        { id: 'si2', variantId: 'v1', stockLocation: { isDefault: false } },
+      ]);
+      prisma.$queryRawUnsafe.mockImplementation((_sql: string, id: string) =>
+        Promise.resolve([
+          id === 'si1'
+            ? { id: 'si1', countOnHand: 0, backorderable: false }
+            : { id: 'si2', countOnHand: 3, backorderable: false },
+        ]),
+      );
+
+      await expect(
+        service.decrementStock([{ variantId: 'v1', quantity: 3 }], 'o1'),
+      ).resolves.toBe(true);
+      // Entire quantity drawn from the non-default location.
+      expect(prisma.stockItem.update).toHaveBeenCalledWith({
+        where: { id: 'si2' },
+        data: { countOnHand: { decrement: 3 } },
+      });
+    });
+
+    it('backorders the shortfall on a backorderable location as one movement', async () => {
+      prisma.stockItem.findMany.mockResolvedValue([
+        { id: 'si1', variantId: 'v1', stockLocation: { isDefault: true } },
+      ]);
+      prisma.$queryRawUnsafe.mockResolvedValue([
+        { id: 'si1', countOnHand: 1, backorderable: true },
+      ]);
+
+      await service.decrementStock([{ variantId: 'v1', quantity: 3 }], 'o1');
+
+      // 1 on-hand + 2 backordered = a single decrement of 3.
+      expect(prisma.stockItem.update).toHaveBeenCalledWith({
+        where: { id: 'si1' },
+        data: { countOnHand: { decrement: 3 } },
+      });
+      expect(prisma.stockMovement.create).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('restoreStock', () => {
@@ -158,6 +227,103 @@ describe('InventoryService', () => {
       prisma.stockMovement.count.mockResolvedValue(1);
       const res = await service.getStockMovements('v1', 1, 20);
       expect(res.meta).toEqual({ total: 1, page: 1, limit: 20, totalPages: 1 });
+    });
+  });
+
+  describe('getLowStock', () => {
+    it('filters DB-side by threshold and returns variants sorted most-urgent first', async () => {
+      prisma.stockItem.groupBy.mockResolvedValue([
+        { variantId: 'v1', _sum: { countOnHand: 4 } },
+        { variantId: 'v2', _sum: { countOnHand: 1 } },
+      ]);
+      prisma.variant.findMany.mockResolvedValue([
+        { id: 'v1', sku: 'SKU1', price: 1000, product: { id: 'p1', name: 'Prod1', status: 'PUBLISHED' } },
+        { id: 'v2', sku: 'SKU2', price: 2000, product: { id: 'p2', name: 'Prod2', status: 'PUBLISHED' } },
+      ]);
+
+      const res = await service.getLowStock(5);
+
+      // threshold filter is pushed to the DB via groupBy `having`, scoped to shop
+      expect(prisma.stockItem.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['variantId'],
+          where: { stockLocation: { shopId: SHOP } },
+          having: { countOnHand: { _sum: { lte: 5 } } },
+        }),
+      );
+      // lowest on-hand comes first
+      expect(res.data.map((d: any) => d.variantId)).toEqual(['v2', 'v1']);
+      expect(res.data[0]).toMatchObject({ sku: 'SKU2', countOnHand: 1, productName: 'Prod2' });
+      expect(res.meta).toEqual({ total: 2, threshold: 5 });
+    });
+
+    it('short-circuits (no variant query) when nothing is low', async () => {
+      prisma.stockItem.groupBy.mockResolvedValue([]);
+      const res = await service.getLowStock(3);
+      expect(res.data).toEqual([]);
+      expect(prisma.variant.findMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects a negative threshold', async () => {
+      await expect(service.getLowStock(-1)).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.stockItem.groupBy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bulkRestock', () => {
+    it('increments stock and writes a restock movement per item, in one batch', async () => {
+      prisma.stockItem.findFirst
+        .mockResolvedValueOnce({ id: 'si1' })
+        .mockResolvedValueOnce({ id: 'si2' });
+      prisma.stockItem.update
+        .mockResolvedValueOnce({ id: 'si1', countOnHand: 15 })
+        .mockResolvedValueOnce({ id: 'si2', countOnHand: 8 });
+
+      const res = await service.bulkRestock(
+        [
+          { variantId: 'v1', stockLocationId: 'loc1', quantity: 5 },
+          { variantId: 'v2', stockLocationId: 'loc2', quantity: 3 },
+        ],
+        'user-1',
+      );
+
+      expect(res).toMatchObject({ status: 'restocked', count: 2 });
+      expect(prisma.stockItem.update).toHaveBeenCalledTimes(2);
+      expect(prisma.stockItem.update).toHaveBeenNthCalledWith(1, {
+        where: { id: 'si1' },
+        data: { countOnHand: { increment: 5 } },
+      });
+      expect(prisma.stockMovement.create).toHaveBeenNthCalledWith(1, {
+        data: expect.objectContaining({
+          variantId: 'v1',
+          stockItemId: 'si1',
+          quantityDelta: 5,
+          reason: 'restock',
+          userId: 'user-1',
+          shopId: SHOP,
+        }),
+      });
+    });
+
+    it('enforces shop ownership — unknown stock item rolls the batch back', async () => {
+      prisma.stockItem.findFirst.mockResolvedValue(null);
+      await expect(
+        service.bulkRestock([{ variantId: 'v1', stockLocationId: 'loc1', quantity: 5 }], 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.stockItem.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-positive quantity before touching the DB', async () => {
+      await expect(
+        service.bulkRestock([{ variantId: 'v1', stockLocationId: 'loc1', quantity: 0 }], 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.stockItem.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty items array', async () => {
+      await expect(service.bulkRestock([], 'user-1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
   });
 });

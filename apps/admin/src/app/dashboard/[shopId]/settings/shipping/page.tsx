@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import {
   Truck,
   ArrowLeft,
@@ -14,27 +14,16 @@ import {
   MapPin,
   CheckCircle2
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
-import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useGeo } from "@/hooks/useGeo";
+import { useShippingSettings, ShippingMethod, MethodFormValues } from "@/hooks/useShippingSettings";
 
-interface ShippingMethod {
-  id: string;
-  name: string;
-  description?: string | null;
-  baseFee: number;
-  freeThreshold?: number | null;
-  estimatedDays?: string | null;
-  active: boolean;
-  position: number;
-}
-
-const EMPTY_FORM = {
+const EMPTY_FORM: MethodFormValues = {
   name: "",
   description: "",
   baseFee: "",
@@ -46,18 +35,26 @@ const EMPTY_FORM = {
 export default function ShippingSettingsPage() {
   const params = useParams();
   const shopId = params.shopId as string;
-  const router = useRouter();
   const t = useTranslations("admin");
 
-  const [methods, setMethods] = useState<ShippingMethod[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savingWarehouse, setSavingWarehouse] = useState(false);
+  const {
+    methods,
+    warehouse,
+    loading,
+    savingMethod: saving,
+    savingWarehouse,
+    saveMethod,
+    deleteMethod: handleDelete,
+    toggleMethod: toggleActive,
+    saveWarehouse,
+  } = useShippingSettings(shopId);
+
+  // ── Method form (presentational) ──
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  
-  // Onboarding hooks
+  const [form, setForm] = useState<MethodFormValues>(EMPTY_FORM);
+
+  // ── Onboarding ──
   const { status } = useOnboarding(shopId);
   const isOnboarding = status && status.steps.step6?.status !== "COMPLETED";
 
@@ -69,48 +66,29 @@ export default function ShippingSettingsPage() {
     isLastStep: true,
   });
 
-  // Warehouse hooks
+  // ── Warehouse form (presentational) — seeded from loaded warehouse ──
   const { provinces, wards, loadWards, loadingWards } = useGeo();
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [phone, setPhone] = useState("");
 
+  useEffect(() => {
+    if (!warehouse) return;
+    setAddressLine(warehouse.addressLine || "");
+    setPhone(warehouse.phone || "");
+    if (warehouse.provinceCode) {
+      setProvinceCode(warehouse.provinceCode);
+      loadWards(warehouse.provinceCode);
+    }
+    if (warehouse.wardCode) setWardCode(warehouse.wardCode);
+  }, [warehouse, loadWards]);
+
   const onProvinceChange = (code: string) => {
     setProvinceCode(code);
     setWardCode("");
     loadWards(code);
   };
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [methodsRes, shopRes] = await Promise.all([
-        apiClient.get<{ data: ShippingMethod[] }>(`/api/shipping/methods/all`, { shopId }),
-        apiClient.get<any>(`/api/shops/${shopId}`, { shopId })
-      ]);
-      setMethods((methodsRes.data as any).data ?? (methodsRes.data as any));
-      
-      const warehouse = shopRes.data?.stockLocations?.[0];
-      if (warehouse) {
-        setAddressLine(warehouse.addressLine || "");
-        setPhone(warehouse.phone || "");
-        if (warehouse.provinceCode) {
-          setProvinceCode(warehouse.provinceCode);
-          loadWards(warehouse.provinceCode);
-        }
-        if (warehouse.wardCode) setWardCode(warehouse.wardCode);
-      }
-    } catch (err) {
-      console.error("Failed to fetch shipping data", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [shopId, loadWards]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -132,83 +110,17 @@ export default function ShippingSettingsPage() {
   };
 
   const handleSaveMethod = async () => {
-    if (!form.name.trim() || form.baseFee === "") {
-      toast.error(t("shipping.requireNameFee"));
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        baseFee: Number(form.baseFee),
-        freeThreshold: form.freeThreshold !== "" ? Number(form.freeThreshold) : null,
-        estimatedDays: form.estimatedDays.trim() || undefined,
-        active: form.active,
-      };
-      if (editingId) {
-        await apiClient.patch(`/api/shipping/methods/${editingId}`, payload, { shopId });
-      } else {
-        await apiClient.post(`/api/shipping/methods`, payload, { shopId });
-      }
-      setShowForm(false);
-      await fetchData();
-    } catch (err: any) {
-      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (m: ShippingMethod) => {
-    if (
-      !(await confirmDialog({
-        title: t("shipping.deleteTitle"),
-        message: t("shipping.deleteMessage", { name: m.name }),
-        confirmText: t("shipping.deleteConfirm"),
-        danger: true,
-      }))
-    )
-      return;
-    try {
-      await apiClient.delete(`/api/shipping/methods/${m.id}`, { shopId });
-      await fetchData();
-    } catch (err: any) {
-      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
-    }
-  };
-
-  const toggleActive = async (m: ShippingMethod) => {
-    try {
-      await apiClient.patch(`/api/shipping/methods/${m.id}`, { active: !m.active }, { shopId });
-      setMethods(prev => prev.map(x => x.id === m.id ? { ...x, active: !m.active } : x));
-    } catch (err: any) {
-      toast.error(`${t("shipping.errorPrefix")}: ${err.message}`);
-    }
+    const ok = await saveMethod(form, editingId);
+    if (ok) setShowForm(false);
   };
 
   const handleSaveWarehouse = async () => {
-    if (!addressLine.trim() || !provinceCode || !wardCode) {
-      toast.error("Vui lòng nhập đầy đủ địa chỉ kho hàng");
-      return;
-    }
-    setSavingWarehouse(true);
-    try {
-      await apiClient.patch(
-        `/api/shops/${shopId}/warehouse`,
-        { addressLine, provinceCode, wardCode, phone, note: "Kho hàng — nơi shipper đến lấy hàng" },
-        { shopId },
-      );
-      
-      if (isOnboarding) {
-        await completeAndNavigate();
-      } else {
-        toast.success("Đã lưu địa chỉ kho hàng!");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Có lỗi xảy ra, vui lòng thử lại");
-    } finally {
-      setSavingWarehouse(false);
+    const ok = await saveWarehouse({ addressLine, provinceCode, wardCode, phone });
+    if (!ok) return;
+    if (isOnboarding) {
+      await completeAndNavigate();
+    } else {
+      toast.success("Đã lưu địa chỉ kho hàng!");
     }
   };
 

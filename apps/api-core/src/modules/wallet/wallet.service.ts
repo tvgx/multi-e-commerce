@@ -339,4 +339,34 @@ export class WalletService {
     });
     return { data: method };
   }
+
+  /**
+   * Tổng quan ví của shop cho dashboard admin.
+   * Gộp ở DB (aggregate) thay vì kéo toàn bộ ví về client rồi cộng — tránh over-fetch
+   * và để Postgres làm phần SUM/COUNT trên index shopId.
+   */
+  async getWalletSummary() {
+    const shopId = this.getShopId();
+    const now = new Date();
+
+    const [walletAgg, pendingAgg] = await Promise.all([
+      this.prisma.wallet.aggregate({
+        where: { shopId },
+        _sum: { balance: true },
+        _count: { _all: true },
+      }),
+      this.prisma.walletTopupRequest.aggregate({
+        where: { shopId, status: 'pending', expiresAt: { gt: now } },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    return {
+      walletCount: walletAgg._count?._all ?? 0,
+      totalBalance: walletAgg._sum?.balance ?? 0,
+      pendingTopupCount: pendingAgg._count?._all ?? 0,
+      pendingTopupAmount: pendingAgg._sum?.amount ?? 0,
+    };
+  }
 }

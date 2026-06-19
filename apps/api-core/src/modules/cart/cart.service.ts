@@ -67,10 +67,12 @@ export class CartService {
       throw new BadRequestException('Quantity must be a positive integer');
     }
 
+    // Only PUBLISHED products are buyable — block adding DRAFT/ARCHIVED variants
+    // to the cart (CART-1, mirrors the order.createOrder guard for ORD-5).
     const variant = await this.prisma.variant.findFirst({
-      where: { id: dto.variantId, shopId },
+      where: { id: dto.variantId, shopId, product: { status: 'PUBLISHED' } },
     });
-    if (!variant) throw new BadRequestException('Variant not found in this shop');
+    if (!variant) throw new BadRequestException('Variant not found or not available for purchase');
 
     const cart = await this.getOrCreateCart(customerId);
 

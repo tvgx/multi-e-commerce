@@ -7,14 +7,18 @@ import { ArrowLeft, Save, Loader2, Image as ImageIcon, Trash2 } from "lucide-rea
 import { useCollections, Collection } from "@/hooks/useCollections";
 import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 import { ProductPickerModal } from "@/components/products/ProductPickerModal";
-import { apiClient } from "@/lib/api-client";
 
 export default function EditCollectionPage({ params }: { params: Promise<{ shopId: string; collectionId: string }> }) {
   const { shopId, collectionId } = use(params);
   const router = useRouter();
-  const { updateCollection, removeProductFromCollection, addProductsToCollection } = useCollections(shopId);
-  const { collections, fetchCollections } = useCollections(shopId); 
-  
+  const {
+    updateCollection,
+    removeProductFromCollection,
+    addProductsToCollection,
+    getCollectionDetails,
+    getCollectionWithProducts,
+  } = useCollections(shopId);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -31,22 +35,11 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
   const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    // Instead of full list, we should fetch single collection by ID if we had an endpoint.
-    // For now, we can fetch all and find it. Or we need to update the useCollections to fetch by id.
-    // Since we don't have getCollectionById in the hook, let's fetch all and filter for now to get details.
     const loadData = async () => {
       setLoading(true);
       try {
-        // Fetch all collections from the correct API route
-        const res = await apiClient.get<any>(`/api/catalog/collections`, { shopId });
-        const data = res.data; // apiClient returns { data } or unwraps it depending on implementation. Usually it's the raw axios response. Wait, apiClient unwraps if it's the custom one. Let's just use res.data.
-        const collection = Array.isArray(data) ? data.find((c: any) => c.id === collectionId) : data?.data?.find((c: any) => c.id === collectionId);
-        
-        if (collection) {
-          // Now fetch the detailed collection by slug
-          const detailRes = await apiClient.get<any>(`/api/catalog/collections/${collection.slug}`, { shopId });
-          const detail = detailRes.data?.data || detailRes.data;
-
+        const detail = await getCollectionWithProducts(collectionId);
+        if (detail) {
           setFormData({
             title: detail.title,
             slug: detail.slug,
@@ -65,6 +58,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
       }
     };
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, collectionId]);
 
   const generateSlug = (title: string) => {
@@ -116,9 +110,8 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
       await addProductsToCollection(collectionId, productIds);
       toast.success("Products added successfully");
       // Reload products list
-      const detailRes = await apiClient.get<any>(`/api/catalog/collections/${formData.slug}`, { shopId });
-      const detailData = detailRes.data?.data || detailRes.data;
-      setProducts(detailData.products || []);
+      const detail = formData.slug ? await getCollectionDetails(formData.slug) : null;
+      setProducts(detail?.products || []);
     } catch (err: any) {
       toast.error(err.message || "Failed to add products");
     }

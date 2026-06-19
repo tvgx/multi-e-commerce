@@ -12,6 +12,17 @@ import { CreateCollectionDto, UpdateCollectionDto } from './dto/collection.dto';
 
 @Injectable()
 export class CatalogService {
+  // Columns the client may sort products by. Anything else would reach Prisma's
+  // orderBy verbatim and throw a PrismaClientValidationError 500 at runtime —
+  // and since the app has no global ValidationPipe, the DTO's @IsString on
+  // `sortBy` never runs, so the value is fully attacker-controlled. Mirrors the
+  // ORD-4 allowlist in OrderService. Default + fallback: createdAt.
+  private static readonly SORTABLE_PRODUCT_COLUMNS = [
+    'createdAt',
+    'updatedAt',
+    'name',
+  ];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
@@ -23,6 +34,44 @@ export class CatalogService {
       throw new BadRequestException('Shop context is missing');
     }
     return shopId;
+  }
+
+  /**
+   * REV-2: published-review rating rollup, computed at read time. Product has no
+   * denormalised avgRating/reviewCount column, so we aggregate ProductReview on
+   * each read and attach `ratingAvg`/`ratingCount` to the returned products —
+   * keeping reviews and the displayed rating in sync without a migration.
+   * Returns a map productId → stats. Tolerates an unmocked groupBy (→ no ratings).
+   */
+  private async getRatingStats(
+    shopId: string,
+    productIds: string[],
+  ): Promise<Map<string, { ratingAvg: number; ratingCount: number }>> {
+    const map = new Map<string, { ratingAvg: number; ratingCount: number }>();
+    if (productIds.length === 0) return map;
+    const grouped =
+      (await this.prisma.productReview.groupBy({
+        by: ['productId'],
+        where: { shopId, productId: { in: productIds }, status: 'published' },
+        _avg: { rating: true },
+        _count: { _all: true },
+      })) ?? [];
+    for (const g of grouped) {
+      map.set(g.productId, {
+        // One decimal place is plenty for a star rating.
+        ratingAvg: g._avg?.rating ? Math.round(g._avg.rating * 10) / 10 : 0,
+        ratingCount: g._count?._all ?? 0,
+      });
+    }
+    return map;
+  }
+
+  private withRating(
+    product: any,
+    stats: Map<string, { ratingAvg: number; ratingCount: number }>,
+  ) {
+    const s = stats.get(product.id) ?? { ratingAvg: 0, ratingCount: 0 };
+    return { ...product, ratingAvg: s.ratingAvg, ratingCount: s.ratingCount };
   }
 
   // --- Collection Methods ---
@@ -180,6 +229,14 @@ export class CatalogService {
       query.maxPrice !== undefined ? Number(query.maxPrice) : undefined;
     const skip = (page - 1) * limit;
 
+    // Sanitize sort inputs: no global ValidationPipe runs, so sortBy/sortOrder
+    // arrive raw from the public query string (see SORTABLE_PRODUCT_COLUMNS).
+    const sortColumn = CatalogService.SORTABLE_PRODUCT_COLUMNS.includes(sortBy)
+      ? sortBy
+      : 'createdAt';
+    const sortDirection =
+      String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
+
     const where: any = { shopId };
 
     if (status) where.status = status;
@@ -215,14 +272,19 @@ export class CatalogService {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder.toLowerCase() },
+        orderBy: { [sortColumn]: sortDirection },
         include: { variants: true },
       }),
       this.prisma.product.count({ where }),
     ]);
 
+    const ratings = await this.getRatingStats(
+      shopId,
+      items.map((p) => p.id),
+    );
+
     return {
-      data: items,
+      data: items.map((p) => this.withRating(p, ratings)),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -234,7 +296,8 @@ export class CatalogService {
       include: { variants: true },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    const ratings = await this.getRatingStats(shopId, [product.id]);
+    return this.withRating(product, ratings);
   }
 
   async findProductBySlug(slug: string) {
@@ -244,37 +307,80 @@ export class CatalogService {
       include: { variants: true },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    const ratings = await this.getRatingStats(shopId, [product.id]);
+    return this.withRating(product, ratings);
+  }
+
+  // CAT-3: reconcile a product's collection links to exactly `collectionIds`.
+  // Verifies every collection belongs to the shop, removes stale links and
+  // upserts the requested ones. An empty array clears all links.
+  private async syncCollections(
+    tx: any,
+    shopId: string,
+    productId: string,
+    collectionIds: string[],
+  ) {
+    const ids = [...new Set(collectionIds)];
+    if (ids.length === 0) {
+      await tx.productCollection.deleteMany({ where: { productId } });
+      return;
+    }
+    const cols = await tx.collection.findMany({
+      where: { id: { in: ids }, shopId },
+      select: { id: true },
+    });
+    if (cols.length !== ids.length) {
+      throw new BadRequestException(
+        'One or more collections not found or belong to another shop',
+      );
+    }
+    await tx.productCollection.deleteMany({
+      where: { productId, collectionId: { notIn: ids } },
+    });
+    for (const collectionId of ids) {
+      await tx.productCollection.upsert({
+        where: { productId_collectionId: { productId, collectionId } },
+        create: { productId, collectionId },
+        update: {},
+      });
+    }
   }
 
   async createProduct(dto: CreateProductDto) {
     const shopId = this.getShopId();
 
-    // Prisma transaction or nested create
-    return this.prisma.product.create({
-      data: {
-        shopId,
-        name: dto.name,
-        slug: dto.slug,
-        description: dto.description,
-        categoryId: dto.categoryId,
-        imageUrl: dto.imageUrl ?? dto.images?.[0],
-        images: dto.images || [],
-        status: dto.status || 'DRAFT',
-        variants: dto.variants
-          ? {
-              create: dto.variants.map((v, index) => ({
-                shopId,
-                sku: v.sku,
-                price: v.price,
-                weight: v.weight,
-                currency: v.currency || 'VND',
-                isMaster: index === 0, // First variant is master
-              })),
-            }
-          : undefined,
-      },
-      include: { variants: true },
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          shopId,
+          name: dto.name,
+          slug: dto.slug,
+          description: dto.description,
+          categoryId: dto.categoryId,
+          imageUrl: dto.imageUrl ?? dto.images?.[0],
+          images: dto.images || [],
+          status: dto.status || 'DRAFT',
+          variants: dto.variants
+            ? {
+                create: dto.variants.map((v, index) => ({
+                  shopId,
+                  sku: v.sku,
+                  price: v.price,
+                  weight: v.weight,
+                  currency: v.currency || 'VND',
+                  isMaster: index === 0, // First variant is master
+                })),
+              }
+            : undefined,
+        },
+        include: { variants: true },
+      });
+
+      if (dto.collectionIds) {
+        await this.syncCollections(tx, shopId, product.id, dto.collectionIds);
+      }
+
+      return product;
     });
   }
 
@@ -332,6 +438,12 @@ export class CatalogService {
             },
           });
         }
+      }
+
+      // CAT-3: sync collection membership when the form sends it (it always
+      // does, even as an empty list to clear). `undefined` leaves links alone.
+      if (dto.collectionIds) {
+        await this.syncCollections(tx, shopId, id, dto.collectionIds);
       }
 
       return tx.product.findUnique({

@@ -80,13 +80,14 @@ describe('CartService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('throws BadRequest when the variant does not belong to the shop', async () => {
+    it('throws BadRequest when the variant is missing or not a published product', async () => {
       prisma.variant.findFirst.mockResolvedValue(null);
       await expect(
         service.addItem(CUSTOMER, { variantId: 'v1', quantity: 1 }),
       ).rejects.toBeInstanceOf(BadRequestException);
+      // Only PUBLISHED products are buyable (CART-1).
       expect(prisma.variant.findFirst).toHaveBeenCalledWith({
-        where: { id: 'v1', shopId: 'shop-1' },
+        where: { id: 'v1', shopId: 'shop-1', product: { status: 'PUBLISHED' } },
       });
     });
 

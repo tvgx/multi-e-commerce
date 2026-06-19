@@ -134,6 +134,20 @@ describe('CustomerAddressService', () => {
 
       expect(prisma.customerAddress.updateMany).not.toHaveBeenCalled();
     });
+
+    it('refuses to clear the flag on the sole default address (ADDR-1)', async () => {
+      prisma.customerAddress.findFirst.mockResolvedValue({ id: 'a1', isDefault: true });
+      prisma.customerAddress.update.mockResolvedValue({ id: 'a1', isDefault: true });
+
+      await service.update(CUSTOMER, 'a1', { isDefault: false, fullName: 'Bob' });
+
+      // The other fields still update, but isDefault is left untouched (undefined)
+      // so the customer is never left with zero default addresses.
+      const data = prisma.customerAddress.update.mock.calls[0][0].data;
+      expect(data.isDefault).toBeUndefined();
+      expect(data.fullName).toBe('Bob');
+      expect(prisma.customerAddress.updateMany).not.toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {

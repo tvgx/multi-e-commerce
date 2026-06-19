@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,18 +15,7 @@ import {
   FileEdit,
   Figma,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { toast, confirmDialog } from "@ecommerce/ui-registry/src/store/toast-store";
-
-interface MyTheme {
-  themeId: string;
-  title: string;
-  description?: string;
-  category?: string;
-  status: "draft" | "pending" | "published";
-  previewImageUrl?: string;
-  review?: { rejectionReason?: string };
-}
+import { useMyThemes, type MyTheme } from "@/hooks/useMyThemes";
 
 const STATUS_META: Record<
   MyTheme["status"],
@@ -56,84 +45,21 @@ export default function MyThemesPage({
 }) {
   const { shopId } = React.use(params);
   const router = useRouter();
-  const [themes, setThemes] = useState<MyTheme[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const { themes, loading, busy, importing, submit, remove, apply, importFigma } =
+    useMyThemes(shopId);
 
-  // Figma import form
+  // Figma import form (presentational state)
   const [figma, setFigma] = useState({ fileKey: "", title: "", category: "" });
-  const [importing, setImporting] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get<MyTheme[]>("/api/themes/mine");
-      setThemes(res.data || []);
-    } catch (err: any) {
-      toast.error(`Không tải được theme: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const submit = async (themeId: string) => {
-    setBusy(themeId);
-    try {
-      await apiClient.patch(`/api/themes/${themeId}/submit`, {});
-      toast.success("Đã gửi duyệt. Admin sẽ xem xét theme của bạn.");
-      load();
-    } catch (err: any) {
-      toast.error(`Gửi duyệt thất bại: ${err.message}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const remove = async (themeId: string) => {
-    if (!(await confirmDialog({ message: "Xoá theme này?", danger: true }))) return;
-    setBusy(themeId);
-    try {
-      await apiClient.delete(`/api/themes/${themeId}`);
-      toast.success("Đã xoá theme.");
-      setThemes((t) => t.filter((x) => x.themeId !== themeId));
-    } catch (err: any) {
-      toast.error(`Xoá thất bại: ${err.message}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const apply = async (themeId: string) => {
-    setBusy(themeId);
-    try {
-      await apiClient.post(`/api/themes/${themeId}/apply/${shopId}`, {});
-      toast.success("Đã áp dụng theme! Đang mở trình chỉnh sửa…");
+  const handleApply = async (themeId: string) => {
+    if (await apply(themeId)) {
       router.push(`/dashboard/${shopId}/online-store/builder`);
-    } catch (err: any) {
-      toast.error(`Áp dụng thất bại: ${err.message}`);
-      setBusy(null);
     }
   };
 
-  const importFigma = async () => {
-    if (!figma.fileKey.trim() || !figma.title.trim()) {
-      toast.error("Cần nhập Figma file key và tên theme.");
-      return;
-    }
-    setImporting(true);
-    try {
-      await apiClient.post(`/api/themes/import-figma/${shopId}`, figma);
-      toast.success("Đã import từ Figma thành bản nháp.");
+  const handleImportFigma = async () => {
+    if (await importFigma(figma)) {
       setFigma({ fileKey: "", title: "", category: "" });
-      load();
-    } catch (err: any) {
-      toast.error(`Import thất bại: ${err.message}`);
-    } finally {
-      setImporting(false);
     }
   };
 
@@ -181,9 +107,14 @@ export default function MyThemesPage({
             className="rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none"
           />
         </div>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">
+            {importing
+              ? "Đang trích xuất từ Figma — có thể mất vài phút, đừng đóng trang."
+              : "File nhiều frame có thể mất vài phút. Chọn nodeIds để import nhanh hơn."}
+          </p>
           <button
-            onClick={importFigma}
+            onClick={handleImportFigma}
             disabled={importing}
             className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-semibold text-black hover:bg-slate-200 disabled:opacity-50"
           >
@@ -244,7 +175,7 @@ export default function MyThemesPage({
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
-                      onClick={() => apply(theme.themeId)}
+                      onClick={() => handleApply(theme.themeId)}
                       disabled={busy !== null}
                       className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-50"
                     >

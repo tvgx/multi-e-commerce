@@ -52,6 +52,34 @@ describe('CatalogService', () => {
       expect(where.variants.some.stockItems).toBeDefined();
       expect(res.meta).toEqual({ total: 1, page: 1, limit: 20, totalPages: 1 });
     });
+
+    it('falls back to createdAt desc for an unknown sortBy column (no Prisma 500)', async () => {
+      // No global ValidationPipe runs, so sortBy/sortOrder arrive raw from the
+      // public query string. An arbitrary column would otherwise reach Prisma's
+      // orderBy verbatim and throw PrismaClientValidationError (500).
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
+
+      await service.findAllProducts({
+        sortBy: 'name); DROP TABLE products;--',
+        sortOrder: 'sideways',
+      } as any);
+
+      expect(prisma.product.findMany.mock.calls[0][0].orderBy).toEqual({
+        createdAt: 'desc',
+      });
+    });
+
+    it('honors an allowlisted sortBy column and normalizes the direction', async () => {
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
+
+      await service.findAllProducts({ sortBy: 'name', sortOrder: 'ASC' } as any);
+
+      expect(prisma.product.findMany.mock.calls[0][0].orderBy).toEqual({
+        name: 'asc',
+      });
+    });
   });
 
   describe('findOneProduct', () => {
@@ -60,6 +88,30 @@ describe('CatalogService', () => {
       await expect(service.findOneProduct('p1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+
+    it('attaches the published-review rating rollup (REV-2)', async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'p1', variants: [] });
+      prisma.productReview.groupBy.mockResolvedValue([
+        { productId: 'p1', _avg: { rating: 4.5 }, _count: { _all: 2 } },
+      ]);
+
+      const res = await service.findOneProduct('p1');
+
+      expect(prisma.productReview.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['productId'],
+          where: { shopId: SHOP, productId: { in: ['p1'] }, status: 'published' },
+        }),
+      );
+      expect(res).toMatchObject({ id: 'p1', ratingAvg: 4.5, ratingCount: 2 });
+    });
+
+    it('defaults rating to 0 when a product has no reviews', async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'p1', variants: [] });
+      prisma.productReview.groupBy.mockResolvedValue([]);
+      const res = await service.findOneProduct('p1');
+      expect(res).toMatchObject({ ratingAvg: 0, ratingCount: 0 });
     });
   });
 
@@ -79,6 +131,23 @@ describe('CatalogService', () => {
       expect(data.status).toBe('DRAFT');
       expect(data.variants.create[0]).toMatchObject({ sku: 'A', isMaster: true, currency: 'VND' });
       expect(data.variants.create[1]).toMatchObject({ sku: 'B', isMaster: false });
+    });
+
+    it('links collections when collectionIds are supplied (CAT-3)', async () => {
+      prisma.product.create.mockResolvedValue({ id: 'p1', variants: [] });
+      prisma.collection.findMany.mockResolvedValue([{ id: 'c1' }]);
+
+      await service.createProduct({
+        name: 'Tee',
+        slug: 'tee',
+        collectionIds: ['c1'],
+      } as any);
+
+      expect(prisma.productCollection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { productId_collectionId: { productId: 'p1', collectionId: 'c1' } },
+        }),
+      );
     });
   });
 
@@ -108,6 +177,37 @@ describe('CatalogService', () => {
           where: { shopId_sku: { shopId: SHOP, sku: 'A' } },
         }),
       );
+    });
+
+    it('reconciles collection membership when collectionIds are sent (CAT-3)', async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'p1' }); // ownership ok
+      prisma.product.update.mockResolvedValue({ id: 'p1' });
+      prisma.product.findUnique.mockResolvedValue({ id: 'p1', variants: [] });
+      prisma.collection.findMany.mockResolvedValue([{ id: 'c1' }]);
+
+      await service.updateProduct('p1', { name: 'Tee2', collectionIds: ['c1'] } as any);
+
+      // Stale links removed, requested link upserted.
+      expect(prisma.productCollection.deleteMany).toHaveBeenCalledWith({
+        where: { productId: 'p1', collectionId: { notIn: ['c1'] } },
+      });
+      expect(prisma.productCollection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { productId_collectionId: { productId: 'p1', collectionId: 'c1' } },
+        }),
+      );
+    });
+
+    it('clears all collection links when an empty collectionIds array is sent', async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'p1' });
+      prisma.product.update.mockResolvedValue({ id: 'p1' });
+      prisma.product.findUnique.mockResolvedValue({ id: 'p1', variants: [] });
+
+      await service.updateProduct('p1', { name: 'Tee2', collectionIds: [] } as any);
+
+      expect(prisma.productCollection.deleteMany).toHaveBeenCalledWith({
+        where: { productId: 'p1' },
+      });
     });
   });
 

@@ -106,20 +106,31 @@ export class InteractionsService {
   async createReview(customerId: string, dto: CreateReviewDto) {
     const shopId = this.getShopId();
     
-    // Verify if user bought the product and order is DELIVERED
-    const hasDeliveredOrder = await this.prisma.order.findFirst({
+    // Verify the user bought the product on a fulfilled order. Admin chuyển đơn
+    // delivered → completed nên cả hai state đều cho phép review (nếu chỉ chấp
+    // nhận 'delivered' thì khách mất quyền review ngay khi đơn hoàn tất).
+    const fulfilledOrder = await this.prisma.order.findFirst({
       where: {
         shopId,
         customerId,
-        state: 'delivered',
+        state: { in: ['delivered', 'completed'] },
         lineItems: {
           some: { variant: { productId: dto.productId } }
         }
       }
     });
 
-    if (!hasDeliveredOrder) {
+    if (!fulfilledOrder) {
        throw new BadRequestException('You can only review products from delivered orders');
+    }
+
+    // Chặn review trùng: mỗi khách chỉ review 1 lần / sản phẩm (không có unique
+    // index nên guard tay; muốn sửa review thì dùng updateReview).
+    const existingReview = await this.prisma.productReview.findFirst({
+      where: { shopId, customerId, productId: dto.productId },
+    });
+    if (existingReview) {
+      throw new BadRequestException('You have already reviewed this product');
     }
 
     const review = await this.prisma.productReview.create({
@@ -127,7 +138,7 @@ export class InteractionsService {
         shopId,
         customerId,
         productId: dto.productId,
-        orderId: hasDeliveredOrder.id,
+        orderId: fulfilledOrder.id,
         rating: dto.rating,
         title: dto.title,
         body: dto.body,

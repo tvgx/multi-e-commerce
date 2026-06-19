@@ -15,9 +15,16 @@ jest.mock('../../common/services/minio.service', () => ({
   LAYOUT_BUCKET: 'shop-layouts',
   PUBLIC_BUCKET: 'shop-public',
 }));
+// MasterTemplateCatalog is a raw Mongoose model from the shared package
+// (createMasterTemplate writes to it) — stub it so the spec needs no live Mongo.
+jest.mock('@ecommerce/database', () => ({
+  MasterTemplateCatalog: { create: jest.fn() },
+}));
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fileTypeFromBuffer } = require('file-type');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { MasterTemplateCatalog } = require('@ecommerce/database');
 
 /** A chainable Mongoose query stub: `.findOne(...).lean().exec()` etc. */
 function query(result: unknown) {
@@ -310,6 +317,35 @@ describe('LayoutService', () => {
       const published =
         pageModel.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.publishedData;
       expect(published.components[0].props.backgroundImageUrl).toBe(url);
+    });
+  });
+
+  describe('createMasterTemplate (LAY-1)', () => {
+    it('rejects a missing schema instead of silently succeeding', async () => {
+      await expect(
+        service.createMasterTemplate({ industry: 'fashion' } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(MasterTemplateCatalog.create).not.toHaveBeenCalled();
+    });
+
+    it('persists a custom catalog entry carrying the layout schema', async () => {
+      (MasterTemplateCatalog.create as jest.Mock).mockResolvedValue({
+        templateKey: 'custom-fashion-abc',
+      });
+      const res = await service.createMasterTemplate({
+        industry: 'Fashion',
+        schema: { components: [] },
+      } as any);
+
+      const data = (MasterTemplateCatalog.create as jest.Mock).mock.calls[0][0];
+      expect(data).toMatchObject({
+        templateType: 'custom',
+        industry: 'Fashion',
+        isCustom: true,
+        layoutSchema: { components: [] },
+      });
+      expect(data.templateKey).toMatch(/^custom-fashion-/);
+      expect(res.status).toBe('created');
     });
   });
 

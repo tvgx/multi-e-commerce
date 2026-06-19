@@ -47,6 +47,13 @@ export class WalletController {
 
   @UseGuards(BetterAuthGuard, RolesGuard)
   @RequireRoles('ADMIN', 'OWNER')
+  @Get('admin/summary')
+  walletSummary() {
+    return this.walletService.getWalletSummary();
+  }
+
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
   @Get('admin/wallets')
   listWallets(@Query() query: { search?: string; page?: number; limit?: number }) {
     return this.walletService.listWallets(query);

@@ -18,6 +18,12 @@ export class PaymentWebhookDto {
   @IsNotEmpty()
   transactionId: string;
 
+  // Merchant order reference echoed back by the gateway — identifies which order
+  // this callback settles (PAY-3). Required at runtime (no global ValidationPipe).
+  @IsString()
+  @IsNotEmpty()
+  orderId: string;
+
   @IsString()
   @IsNotEmpty()
   status: string;

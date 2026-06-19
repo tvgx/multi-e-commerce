@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
 import { ExternalLink, Palette, Plus, Store } from "lucide-react";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
+import { useShopsList, type Shop } from "@/hooks/useShopsList";
 import { shopPublicUrl } from "@/lib/urls";
 import { useTranslations } from "@ecommerce/i18n/src/react";
-
-type Shop = {
-  id: string;
-  name: string;
-  domain?: string | null;
-  status?: string;
-  updatedAt?: string;
-  createdAt?: string;
-};
 
 function buildStorefrontUrl(shop: Shop): string {
   return shopPublicUrl(shop);
@@ -26,35 +16,7 @@ export default function ShopsPage() {
   const router = useRouter();
   const { checkAndNavigate } = useCheckAuth();
   const t = useTranslations("admin");
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchShops = async () => {
-      setLoading(true);
-      try {
-        const res = await apiClient.get<Shop[]>("/api/shops/my-shops");
-        setShops(res.data || []);
-        setError(null);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : t("shops.fetchError");
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchShops();
-  }, [t]);
-
-  const sortedShops = useMemo(() => {
-    return [...shops].sort((a, b) => {
-      const left = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const right = new Date(b.updatedAt || b.createdAt || 0).getTime();
-      return right - left;
-    });
-  }, [shops]);
+  const { sortedShops, loading, error } = useShopsList();
 
   return (
     <div className="p-6 md:p-10 text-zinc-100 min-h-full">

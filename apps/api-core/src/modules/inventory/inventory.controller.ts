@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Param, Body, Query, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import { InventoryService, AdjustStockDto } from './inventory.service';
+import { InventoryService, AdjustStockDto, BulkRestockDto } from './inventory.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { BetterAuthGuard } from '../auth/guards/better-auth.guard';
@@ -19,6 +19,20 @@ export class InventoryController {
   adjustStock(@Req() req: any, @Body() dto: AdjustStockDto) {
     const userId = req.user?.id;
     return this.inventoryService.adjustStock(dto, userId);
+  }
+
+  // Low-stock alert feed — variants whose total on-hand <= threshold (default 5)
+  @Get('low-stock')
+  getLowStock(
+    @Query('threshold', new ParseIntPipe({ optional: true })) threshold?: number,
+  ) {
+    return this.inventoryService.getLowStock(threshold ?? 5);
+  }
+
+  // Inbound goods: restock many (variant, location) pairs in one transaction
+  @Post('restock')
+  bulkRestock(@Req() req: any, @Body() dto: BulkRestockDto) {
+    return this.inventoryService.bulkRestock(dto.items, req.user?.id);
   }
 
   @Get('variants/:id/movements')

@@ -109,6 +109,7 @@ describe('InteractionsService', () => {
 
     it('creates a published review tied to the delivered order', async () => {
       prisma.order.findFirst.mockResolvedValue({ id: 'order-9' });
+      prisma.productReview.findFirst.mockResolvedValue(null); // no prior review
       prisma.productReview.create.mockResolvedValue({ id: 'rev-1' });
 
       const res = await service.createReview(CUSTOMER, {
@@ -118,6 +119,14 @@ describe('InteractionsService', () => {
         body: 'Works well',
       } as any);
 
+      // Both delivered and completed orders qualify (admin advances the state).
+      expect(prisma.order.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            state: { in: ['delivered', 'completed'] },
+          }),
+        }),
+      );
       expect(prisma.productReview.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           shopId: 'shop-1',
@@ -129,6 +138,16 @@ describe('InteractionsService', () => {
         }),
       });
       expect(res).toEqual({ status: 'created', review: { id: 'rev-1' } });
+    });
+
+    it('rejects a duplicate review for the same product', async () => {
+      prisma.order.findFirst.mockResolvedValue({ id: 'order-9' });
+      prisma.productReview.findFirst.mockResolvedValue({ id: 'existing' });
+
+      await expect(
+        service.createReview(CUSTOMER, { productId: 'p1', rating: 5 } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.productReview.create).not.toHaveBeenCalled();
     });
   });
 

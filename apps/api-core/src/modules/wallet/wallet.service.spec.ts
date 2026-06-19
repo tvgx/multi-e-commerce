@@ -335,4 +335,44 @@ describe('WalletService', () => {
       expect(res.data).toEqual({ active: false });
     });
   });
+
+  describe('getWalletSummary', () => {
+    it('aggregates balances and pending topups at the DB (no per-wallet fetch)', async () => {
+      prisma.wallet.aggregate.mockResolvedValue({ _sum: { balance: 150000 }, _count: { _all: 4 } });
+      prisma.walletTopupRequest.aggregate.mockResolvedValue({ _sum: { amount: 50000 }, _count: { _all: 2 } });
+
+      const res = await service.getWalletSummary();
+
+      // scoped to the shop, and only pending + not-expired topups counted
+      expect(prisma.wallet.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { shopId: SHOP }, _sum: { balance: true } }),
+      );
+      const topupArg = prisma.walletTopupRequest.aggregate.mock.calls[0][0];
+      expect(topupArg.where).toMatchObject({ shopId: SHOP, status: 'pending' });
+      expect(topupArg.where.expiresAt.gt).toBeInstanceOf(Date);
+      // no over-fetch: never lists wallet rows to compute the totals
+      expect(prisma.wallet.findMany).not.toHaveBeenCalled();
+
+      expect(res).toEqual({
+        walletCount: 4,
+        totalBalance: 150000,
+        pendingTopupCount: 2,
+        pendingTopupAmount: 50000,
+      });
+    });
+
+    it('coerces empty aggregates to zero', async () => {
+      prisma.wallet.aggregate.mockResolvedValue({ _sum: { balance: null }, _count: { _all: 0 } });
+      prisma.walletTopupRequest.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: { _all: 0 } });
+
+      const res = await service.getWalletSummary();
+
+      expect(res).toEqual({
+        walletCount: 0,
+        totalBalance: 0,
+        pendingTopupCount: 0,
+        pendingTopupAmount: 0,
+      });
+    });
+  });
 });

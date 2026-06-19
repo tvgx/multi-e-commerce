@@ -61,11 +61,24 @@ export function useCollections(shopId: string) {
 
   const getCollectionDetails = async (slug: string) => {
     try {
-      const res = await apiClient.get<Collection>(`/api/catalog/collections/${slug}`, { shopId });
-      return res.data;
+      const res = await apiClient.get<any>(`/api/catalog/collections/${slug}`, { shopId });
+      // Một số response bọc thêm một lớp { data }; chấp nhận cả hai dạng.
+      return (res.data?.data || res.data) as Collection;
     } catch (err: any) {
       throw err;
     }
+  };
+
+  /**
+   * Không có endpoint get-by-id; phân giải slug từ danh sách rồi tải chi tiết
+   * (kèm products) theo slug. Trả về null nếu không tìm thấy collection.
+   */
+  const getCollectionWithProducts = async (collectionId: string) => {
+    const listRes = await apiClient.get<any>(`/api/catalog/collections`, { shopId });
+    const list = Array.isArray(listRes.data) ? listRes.data : (listRes.data?.data ?? []);
+    const summary = list.find((c: any) => c.id === collectionId);
+    if (!summary) return null;
+    return getCollectionDetails(summary.slug);
   };
 
   const addProductsToCollection = async (id: string, productIds: string[]) => {
@@ -92,6 +105,7 @@ export function useCollections(shopId: string) {
     createCollection,
     updateCollection,
     getCollectionDetails,
+    getCollectionWithProducts,
     addProductsToCollection,
     removeProductFromCollection,
   };

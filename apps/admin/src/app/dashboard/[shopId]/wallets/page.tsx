@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {
   Wallet,
@@ -13,56 +13,31 @@ import {
   History,
   RefreshCw,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
-import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
-
-interface CustomerLite {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-}
-
-interface WalletRow {
-  id: string;
-  customerId: string;
-  balance: number;
-  active: boolean;
-  updatedAt: string;
-  customer?: CustomerLite;
-}
-
-interface TopupRow {
-  id: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  expiresAt: string;
-  customer?: CustomerLite | null;
-}
-
-interface TxRow {
-  id: string;
-  type: string;
-  amount: number;
-  balanceAfter: number;
-  note?: string | null;
-  createdBy: string;
-  createdAt: string;
-}
+import { useWallets, WalletRow, WalletTxRow } from '@/hooks/useWallets';
 
 export default function WalletsPage() {
   const params = useParams();
   const shopId = params.shopId as string;
   const tr = useTranslations("admin");
 
-  const [loading, setLoading] = useState(true);
-  const [wallets, setWallets] = useState<WalletRow[]>([]);
-  const [topups, setTopups] = useState<TopupRow[]>([]);
-  const [walletPaymentActive, setWalletPaymentActive] = useState<boolean | null>(null);
+  const {
+    loading,
+    wallets,
+    topups,
+    walletPaymentActive,
+    summary,
+    resolving,
+    fetchAll,
+    toggleWalletPayment,
+    resolveTopup,
+    adjustBalance,
+    loadTransactions,
+  } = useWallets(shopId);
+
+  // ── Presentational state only ──
   const [search, setSearch] = useState("");
-  const [resolving, setResolving] = useState<string | null>(null);
 
   // Adjust modal
   const [adjustTarget, setAdjustTarget] = useState<WalletRow | null>(null);
@@ -73,65 +48,12 @@ export default function WalletsPage() {
 
   // Transactions drawer
   const [txWallet, setTxWallet] = useState<WalletRow | null>(null);
-  const [txs, setTxs] = useState<TxRow[]>([]);
+  const [txs, setTxs] = useState<WalletTxRow[]>([]);
   const [txLoading, setTxLoading] = useState(false);
-
-  const fetchAll = useCallback(async (searchTerm = "") => {
-    setLoading(true);
-    try {
-      const [walletsRes, topupsRes, pmRes] = await Promise.all([
-        apiClient.get<any>(`/api/wallet/admin/wallets?search=${encodeURIComponent(searchTerm)}`, { shopId }),
-        apiClient.get<any>(`/api/wallet/admin/topups?status=pending`, { shopId }),
-        apiClient.get<any>(`/api/wallet/admin/payment-method`, { shopId }),
-      ]);
-      // API trả { data: [...] } trực tiếp (không có wrapper BaseResponse toàn cục)
-      const walletItems: any = walletsRes.data;
-      const topupItems: any = topupsRes.data;
-      const pm: any = pmRes.data;
-      setWallets(Array.isArray(walletItems) ? walletItems : walletItems?.data ?? []);
-      setTopups(Array.isArray(topupItems) ? topupItems : topupItems?.data ?? []);
-      setWalletPaymentActive(pm ? !!pm.active : false);
-    } catch (err) {
-      console.error("Failed to fetch wallets", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [shopId]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
-
-  const handleToggleWalletPayment = async () => {
-    const next = !walletPaymentActive;
-    try {
-      await apiClient.post(`/api/wallet/admin/payment-method`, { active: next }, { shopId });
-      setWalletPaymentActive(next);
-    } catch (err: any) {
-      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
-    }
-  };
-
-  const handleResolveTopup = async (id: string, action: "confirm" | "reject") => {
-    if (
-      action === "confirm" &&
-      !(await confirmDialog({
-        title: tr("wallets.confirmTopupTitle"),
-        message: tr("wallets.confirmTopupMessage"),
-        confirmText: tr("wallets.confirmTopupConfirm"),
-      }))
-    )
-      return;
-    setResolving(id);
-    try {
-      await apiClient.post(`/api/wallet/admin/topups/${id}/resolve`, { action }, { shopId });
-      await fetchAll(search);
-    } catch (err: any) {
-      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
-    } finally {
-      setResolving(null);
-    }
-  };
 
   const openAdjust = (w: WalletRow) => {
     setAdjustTarget(w);
@@ -141,36 +63,26 @@ export default function WalletsPage() {
   };
 
   const handleAdjust = async () => {
-    if (!adjustTarget || !adjustAmount || Number(adjustAmount) <= 0) {
-      toast.error(tr("wallets.invalidAmount"));
+    if (!adjustTarget) return;
+    const magnitude = Number(adjustAmount);
+    if (!adjustAmount || magnitude <= 0) {
+      // hook surfaces the toast for empty/zero too, but guard the UI early
+      setAdjustAmount("");
       return;
     }
     setAdjusting(true);
-    try {
-      const amount = adjustDirection === "credit" ? Number(adjustAmount) : -Number(adjustAmount);
-      await apiClient.post(`/api/wallet/admin/adjust`, {
-        customerId: adjustTarget.customerId,
-        amount,
-        note: adjustNote.trim() || undefined,
-      }, { shopId });
-      setAdjustTarget(null);
-      await fetchAll(search);
-    } catch (err: any) {
-      toast.error(`${tr('wallets.errorPrefix')}: ${err.message}`);
-    } finally {
-      setAdjusting(false);
-    }
+    const amount = adjustDirection === "credit" ? magnitude : -magnitude;
+    const ok = await adjustBalance(adjustTarget.customerId, amount, adjustNote, search);
+    setAdjusting(false);
+    if (ok) setAdjustTarget(null);
   };
 
   const openTransactions = async (w: WalletRow) => {
     setTxWallet(w);
     setTxLoading(true);
     try {
-      const res = await apiClient.get<any>(`/api/wallet/admin/wallets/${w.id}/transactions?limit=50`, { shopId });
-      const items: any = res.data;
-      setTxs(Array.isArray(items) ? items : items?.data ?? []);
-    } catch (err) {
-      console.error("Failed to fetch transactions", err);
+      setTxs(await loadTransactions(w.id));
+    } catch {
       setTxs([]);
     } finally {
       setTxLoading(false);
@@ -199,7 +111,7 @@ export default function WalletsPage() {
           <label className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 cursor-pointer">
             <span className="text-sm font-medium text-slate-300">{tr("wallets.walletPayment")}</span>
             <button
-              onClick={handleToggleWalletPayment}
+              onClick={toggleWalletPayment}
               disabled={walletPaymentActive === null}
               className={`relative w-12 h-6 rounded-full transition-colors ${walletPaymentActive ? "bg-emerald-500" : "bg-slate-600"}`}
             >
@@ -208,6 +120,28 @@ export default function WalletsPage() {
           </label>
         </div>
       </div>
+
+      {/* Summary metrics */}
+      {summary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5">
+            <div className="text-slate-400 text-xs uppercase tracking-wider">{tr("wallets.summaryWallets")}</div>
+            <div className="text-2xl font-bold text-white mt-1">{summary.walletCount}</div>
+          </div>
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5">
+            <div className="text-slate-400 text-xs uppercase tracking-wider">{tr("wallets.summaryBalance")}</div>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">{formatPrice(summary.totalBalance)}</div>
+          </div>
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5">
+            <div className="text-slate-400 text-xs uppercase tracking-wider">{tr("wallets.summaryPendingCount")}</div>
+            <div className="text-2xl font-bold text-amber-400 mt-1">{summary.pendingTopupCount}</div>
+          </div>
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5">
+            <div className="text-slate-400 text-xs uppercase tracking-wider">{tr("wallets.summaryPendingAmount")}</div>
+            <div className="text-2xl font-bold text-amber-400 mt-1">{formatPrice(summary.pendingTopupAmount)}</div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-[40vh]">
@@ -241,14 +175,14 @@ export default function WalletsPage() {
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-emerald-400">+{formatPrice(t.amount)}</span>
                       <button
-                        onClick={() => handleResolveTopup(t.id, "confirm")}
+                        onClick={() => resolveTopup(t.id, "confirm", search)}
                         disabled={resolving === t.id}
                         className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       >
                         {resolving === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {tr("wallets.approve")}
                       </button>
                       <button
-                        onClick={() => handleResolveTopup(t.id, "reject")}
+                        onClick={() => resolveTopup(t.id, "reject", search)}
                         disabled={resolving === t.id}
                         className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl text-sm font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       >

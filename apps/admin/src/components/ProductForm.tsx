@@ -51,7 +51,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
           const product = await fetchProductById(productId);
           setFormData({
             name: product.name || "",
-            description: product.extraMetadata?.description || "",
+            description: product.description || "",
             images: product.images || [],
             newImageUrl: "",
             variants: product.variants?.length ? product.variants.map(v => ({
@@ -155,7 +155,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
           attributes: v.attributes,
           image: v.image
         })),
-        extraMetadata: { description: formData.description },
+        description: formData.description,
         status: formData.status,
       };
 

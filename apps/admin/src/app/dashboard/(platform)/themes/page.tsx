@@ -1,78 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Palette, Loader2, Check, X, ImageOff, RefreshCw } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { toast, confirmDialog } from "@ecommerce/ui-registry/src/store/toast-store";
-
-interface ReviewTheme {
-  themeId: string;
-  title: string;
-  description?: string;
-  category?: string;
-  status: "draft" | "pending" | "published";
-  previewImageUrl?: string;
-  ownerShopId?: string;
-  review?: { rejectionReason?: string; submittedAt?: string };
-}
-
-type Tab = "pending" | "published";
+import { useThemeReview, type ThemeReviewTab } from "@/hooks/useThemeReview";
 
 export default function PlatformThemesPage() {
-  const [tab, setTab] = useState<Tab>("pending");
-  const [themes, setThemes] = useState<ReviewTheme[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const load = useCallback(async (which: Tab) => {
-    setLoading(true);
-    try {
-      const url =
-        which === "pending"
-          ? "/api/themes/admin/review?status=pending"
-          : "/api/themes?status=published";
-      const res = await apiClient.get<ReviewTheme[]>(url);
-      setThemes(res.data || []);
-    } catch (err: any) {
-      toast.error(`Không tải được danh sách: ${err.message}`);
-      setThemes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load(tab);
-  }, [tab, load]);
-
-  const approve = async (themeId: string) => {
-    if (!(await confirmDialog({ message: "Duyệt và đưa theme này lên chợ?" }))) return;
-    setBusy(themeId);
-    try {
-      await apiClient.patch(`/api/themes/${themeId}/publish`, {});
-      toast.success("Đã duyệt và xuất bản theme.");
-      setThemes((t) => t.filter((x) => x.themeId !== themeId));
-    } catch (err: any) {
-      toast.error(`Duyệt thất bại: ${err.message}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const reject = async (themeId: string) => {
-    const reason = window.prompt("Lý do từ chối (gửi lại cho người bán):", "");
-    if (reason === null) return;
-    setBusy(themeId);
-    try {
-      await apiClient.patch(`/api/themes/${themeId}/reject`, { reason });
-      toast.success("Đã từ chối theme.");
-      setThemes((t) => t.filter((x) => x.themeId !== themeId));
-    } catch (err: any) {
-      toast.error(`Từ chối thất bại: ${err.message}`);
-    } finally {
-      setBusy(null);
-    }
-  };
+  const [tab, setTab] = useState<ThemeReviewTab>("pending");
+  const { themes, loading, busy, reload, approve, reject } = useThemeReview(tab);
 
   return (
     <div className="space-y-8">
@@ -89,7 +23,7 @@ export default function PlatformThemesPage() {
           </div>
         </div>
         <button
-          onClick={() => load(tab)}
+          onClick={reload}
           className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-300 hover:border-indigo-500/50"
         >
           <RefreshCw size={15} /> Làm mới
@@ -97,7 +31,7 @@ export default function PlatformThemesPage() {
       </div>
 
       <div className="flex gap-2">
-        {(["pending", "published"] as Tab[]).map((t) => (
+        {(["pending", "published"] as ThemeReviewTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}

@@ -63,14 +63,36 @@ export class OrderService {
       checkoutLineItems = cart.items.map(i => ({ variantId: i.variantId, quantity: i.quantity }));
     }
 
-    // 1. Load variant prices from DB
+    // Validate quantities — the cart path enforces this in addItem (CART-1) but
+    // the direct `dto.lineItems` path had no guard, so a non-positive/fractional
+    // quantity flowed into pricing (negative totalAmount) and stock math. Also
+    // merge duplicate variants: a client sending the same variant across two
+    // line items otherwise trips the count check below ("unavailable") even
+    // though the variant exists, and would create duplicate order line rows.
+    const mergedByVariant = new Map<string, number>();
+    for (const li of checkoutLineItems) {
+      if (!Number.isInteger(li.quantity) || li.quantity < 1) {
+        throw new BadRequestException('Quantity must be a positive integer');
+      }
+      mergedByVariant.set(
+        li.variantId,
+        (mergedByVariant.get(li.variantId) ?? 0) + li.quantity,
+      );
+    }
+    checkoutLineItems = [...mergedByVariant.entries()].map(
+      ([variantId, quantity]) => ({ variantId, quantity }),
+    );
+
+    // 1. Load variant prices from DB. Only variants of a PUBLISHED product are
+    // buyable — filtering here blocks ordering DRAFT/ARCHIVED items via the API
+    // (ORD-5; status values are DRAFT|PUBLISHED|ARCHIVED, not "ACTIVE").
     const variantIds = checkoutLineItems.map(li => li.variantId);
     const variants = await this.prisma.variant.findMany({
-      where: { id: { in: variantIds }, shopId }
+      where: { id: { in: variantIds }, shopId, product: { status: 'PUBLISHED' } }
     });
 
     if (variants.length !== variantIds.length) {
-      throw new BadRequestException('One or more variants not found in this shop');
+      throw new BadRequestException('One or more items are unavailable (not found or no longer on sale)');
     }
 
     let subtotal = 0;
@@ -155,13 +177,26 @@ export class OrderService {
       // 3.1 Decrement stock via InventoryService (pass tx)
       await this.inventoryService.decrementStock(checkoutLineItems, orderId, tx);
       
-      // 3.2 Update Promotion Usage
+      // 3.2 Update Promotion Usage — kiểm-tra-và-tăng nguyên tử để chống race.
+      // promo được đọc NGOÀI transaction (bước 2), nên nhiều đơn dùng lượt cuối
+      // đồng thời đều thấy `usedCount < usageLimit`. Tăng có điều kiện ở mức DB:
+      // nếu hết lượt thì updateMany trả count=0 và ta rollback toàn bộ transaction.
       if (promo) {
-        await tx.promotion.update({
-          where: { id: promo.id },
-          data: { usedCount: { increment: 1 } }
-        });
-        
+        if (promo.usageLimit != null) {
+          const { count } = await tx.promotion.updateMany({
+            where: { id: promo.id, usedCount: { lt: promo.usageLimit } },
+            data: { usedCount: { increment: 1 } },
+          });
+          if (count === 0) {
+            throw new BadRequestException('Promotion code usage limit reached');
+          }
+        } else {
+          await tx.promotion.update({
+            where: { id: promo.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+
         await tx.promotionUsage.create({
           data: {
              shopId,
@@ -301,10 +336,18 @@ export class OrderService {
     return finalOrder;
   }
 
+  // Columns the client may sort by — anything else would reach Prisma's orderBy
+  // verbatim and throw a 500 at runtime (ORD-4). Default + fallback: createdAt.
+  private static readonly SORTABLE_ORDER_COLUMNS = ['createdAt', 'totalAmount', 'number'];
+
   async findAllOrders(query: GetOrdersDto) {
     const shopId = this.getShopId();
     const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC', state, paymentState, shipmentState } = query;
     const skip = (page - 1) * limit;
+    const sortColumn = OrderService.SORTABLE_ORDER_COLUMNS.includes(sortBy)
+      ? sortBy
+      : 'createdAt';
+    const sortDirection = sortOrder?.toLowerCase() === 'asc' ? 'asc' : 'desc';
 
     const where: any = { shopId };
     if (state) where.state = state;
@@ -318,14 +361,34 @@ export class OrderService {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder.toLowerCase() },
+        orderBy: { [sortColumn]: sortDirection },
+        // List view only: narrow every relation to the fields the admin orders
+        // table and the storefront "my orders" page actually render. This used to
+        // pull full customer rows, ALL payment rows, full shipments and full
+        // variant rows that no list consumer reads — heavy on a shop with many
+        // orders. `payments` is dropped entirely (neither list renders it; the
+        // full payment data still comes back from the detail endpoint
+        // findOneOrder). Using `include` (not a top-level `select`) keeps every
+        // scalar Order column present, so no consumer field silently disappears.
         include: {
-          customer: true,
-          payments: true,
+          customer: { select: { id: true, name: true, email: true, phoneNumber: true } },
           shippingMethod: { select: { id: true, name: true } },
-          shipments: true,
+          shipments: {
+            select: {
+              id: true,
+              state: true,
+              carrier: true,
+              trackingNumber: true,
+              shippedAt: true,
+              deliveredAt: true,
+            },
+          },
           lineItems: {
-            include: { variant: { include: { product: { select: { name: true } } } } },
+            select: {
+              id: true,
+              quantity: true,
+              variant: { select: { id: true, product: { select: { name: true } } } },
+            },
           },
         },
       }),
@@ -476,6 +539,15 @@ export class OrderService {
       throw new BadRequestException('Order has already been refunded');
     }
 
+    // ORD-3: đơn đã `completed` là trạng thái kết thúc (khách đã nhận + chốt) —
+    // refund ép state về 'canceled' sẽ bỏ qua state machine và làm sai lịch sử đơn.
+    // Đơn hoàn tất muốn trả tiền phải đi qua luồng trả hàng (return) trước.
+    if (order.state === 'completed') {
+      throw new BadRequestException(
+        'Cannot refund a completed order — process a return first',
+      );
+    }
+
     // ORD-2: refund giờ cũng hoàn kho như cancelOrder — TRỪ khi hàng đã tới tay khách
     // (delivered/completed/returned) thì giữ nguyên kho (hàng không quay về).
     const goodsWithCustomer = ['delivered', 'completed', 'returned'].includes(order.state);
@@ -489,6 +561,255 @@ export class OrderService {
     }
 
     return refundedOrder;
+  }
+
+  /**
+   * Khách xác nhận ĐÃ NHẬN hàng: delivered → completed. Đây là sự kiện chốt đơn
+   * từ phía người mua (trước đây chỉ admin mới đẩy được delivered→completed qua
+   * updateOrderStatus). Chỉ chủ đơn thao tác được và chỉ khi đơn đang `delivered`.
+   */
+  async confirmReceived(id: string, customerId: string) {
+    const shopId = this.getShopId();
+    const order = await this.prisma.order.findFirst({ where: { id, shopId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.customerId !== customerId) {
+      throw new BadRequestException('Unauthorized to update this order');
+    }
+    if (order.state !== 'delivered') {
+      throw new BadRequestException(
+        `Cannot confirm receipt for an order in ${order.state} state`,
+      );
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: order.id },
+      data: { state: 'completed' },
+    });
+
+    this.notificationsGateway
+      .notifyUser(
+        shopId,
+        customerId,
+        'CUSTOMER',
+        'ORDER_COMPLETED',
+        'Order Completed',
+        `Your order ${order.number} is now complete. Thank you!`,
+        { orderId: order.id },
+      )
+      .catch((err) => console.error('Notification error', err));
+
+    return updated;
+  }
+
+  /**
+   * Mua lại: nạp các dòng hàng của một đơn cũ vào giỏ hiện tại. Chỉ thêm những
+   * variant CÒN bán (PUBLISHED) — số còn lại trả về `skipped` để UI báo khách.
+   * Gộp trùng variant + upsert (cộng dồn) nên gọi nhiều lần không nhân đôi sai.
+   */
+  async reorder(id: string, customerId: string) {
+    const shopId = this.getShopId();
+    const order = await this.prisma.order.findFirst({
+      where: { id, shopId },
+      include: { lineItems: { select: { variantId: true, quantity: true } } },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.customerId !== customerId) {
+      throw new BadRequestException('Unauthorized to reorder this order');
+    }
+
+    const wanted = new Map<string, number>();
+    for (const li of order.lineItems) {
+      wanted.set(li.variantId, (wanted.get(li.variantId) ?? 0) + li.quantity);
+    }
+
+    const variantIds = [...wanted.keys()];
+    const available = await this.prisma.variant.findMany({
+      where: { id: { in: variantIds }, shopId, product: { status: 'PUBLISHED' } },
+      select: { id: true },
+    });
+    const availableIds = new Set(available.map((v) => v.id));
+    const skipped = variantIds.filter((vid) => !availableIds.has(vid));
+    const added: { variantId: string; quantity: number }[] = [];
+
+    if (availableIds.size > 0) {
+      const cart = await this.prisma.cart.upsert({
+        where: { shopId_customerId: { shopId, customerId } },
+        create: { shopId, customerId },
+        update: {},
+      });
+      for (const [variantId, quantity] of wanted) {
+        if (!availableIds.has(variantId)) continue;
+        await this.prisma.cartItem.upsert({
+          where: { cartId_variantId: { cartId: cart.id, variantId } },
+          create: { cartId: cart.id, variantId, quantity },
+          update: { quantity: { increment: quantity } },
+        });
+        added.push({ variantId, quantity });
+      }
+    }
+
+    return { status: 'reordered', added, skipped };
+  }
+
+  /**
+   * Gửi lại link/QR xác nhận chuyển khoản cho một đơn còn chờ thanh toán. Tái
+   * dùng token còn hạn & chưa dùng nếu có (tránh đẻ thêm row token mỗi lần khách
+   * bấm lại — tiết kiệm lưu trữ), không thì mint token mới hạn 24h. Chỉ áp dụng
+   * cho đơn BankTransfer đang `checkout` (chưa trả tiền) và thuộc về khách.
+   */
+  async resendPaymentLink(id: string, customerId: string) {
+    const shopId = this.getShopId();
+    const order = await this.prisma.order.findFirst({ where: { id, shopId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.customerId !== customerId) {
+      throw new BadRequestException('Unauthorized for this order');
+    }
+    if (order.state !== 'checkout' || order.paymentState === 'paid') {
+      throw new BadRequestException('Order is not awaiting bank-transfer payment');
+    }
+
+    const payment = await this.prisma.payment.findFirst({
+      where: { orderId: order.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!payment) throw new NotFoundException('Payment record not found');
+
+    const now = new Date();
+    let token = await this.prisma.paymentConfirmToken.findFirst({
+      where: { orderId: order.id, usedAt: null, expiresAt: { gt: now } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!token) {
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      token = await this.prisma.paymentConfirmToken.create({
+        data: {
+          token: randomUUID(),
+          orderId: order.id,
+          paymentId: payment.id,
+          shopId,
+          expiresAt,
+        },
+      });
+    }
+
+    const STOREFRONT_BASE = process.env.STOREFRONT_URL || 'http://localhost:3002';
+    const confirmUrl = `${STOREFRONT_BASE}/payment/confirm/${token.token}`;
+    return {
+      orderId: order.id,
+      confirmUrl,
+      qrCodeUrl: await QRCode.toDataURL(confirmUrl),
+      expiresAt: token.expiresAt,
+    };
+  }
+
+  /**
+   * Dòng thời gian sự kiện của đơn — tổng hợp READ-ONLY từ dữ liệu sẵn có (đơn,
+   * payments, shipments, stock movements) nên không cần bảng audit riêng. Trả về
+   * danh sách event đã sắp theo thời gian cho màn admin theo dõi vòng đời đơn.
+   */
+  async getOrderTimeline(id: string) {
+    const shopId = this.getShopId();
+    const order = await this.prisma.order.findFirst({
+      where: { id, shopId },
+      include: {
+        payments: {
+          select: { id: true, state: true, amount: true, createdAt: true, updatedAt: true },
+        },
+        shipments: {
+          select: {
+            id: true,
+            state: true,
+            carrier: true,
+            trackingNumber: true,
+            createdAt: true,
+            shippedAt: true,
+            deliveredAt: true,
+          },
+        },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const movements = await this.prisma.stockMovement.findMany({
+      where: { orderId: id },
+      select: { reason: true, quantityDelta: true, variantId: true, createdAt: true },
+    });
+
+    type TimelineEvent = { at: Date; type: string; label: string; meta?: any };
+    const events: TimelineEvent[] = [];
+
+    events.push({
+      at: order.createdAt,
+      type: 'order_created',
+      label: `Order ${order.number} placed`,
+      meta: { totalAmount: order.totalAmount },
+    });
+
+    for (const p of order.payments) {
+      events.push({
+        at: p.createdAt,
+        type: 'payment_created',
+        label: 'Payment record created',
+        meta: { paymentId: p.id, amount: p.amount, state: p.state },
+      });
+      if (
+        p.updatedAt &&
+        p.updatedAt > p.createdAt &&
+        ['completed', 'failed', 'refunded'].includes(p.state)
+      ) {
+        events.push({
+          at: p.updatedAt,
+          type: `payment_${p.state}`,
+          label: `Payment ${p.state}`,
+          meta: { paymentId: p.id },
+        });
+      }
+    }
+
+    for (const m of movements) {
+      events.push({
+        at: m.createdAt,
+        type: m.reason,
+        label: m.reason === 'order_refund' ? 'Stock restored' : 'Stock deducted',
+        meta: { variantId: m.variantId, quantityDelta: m.quantityDelta },
+      });
+    }
+
+    for (const s of order.shipments) {
+      events.push({
+        at: s.createdAt,
+        type: 'shipment_created',
+        label: 'Shipment created',
+        meta: { shipmentId: s.id },
+      });
+      if (s.shippedAt) {
+        events.push({
+          at: s.shippedAt,
+          type: 'shipment_shipped',
+          label: 'Shipped',
+          meta: { shipmentId: s.id, carrier: s.carrier, trackingNumber: s.trackingNumber },
+        });
+      }
+      if (s.deliveredAt) {
+        events.push({
+          at: s.deliveredAt,
+          type: 'shipment_delivered',
+          label: 'Delivered',
+          meta: { shipmentId: s.id },
+        });
+      }
+    }
+
+    events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    return {
+      orderId: order.id,
+      number: order.number,
+      currentState: order.state,
+      paymentState: order.paymentState,
+      shipmentState: order.shipmentState,
+      events,
+    };
   }
 
   /**

@@ -182,7 +182,13 @@ describe('StorefrontAuthService', () => {
         name: 'Alice',
       });
       const res = await service.forgotPassword('a@b.com', 'shop-1', 'my-shop');
-      expect(prisma.customerVerification.create).toHaveBeenCalled();
+      // SEC-1: the verification identifier must be shop-scoped (`${shopId}:${email}`)
+      // so the token can only ever reset the customer in this shop.
+      expect(prisma.customerVerification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ identifier: 'shop-1:a@b.com' }),
+        }),
+      );
       expect(email.sendResetPasswordEmail).toHaveBeenCalledWith(
         'a@b.com',
         expect.stringContaining('/my-shop/account/reset-password?token='),
@@ -200,23 +206,54 @@ describe('StorefrontAuthService', () => {
       });
     });
 
-    it('throws NO_DATA_END_OF_LIST when the customer is gone', async () => {
+    it('throws PARAM_VALUE_INVALID when the identifier is not shop-scoped (legacy/malformed)', async () => {
+      // SEC-1: a bare-email identifier (no `${shopId}:` prefix) must be rejected
+      // rather than falling back to an unscoped email lookup.
       prisma.customerVerification.findFirst.mockResolvedValue({
         id: 'v1',
         identifier: 'a@b.com',
       });
-      prisma.customer.findFirst.mockResolvedValue(null);
+      await expect(service.resetPassword('tok', 'newpw')).rejects.toMatchObject({
+        code: ResponseCodes.PARAM_VALUE_INVALID,
+      });
+      expect(prisma.customer.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('throws NO_DATA_END_OF_LIST when the customer is gone', async () => {
+      prisma.customerVerification.findFirst.mockResolvedValue({
+        id: 'v1',
+        identifier: 'shop-1:a@b.com',
+      });
+      prisma.customer.findUnique.mockResolvedValue(null);
       await expect(service.resetPassword('tok', 'newpw')).rejects.toMatchObject({
         code: ResponseCodes.NO_DATA_END_OF_LIST,
       });
     });
 
+    it('resolves the customer scoped to the shop encoded in the token (SEC-1)', async () => {
+      prisma.customerVerification.findFirst.mockResolvedValue({
+        id: 'v1',
+        identifier: 'shop-1:a@b.com',
+      });
+      prisma.customer.findUnique.mockResolvedValue({ id: 'cust-1' });
+      prisma.customerAccount.findFirst.mockResolvedValue({ id: 'acc-1' });
+
+      await service.resetPassword('tok', 'newpw');
+
+      // composite unique key, NOT findFirst by email — prevents resetting a
+      // same-email customer in another shop.
+      expect(prisma.customer.findUnique).toHaveBeenCalledWith({
+        where: { shopId_email: { shopId: 'shop-1', email: 'a@b.com' } },
+      });
+      expect(prisma.customer.findFirst).not.toHaveBeenCalled();
+    });
+
     it('updates the account password and consumes the token', async () => {
       prisma.customerVerification.findFirst.mockResolvedValue({
         id: 'v1',
-        identifier: 'a@b.com',
+        identifier: 'shop-1:a@b.com',
       });
-      prisma.customer.findFirst.mockResolvedValue({ id: 'cust-1' });
+      prisma.customer.findUnique.mockResolvedValue({ id: 'cust-1' });
       prisma.customerAccount.findFirst.mockResolvedValue({ id: 'acc-1' });
 
       const res = await service.resetPassword('tok', 'newpw');

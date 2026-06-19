@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { 
   CreditCard, 
   ArrowLeft, 
@@ -15,76 +15,33 @@ import {
   QrCode,
   Wallet
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import Link from "next/link";
-import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
+import { usePaymentSetup, BankAccount } from "@/hooks/usePaymentSetup";
+
+const EMPTY_BANK: BankAccount = { bankName: "", accountNumber: "", accountHolder: "", branch: "" };
 
 export default function PaymentSetupPage() {
   const params = useParams();
   const shopId = params.shopId as string;
-  const router = useRouter();
 
   const { completeAndNavigate } = useOnboardingAutoNav({
     shopId,
     currentStep: 5,
     nextRoute: `/dashboard/${shopId}/settings/shipping`,
   });
-  
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [bankAccount, setBankAccount] = useState({
-    bankName: "",
-    accountNumber: "",
-    accountHolder: "",
-    branch: "",
-  });
 
+  const { loading, saving, initialBankAccount, save } = usePaymentSetup(shopId);
+
+  // Form state (presentational) — seeded from the server values once they load.
+  const [bankAccount, setBankAccount] = useState<BankAccount>(EMPTY_BANK);
   useEffect(() => {
-    const fetchShop = async () => {
-      setLoading(true);
-      try {
-        const res = await apiClient.get<any>(`/api/shops/${shopId}`, { shopId });
-        if (res.data.bankAccount && typeof res.data.bankAccount === 'object' && Object.keys(res.data.bankAccount).length > 0) {
-          setBankAccount({
-            bankName: res.data.bankAccount.bankName || "",
-            accountNumber: res.data.bankAccount.accountNumber || "",
-            accountHolder: res.data.bankAccount.accountHolder || "",
-            branch: res.data.bankAccount.branch || "",
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch shop", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchShop();
-  }, [shopId]);
+    if (initialBankAccount) setBankAccount(initialBankAccount);
+  }, [initialBankAccount]);
 
   const handleSave = async () => {
-    setSaving(true);
-    try {
-      // 1. Update shop bank info via bank-account endpoint
-      await apiClient.patch(`/api/shops/bank-account`, {
-        bankName: bankAccount.bankName,
-        accountNumber: bankAccount.accountNumber,
-        accountHolder: bankAccount.accountHolder,
-      }, { shopId });
-
-      // 2. Enable payment methods (COD + Bank Transfer)
-      await apiClient.patch(`/api/shops/${shopId}/payment-methods`, {
-        cod: true,
-        bankTransfer: true,
-      }, { shopId });
-
-      // 3. Complete step 5 and auto-navigate to shipping
-      await completeAndNavigate();
-    } catch (err: any) {
-      toast.error(`Lỗi: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
+    const ok = await save(bankAccount);
+    if (ok) await completeAndNavigate();
   };
 
   if (loading) {

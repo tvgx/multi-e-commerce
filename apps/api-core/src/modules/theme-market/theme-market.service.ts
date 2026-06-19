@@ -75,6 +75,12 @@ const MINE_PROJECTION = {
   updatedAt: 1,
 };
 
+// Figma extraction runs Claude per frame + rehosts images, so it legitimately
+// takes minutes — but it must still be BOUNDED. Without a timeout the fetch can
+// hang indefinitely (or be silently cut by a proxy) and the admin UI shows only
+// a spinner (THEME-1). Cap it and surface a clear, actionable message instead.
+const FIGMA_IMPORT_TIMEOUT_MS = 4 * 60_000;
+
 /**
  * Theme Market + Theme Shop.
  *
@@ -109,11 +115,33 @@ export class ThemeMarketService {
       .exec();
   }
 
-  /** Full theme document (includes the page trees) for preview. */
+  /**
+   * Full theme document (includes the page trees). INTERNAL ONLY — returns any
+   * status and includes owner/tenant identifiers. Never expose directly on a
+   * public route; use {@link getPublishedTheme} for that.
+   */
   async getTheme(themeId: string) {
     const theme = await this.themeModel.findOne({ themeId }).lean().exec();
     if (!theme) throw new NotFoundException(`Theme "${themeId}" not found`);
     return theme;
+  }
+
+  /**
+   * Public marketplace view. Only PUBLISHED themes are visible, and internal
+   * identifiers (owner/tenant/review) are stripped before returning. Draft or
+   * pending themes 404 to anonymous callers — `themeId` is guessable
+   * (`slug-<6 chars>`), so a draft must not leak via this public endpoint.
+   * Owners edit their own drafts through the authenticated `mine`/update routes.
+   */
+  async getPublishedTheme(themeId: string) {
+    const theme = await this.themeModel
+      .findOne({ themeId, status: 'published' })
+      .lean()
+      .exec();
+    if (!theme) throw new NotFoundException(`Theme "${themeId}" not found`);
+    const { ownerUserId, tenantId, ownerShopId, review, ...publicTheme } =
+      theme as Record<string, any>;
+    return publicTheme;
   }
 
   /** All themes created by a given user (any status), for "My themes". */
@@ -275,6 +303,17 @@ export class ThemeMarketService {
    * Import a Figma file into a draft theme owned by the seller. Proxies to the
    * design-agent pipeline (server-to-server, internal key); design-agent runs
    * extraction + writes the draft `theme_templates` document.
+   *
+   * THEME-1 (remaining, not urgent): this is still SYNCHRONOUS — the request is
+   * held open for the whole extraction, bounded by AbortSignal.timeout below so
+   * it can never hang forever (the dangerous part, already fixed). The future
+   * enhancement is to run it as a background job so very large files (>timeout)
+   * aren't cut off and the UI can show real progress. Mirror the shop-build
+   * producer/poll pattern: ShopBuildJob + BullModule(SHOP_BUILD_QUEUE) +
+   * /shops/:id/build-status + the /scripts/shop-builder worker (see
+   * build.service.ts). That needs a new Postgres job model (hand-written
+   * migration) + a worker process, so it's tracked separately rather than
+   * shipped half-wired.
    */
   async importFromFigma(
     shopId: string,
@@ -295,6 +334,14 @@ export class ThemeMarketService {
     const baseUrl =
       this.config.get<string>('DESIGN_AGENT_URL') ?? 'http://localhost:3100';
     const internalKey = this.config.get<string>('INTERNAL_API_KEY') ?? '';
+    // Bail out with a clear message instead of sending an empty key and getting
+    // an opaque 401 back from design-agent (THEME-3). The key must match the one
+    // design-agent boots with (both read the monorepo root .env).
+    if (!internalKey.trim()) {
+      throw new BadRequestException(
+        'INTERNAL_API_KEY chưa cấu hình ở api-core — không thể gọi design-agent để import Figma.',
+      );
+    }
 
     let res: Response;
     try {
@@ -314,8 +361,19 @@ export class ThemeMarketService {
           ownerUserId: owner.id,
           ownerShopId: shopId,
         }),
+        signal: AbortSignal.timeout(FIGMA_IMPORT_TIMEOUT_MS),
       });
     } catch (err) {
+      // A timeout means design-agent is likely still extracting — the draft may
+      // appear in "Theme của tôi" shortly. Tell the seller that, and how to make
+      // the next attempt smaller, rather than a generic connection error.
+      if (err instanceof Error && err.name === 'TimeoutError') {
+        throw new BadRequestException(
+          `Import Figma quá thời gian cho phép (${FIGMA_IMPORT_TIMEOUT_MS / 60_000} phút). ` +
+            'File có thể có quá nhiều frame — thử lại với ít frame hơn (chọn nodeIds), ' +
+            'hoặc đợi một lát rồi kiểm tra lại "Theme của tôi".',
+        );
+      }
       throw new BadRequestException(
         `Không kết nối được design-agent (${baseUrl}). Đảm bảo nó đang chạy ở chế độ serve.`,
       );
@@ -373,10 +431,41 @@ export class ThemeMarketService {
       appliedPages.push(pageType);
     }
 
+    // THEME-4: don't leave a hybrid draft. Any page the shop drafted under a
+    // PREVIOUS theme/build but this theme doesn't define is reset (draftData
+    // cleared) so the builder reflects exactly this theme. We only touch the
+    // DRAFT — publishedData stays live, so the builder falls back to the
+    // currently-published page until the owner rebuilds it. applyTheme never
+    // publishes, so nothing goes live without an explicit publish.
+    const existingPages = await this.pageLayoutModel
+      .find({ shopId }, { pageType: 1 })
+      .lean()
+      .exec();
+    const stalePageTypes = existingPages
+      .map((p) => p.pageType)
+      .filter((pt) => !appliedPages.includes(pt));
+    let clearedPages: string[] = [];
+    if (stalePageTypes.length > 0) {
+      await this.pageLayoutModel
+        .updateMany(
+          { shopId, pageType: { $in: stalePageTypes } },
+          { $set: { draftData: {} } },
+        )
+        .exec();
+      clearedPages = stalePageTypes;
+    }
+
     this.logger.log(
-      `Applied theme "${themeId}" to shop ${shopId} (${appliedPages.length} page(s)).`,
+      `Applied theme "${themeId}" to shop ${shopId} (${appliedPages.length} page(s)` +
+        `${clearedPages.length ? `, cleared ${clearedPages.length} stale draft page(s)` : ''}).`,
     );
-    return { status: 'applied', themeId, shopId, pages: appliedPages };
+    return {
+      status: 'applied',
+      themeId,
+      shopId,
+      pages: appliedPages,
+      clearedPages,
+    };
   }
 
   // ---- internal helpers -------------------------------------------------

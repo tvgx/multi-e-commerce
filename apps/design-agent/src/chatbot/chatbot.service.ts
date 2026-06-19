@@ -61,8 +61,13 @@ export class ChatbotService {
       req.tenantId,
     );
 
+    // Pass the session tenant THROUGH verbatim — including a literal `null`.
+    // `?? undefined` would collapse a null-tenant session into the repo's
+    // "search across ALL tenants" scope, leaking other tenants' layout sections
+    // into the prompt + the API response (the tool executor is scoped to `null`,
+    // so the RAG path must match it, not widen it).
     const ragChunks = await this.rag.retrieveContext(req.message, {
-      tenant_id: req.tenantId ?? undefined,
+      tenant_id: req.tenantId,
       k: RAG_TOP_K,
     });
 
@@ -83,6 +88,7 @@ export class ChatbotService {
 
     const toolCalls: ToolCallTrace[] = [];
     let reply = '';
+    let finished = false;
 
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
       const response = await this.callModel(system, messages);
@@ -93,6 +99,7 @@ export class ChatbotService {
       );
 
       if (toolUses.length === 0 || response.stop_reason !== 'tool_use') {
+        finished = true;
         break;
       }
 
@@ -122,6 +129,29 @@ export class ChatbotService {
       messages.push({ role: 'user', content: results });
     }
 
+    // The loop exhausted the tool-call budget while the model was still asking
+    // for tools: its last turn was a tool_use block, so `reply` is the (usually
+    // empty) preamble text of that turn. Returning it would hand the user a blank
+    // message and persist it as the assistant reply. Force ONE final pass without
+    // tools so the model has to answer in text from the tool results we gathered.
+    if (!finished) {
+      this.logger.warn(
+        `Tool loop hit ${MAX_TOOL_ITERATIONS} iterations for conversation ` +
+          `${req.conversationId}; forcing a final tool-free answer.`,
+      );
+      const closing = await this.callModel(system, messages, {
+        allowTools: false,
+      });
+      reply = textOf(closing);
+    }
+
+    // Last-resort guard: never persist/return an empty assistant turn.
+    if (!reply) {
+      reply =
+        'Xin lỗi, mình chưa tổng hợp được câu trả lời cho yêu cầu này. ' +
+        'Bạn thử hỏi cụ thể hơn hoặc chia nhỏ câu hỏi giúp mình nhé.';
+    }
+
     await this.conversations.appendTurn(req.conversationId, req.tenantId, [
       { role: 'user', content: req.message, timestamp: new Date() },
       { role: 'assistant', content: reply, timestamp: new Date() },
@@ -141,12 +171,16 @@ export class ChatbotService {
   private async callModel(
     system: string,
     messages: Anthropic.MessageParam[],
+    opts: { allowTools?: boolean } = {},
   ): Promise<Anthropic.Message> {
+    const allowTools = opts.allowTools ?? true;
     const body = {
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system,
-      tools: TOOL_DEFINITIONS,
+      // Omitting tools forces a text-only answer — used for the final closing
+      // turn after the tool-call budget is spent (see chat()).
+      ...(allowTools ? { tools: TOOL_DEFINITIONS } : {}),
       thinking: { type: 'adaptive' },
       messages,
     };

@@ -249,7 +249,11 @@
     "noTransactions": "Chưa có giao dịch nào.",
     "by": "bởi",
     "balanceLabel": "Số dư",
-    "errorPrefix": "Lỗi"
+    "errorPrefix": "Lỗi",
+    "summaryWallets": "Số ví",
+    "summaryBalance": "Tổng số dư",
+    "summaryPendingCount": "Yêu cầu chờ duyệt",
+    "summaryPendingAmount": "Tiền chờ duyệt"
   },
   "txTypes": {
     "deposit": "Nạp tiền",

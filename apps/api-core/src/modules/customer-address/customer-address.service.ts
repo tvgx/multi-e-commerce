@@ -73,8 +73,15 @@ export class CustomerAddressService {
     });
     if (!existing) throw new NotFoundException('Address not found');
 
+    // ADDR-1: never let `update` clear the flag on the current default — that
+    // would leave the customer with zero default addresses (checkout then has
+    // nothing to pre-select). Promotion still happens via setDefault/another
+    // address; here we simply drop a `false` aimed at the sole default.
+    const nextIsDefault =
+      dto.isDefault === false && existing.isDefault ? undefined : dto.isDefault;
+
     const address = await this.prisma.$transaction(async (tx) => {
-      if (dto.isDefault === true && !existing.isDefault) {
+      if (nextIsDefault === true && !existing.isDefault) {
         await tx.customerAddress.updateMany({
           where: { shopId, customerId, isDefault: true },
           data: { isDefault: false },
@@ -89,7 +96,7 @@ export class CustomerAddressService {
           city: dto.city,
           province: dto.province,
           postalCode: dto.postalCode,
-          isDefault: dto.isDefault,
+          isDefault: nextIsDefault,
         },
       });
     });

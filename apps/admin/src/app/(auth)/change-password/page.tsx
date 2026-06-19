@@ -1,38 +1,22 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useChangePassword } from '@/hooks/useChangePassword';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
+  const { changePassword, error } = useChangePassword();
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setSuccess('');
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const res = await fetch(`${apiUrl}/api/auth/change-password`, {
-        method: 'POST',
-        // AUTH-1: credentials:'include' để gửi cookie session owner — thiếu nó
-        // BE không có session, đổi mật khẩu luôn fail.
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'x-auth-type': 'owner' },
-        body: JSON.stringify({ newPassword, currentPassword, revokeOtherSessions: true }),
-      });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Change password failed');
-      }
-      
+    const ok = await changePassword(currentPassword, newPassword);
+    if (ok) {
       setSuccess('Password changed successfully');
       setTimeout(() => router.push('/dashboard'), 2000);
-    } catch (err: any) {
-      setError(err.message);
     }
   };
 

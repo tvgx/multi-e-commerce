@@ -116,7 +116,62 @@ describe('OrderService', () => {
       });
     });
 
-    it('rejects when a variant is not found in this shop', async () => {
+    it('rejects a non-positive or fractional line-item quantity', async () => {
+      // The direct lineItems path had no quantity guard (the cart path enforces
+      // it in addItem). A zero/negative/fractional quantity must be rejected
+      // before it poisons pricing and stock math.
+      await expect(
+        service.createOrder(CUSTOMER, {
+          paymentMethodId: 'pm1',
+          lineItems: [{ variantId: 'v1', quantity: 0 }],
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.createOrder(CUSTOMER, {
+          paymentMethodId: 'pm1',
+          lineItems: [{ variantId: 'v1', quantity: -2 }],
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.createOrder(CUSTOMER, {
+          paymentMethodId: 'pm1',
+          lineItems: [{ variantId: 'v1', quantity: 1.5 }],
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.variant.findMany).not.toHaveBeenCalled();
+    });
+
+    it('merges duplicate line items for the same variant instead of failing the count check', async () => {
+      // Two line items for v1 → variantIds = [v1, v1]; findMany returns 1 distinct
+      // row. The old count check (variants.length !== variantIds.length) wrongly
+      // reported "unavailable". They must be merged to a single quantity-3 line.
+      arrangeCheckout({ id: 'pm1', type: 'COD' });
+
+      await service.createOrder(CUSTOMER, {
+        paymentMethodId: 'pm1',
+        lineItems: [
+          { variantId: 'v1', quantity: 1 },
+          { variantId: 'v1', quantity: 2 },
+        ],
+      } as any);
+
+      expect(prisma.variant.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['v1'] }, shopId: SHOP, product: { status: 'PUBLISHED' } },
+      });
+      expect(inventory.decrementStock).toHaveBeenCalledWith(
+        [{ variantId: 'v1', quantity: 3 }],
+        expect.any(String),
+        prisma,
+      );
+      // Priced once at the merged quantity: 3 × 1000.
+      expect(prisma.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ itemTotal: 3000 }),
+        }),
+      );
+    });
+
+    it('rejects when a variant is missing or its product is not published', async () => {
       prisma.variant.findMany.mockResolvedValue([]); // requested 1, found 0
       await expect(
         service.createOrder(CUSTOMER, {
@@ -124,6 +179,10 @@ describe('OrderService', () => {
           lineItems: [{ variantId: 'v1', quantity: 1 }],
         } as any),
       ).rejects.toBeInstanceOf(BadRequestException);
+      // Only PUBLISHED products are buyable — DRAFT/ARCHIVED are filtered out (ORD-5).
+      expect(prisma.variant.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['v1'] }, shopId: SHOP, product: { status: 'PUBLISHED' } },
+      });
     });
 
     it('creates a pending bank-transfer order with subtotal pricing and a QR code', async () => {
@@ -269,6 +328,64 @@ describe('OrderService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
+    it('atomically increments a limited promotion that still has uses left', async () => {
+      arrangeCheckout({ id: 'pm1', type: 'COD' });
+      prisma.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+        code: 'SAVE10',
+        isActive: true,
+        discountType: 'fixed',
+        discountValue: 100,
+        usageLimit: 5,
+        usedCount: 2,
+        startsAt: null,
+        expiresAt: null,
+      });
+      prisma.promotion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.createOrder(CUSTOMER, {
+        paymentMethodId: 'pm1',
+        promotionCode: 'SAVE10',
+        lineItems: [{ variantId: 'v1', quantity: 1 }],
+      } as any);
+
+      // Conditional increment guards against overselling the last use.
+      expect(prisma.promotion.updateMany).toHaveBeenCalledWith({
+        where: { id: 'promo-1', usedCount: { lt: 5 } },
+        data: { usedCount: { increment: 1 } },
+      });
+      expect(prisma.promotion.update).not.toHaveBeenCalled();
+      expect(prisma.promotionUsage.create).toHaveBeenCalled();
+    });
+
+    it('rolls back when the last use is taken by a concurrent order (count=0)', async () => {
+      arrangeCheckout({ id: 'pm1', type: 'COD' });
+      prisma.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+        code: 'LAST',
+        isActive: true,
+        discountType: 'fixed',
+        discountValue: 100,
+        usageLimit: 5,
+        usedCount: 4, // looked available outside the transaction…
+        startsAt: null,
+        expiresAt: null,
+      });
+      // …but the conditional increment finds none left (another order won the race).
+      prisma.promotion.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.createOrder(CUSTOMER, {
+          paymentMethodId: 'pm1',
+          promotionCode: 'LAST',
+          lineItems: [{ variantId: 'v1', quantity: 1 }],
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.promotionUsage.create).not.toHaveBeenCalled();
+      expect(prisma.order.create).not.toHaveBeenCalled();
+    });
+
     it('adds the shipping fee for a valid shipping method', async () => {
       arrangeCheckout({ id: 'pm1', type: 'COD' });
       prisma.shippingMethod.findFirst.mockResolvedValue({
@@ -359,6 +476,49 @@ describe('OrderService', () => {
           },
         }),
       );
+    });
+
+    it('falls back to createdAt desc for an unknown sortBy column (ORD-4)', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      // A non-allowlisted column would otherwise reach Prisma verbatim → 500.
+      await service.findAllOrders({ sortBy: 'id; DROP TABLE' } as any);
+
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
+      );
+    });
+
+    it('honors an allowlisted sortBy column and direction', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      await service.findAllOrders({ sortBy: 'totalAmount', sortOrder: 'ASC' } as any);
+
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { totalAmount: 'asc' } }),
+      );
+    });
+
+    it('fetches only list-rendered relation fields (no over-fetch)', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      await service.findAllOrders({} as any);
+
+      const arg = prisma.order.findMany.mock.calls[0][0];
+      // payments aren't rendered in any list → not fetched (was `payments: true`)
+      expect(arg.include.payments).toBeUndefined();
+      // customer is narrowed to a select, not the full row (was `customer: true`)
+      expect(arg.include.customer).toEqual({
+        select: { id: true, name: true, email: true, phoneNumber: true },
+      });
+      // shipments/lineItems narrowed too (were `true` / full variant include)
+      expect(arg.include.shipments.select).toMatchObject({ trackingNumber: true });
+      expect(arg.include.lineItems.select.variant.select.product).toEqual({
+        select: { name: true },
+      });
     });
   });
 
@@ -550,6 +710,20 @@ describe('OrderService', () => {
       );
     });
 
+    it('rejects refunding a completed order (ORD-3)', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        state: 'completed',
+        paymentState: 'paid',
+        customerId: CUSTOMER,
+        totalAmount: 2000,
+      });
+      await expect(service.refundOrder('o1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+
     it('refunds a paid order: flips payment rows, credits the wallet, notifies', async () => {
       prisma.order.findFirst.mockResolvedValue({
         id: 'o1',
@@ -617,6 +791,193 @@ describe('OrderService', () => {
       await service.refundOrder('o1');
 
       expect(inventory.restoreStock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('confirmReceived', () => {
+    it('moves a delivered order to completed for its owner', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', number: 'ORD-1', state: 'delivered', customerId: CUSTOMER, shopId: SHOP,
+      });
+      prisma.order.update.mockResolvedValue({ id: 'o1', state: 'completed' });
+
+      const res = await service.confirmReceived('o1', CUSTOMER);
+
+      expect(prisma.order.update).toHaveBeenCalledWith({
+        where: { id: 'o1' },
+        data: { state: 'completed' },
+      });
+      expect(res).toMatchObject({ state: 'completed' });
+      expect(gateway.notifyUser).toHaveBeenCalled();
+    });
+
+    it('refuses to complete an order that is not yet delivered', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', number: 'ORD-1', state: 'shipped', customerId: CUSTOMER, shopId: SHOP,
+      });
+      await expect(service.confirmReceived('o1', CUSTOMER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-owner confirming someone else's order", async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', number: 'ORD-1', state: 'delivered', customerId: 'other', shopId: SHOP,
+      });
+      await expect(service.confirmReceived('o1', CUSTOMER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('reorder', () => {
+    it('re-adds only still-purchasable variants to the cart and reports skipped ones', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', customerId: CUSTOMER, shopId: SHOP,
+        lineItems: [{ variantId: 'v1', quantity: 2 }, { variantId: 'v2', quantity: 1 }],
+      });
+      prisma.variant.findMany.mockResolvedValue([{ id: 'v1' }]); // v2 no longer on sale
+      prisma.cart.upsert.mockResolvedValue({ id: 'cart1' });
+      prisma.cartItem.upsert.mockResolvedValue({});
+
+      const res = await service.reorder('o1', CUSTOMER);
+
+      expect(res.added).toEqual([{ variantId: 'v1', quantity: 2 }]);
+      expect(res.skipped).toEqual(['v2']);
+      expect(prisma.cartItem.upsert).toHaveBeenCalledTimes(1);
+      expect(prisma.cartItem.upsert).toHaveBeenCalledWith({
+        where: { cartId_variantId: { cartId: 'cart1', variantId: 'v1' } },
+        create: { cartId: 'cart1', variantId: 'v1', quantity: 2 },
+        update: { quantity: { increment: 2 } },
+      });
+    });
+
+    it('merges a variant that appeared on multiple line items', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', customerId: CUSTOMER, shopId: SHOP,
+        lineItems: [{ variantId: 'v1', quantity: 1 }, { variantId: 'v1', quantity: 2 }],
+      });
+      prisma.variant.findMany.mockResolvedValue([{ id: 'v1' }]);
+      prisma.cart.upsert.mockResolvedValue({ id: 'cart1' });
+      prisma.cartItem.upsert.mockResolvedValue({});
+
+      const res = await service.reorder('o1', CUSTOMER);
+
+      expect(prisma.cartItem.upsert).toHaveBeenCalledTimes(1);
+      expect(res.added).toEqual([{ variantId: 'v1', quantity: 3 }]);
+    });
+
+    it('touches no cart when nothing is purchasable anymore', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', customerId: CUSTOMER, shopId: SHOP,
+        lineItems: [{ variantId: 'v1', quantity: 1 }],
+      });
+      prisma.variant.findMany.mockResolvedValue([]);
+
+      const res = await service.reorder('o1', CUSTOMER);
+
+      expect(res.added).toEqual([]);
+      expect(res.skipped).toEqual(['v1']);
+      expect(prisma.cart.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects reordering an order that is not the callers', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', customerId: 'other', shopId: SHOP, lineItems: [],
+      });
+      await expect(service.reorder('o1', CUSTOMER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('resendPaymentLink', () => {
+    const awaiting = {
+      id: 'o1', number: 'ORD-1', state: 'checkout', paymentState: 'balance_due',
+      customerId: CUSTOMER, shopId: SHOP,
+    };
+
+    it('reuses a still-valid token instead of minting a new one', async () => {
+      prisma.order.findFirst.mockResolvedValue(awaiting);
+      prisma.payment.findFirst.mockResolvedValue({ id: 'pay1' });
+      prisma.paymentConfirmToken.findFirst.mockResolvedValue({
+        token: 'tok-existing',
+        expiresAt: new Date(Date.now() + 3600_000),
+      });
+
+      const res = await service.resendPaymentLink('o1', CUSTOMER);
+
+      expect(prisma.paymentConfirmToken.create).not.toHaveBeenCalled();
+      expect(res.confirmUrl).toContain('tok-existing');
+      expect(res.qrCodeUrl).toBe('data:image/png;base64,QR');
+    });
+
+    it('mints a fresh 24h token when none is valid', async () => {
+      prisma.order.findFirst.mockResolvedValue(awaiting);
+      prisma.payment.findFirst.mockResolvedValue({ id: 'pay1' });
+      prisma.paymentConfirmToken.findFirst.mockResolvedValue(null);
+      prisma.paymentConfirmToken.create.mockResolvedValue({
+        token: 'tok-new',
+        expiresAt: new Date(Date.now() + 86_400_000),
+      });
+
+      const res = await service.resendPaymentLink('o1', CUSTOMER);
+
+      expect(prisma.paymentConfirmToken.create).toHaveBeenCalledTimes(1);
+      expect(res.confirmUrl).toContain('tok-new');
+    });
+
+    it('refuses to resend for an order no longer awaiting payment', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...awaiting, state: 'confirmed', paymentState: 'paid',
+      });
+      await expect(service.resendPaymentLink('o1', CUSTOMER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.payment.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-owner', async () => {
+      prisma.order.findFirst.mockResolvedValue({ ...awaiting, customerId: 'other' });
+      await expect(service.resendPaymentLink('o1', CUSTOMER)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('getOrderTimeline', () => {
+    it('synthesizes a chronologically sorted event feed from existing data', async () => {
+      const t = (n: number) => new Date(2026, 0, 1, 0, 0, n);
+      prisma.order.findFirst.mockResolvedValue({
+        id: 'o1', number: 'ORD-1', state: 'delivered', paymentState: 'paid',
+        shipmentState: 'delivered', totalAmount: 1000, createdAt: t(0),
+        payments: [{ id: 'pay1', state: 'completed', amount: 1000, createdAt: t(1), updatedAt: t(5) }],
+        shipments: [{ id: 'sh1', state: 'delivered', carrier: 'GHN', trackingNumber: 'TN1', createdAt: t(2), shippedAt: t(3), deliveredAt: t(6) }],
+      });
+      prisma.stockMovement.findMany.mockResolvedValue([
+        { reason: 'order_fulfillment', quantityDelta: -2, variantId: 'v1', createdAt: t(1) },
+      ]);
+
+      const res = await service.getOrderTimeline('o1');
+
+      const types = res.events.map((e: any) => e.type);
+      expect(types[0]).toBe('order_created');
+      expect(types).toEqual(expect.arrayContaining([
+        'payment_created', 'payment_completed', 'order_fulfillment',
+        'shipment_created', 'shipment_shipped', 'shipment_delivered',
+      ]));
+      // timestamps come out non-decreasing
+      const ms = res.events.map((e: any) => new Date(e.at).getTime());
+      expect([...ms].sort((a, b) => a - b)).toEqual(ms);
+      expect(res.currentState).toBe('delivered');
+    });
+
+    it('throws NotFound for an order outside the tenant', async () => {
+      prisma.order.findFirst.mockResolvedValue(null);
+      await expect(service.getOrderTimeline('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

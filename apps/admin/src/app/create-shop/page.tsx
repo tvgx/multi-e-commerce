@@ -4,50 +4,24 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useCreateShop } from "@/hooks/useCreateShop";
 
 export default function CreateShopPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     shopName: "",
     domain: "",
   });
+  const { createShop, loading } = useCreateShop();
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 2));
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      // 1. Create the shop metadata
-      const res = await apiClient.post<any>("/api/shops", {
-        name: formData.shopName,
-        domain: formData.domain,
-        productsPerPage: 30,
-      });
-
-      const shopId = res.data.id;
-
-      // 2. Seed working default pages (header/footer + Home, Product listing,
-      // Product detail) so the new storefront is never blank or "Layout not found".
-      try {
-        await apiClient.post<any>(`/api/layouts/${shopId}/seed`, { shopName: formData.shopName });
-      } catch (seedErr) {
-        // Non-fatal: the builder also seeds client-side defaults on first load.
-        console.warn("Layout seed failed, falling back to builder defaults", seedErr);
-      }
-
-      // 3. Navigate to dashboard — step 1 (Create Store) is auto-completed.
-      // Dashboard will guide user through remaining steps (Add Products → ... → Verify Domain).
-      setLoading(false);
-      router.push(`/dashboard/${shopId}`);
-    } catch (err: any) {
-      toast.error(`Error: ${err.message}`);
-      setLoading(false);
-    }
+    const shopId = await createShop({ shopName: formData.shopName, domain: formData.domain });
+    // Step 1 (Create Store) is auto-completed; dashboard guides the remaining steps.
+    if (shopId) router.push(`/dashboard/${shopId}`);
   };
 
   return (

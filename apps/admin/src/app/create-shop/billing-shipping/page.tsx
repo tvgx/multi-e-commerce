@@ -3,9 +3,8 @@
 import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Package, CreditCard, MapPin, Loader2, CheckCircle2 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
 import { useGeo } from "@/hooks/useGeo";
-import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useBillingShipping } from "@/hooks/useBillingShipping";
 import { WizardProgress } from "../components/wizard-progress";
 
 // Danh sách ngân hàng được hỗ trợ (theo yêu cầu): Agribank, VietinBank, Vietcombank, MB.
@@ -16,6 +15,7 @@ function BillingShippingForm() {
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
   const { provinces, wards, loadWards, loadingWards } = useGeo();
+  const { busy, submit } = useBillingShipping(shopId);
 
   // Shipping
   const [fixedEnabled, setFixedEnabled] = useState(true);
@@ -36,8 +36,6 @@ function BillingShippingForm() {
   const [addressLine, setAddressLine] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [busy, setBusy] = useState(false);
-
   const onProvinceChange = (code: string) => {
     setProvinceCode(code);
     setWardCode("");
@@ -45,65 +43,13 @@ function BillingShippingForm() {
   };
 
   const handleFinish = async () => {
-    if (!shopId) {
-      toast.error("Thiếu shopId");
-      return;
-    }
-    if (!addressLine.trim() || !provinceCode || !wardCode) {
-      toast.error("Vui lòng nhập đầy đủ địa chỉ kho hàng");
-      return;
-    }
-    if (bankEnabled && (!accountHolder.trim() || !accountNumber.trim())) {
-      toast.error("Vui lòng nhập thông tin tài khoản ngân hàng");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      // 1) Phương thức vận chuyển: gộp Fixed Rate + Freeship vào 1 ShippingMethod.
-      if (fixedEnabled || freeshipEnabled) {
-        await apiClient.post(
-          "/api/shipping/methods",
-          {
-            name: "Giao hàng tiêu chuẩn",
-            baseFee: fixedEnabled ? Number(fixedFee) || 0 : 0,
-            freeThreshold: freeshipEnabled ? Number(freeThreshold) || 0 : undefined,
-            active: true,
-          },
-          { shopId },
-        );
-      }
-
-      // 2) Phương thức thanh toán (COD / Chuyển khoản)
-      await apiClient.patch(
-        `/api/shops/${shopId}/payment-methods`,
-        { cod: codEnabled, bankTransfer: bankEnabled },
-        { shopId },
-      );
-
-      // 3) Tài khoản ngân hàng (nếu bật chuyển khoản)
-      if (bankEnabled) {
-        await apiClient.patch(
-          "/api/shops/bank-account",
-          { bankName, accountNumber, accountHolder },
-          { shopId },
-        );
-      }
-
-      // 4) Địa chỉ kho hàng mặc định
-      await apiClient.patch(
-        `/api/shops/${shopId}/warehouse`,
-        { addressLine, provinceCode, wardCode, phone, note: "Kho hàng — nơi shipper đến lấy hàng" },
-        { shopId },
-      );
-
-      // 5) Enqueue build nền rồi sang Dashboard ở trạng thái finalizing.
-      await apiClient.post(`/api/shops/${shopId}/build`, {}, { shopId });
-
+    const ok = await submit({
+      shipping: { fixedEnabled, fixedFee, freeshipEnabled, freeThreshold },
+      payment: { codEnabled, bankEnabled, bankName, accountHolder, accountNumber },
+      warehouse: { provinceCode, wardCode, addressLine, phone },
+    });
+    if (ok) {
       router.push(`/dashboard/${shopId}?finalizing=true`);
-    } catch (err: any) {
-      toast.error(err?.message || "Có lỗi xảy ra, vui lòng thử lại");
-      setBusy(false);
     }
   };
 

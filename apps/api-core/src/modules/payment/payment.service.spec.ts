@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bull';
 import { PaymentService } from './payment.service';
 import { PrismaService } from '../../database/prisma.service';
@@ -130,6 +134,38 @@ describe('PaymentService', () => {
       expect(res).toEqual({ success: true, action: 'confirm' });
     });
 
+    it('confirm: refuses to resurrect an order the timeout job already canceled', async () => {
+      // The payment-timeout worker cancels + restocks after 15', but the confirm
+      // token stays valid for 24h and is NOT consumed. Confirming the stale token
+      // must NOT flip the canceled order back to confirmed/paid (that would leave
+      // it paid with the stock already given back → oversell).
+      prisma.paymentConfirmToken.findUnique.mockResolvedValue({
+        id: 'ct1',
+        usedAt: null,
+        expiresAt: future,
+        paymentId: 'pay1',
+        orderId: 'o1',
+      });
+      prisma.payment.findUnique.mockResolvedValue({ id: 'pay1', state: 'failed' });
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        number: 'ORD-1',
+        shopId: SHOP,
+        customerId: 'cust-1',
+        state: 'canceled',
+        paymentState: 'failed',
+      });
+
+      await expect(service.confirmPayment('t', 'confirm')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.order.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ paymentState: 'paid' }),
+        }),
+      );
+    });
+
     it('reject: voids the order (restock + fail payments) and notifies', async () => {
       prisma.paymentConfirmToken.findUnique.mockResolvedValue({
         id: 'ct1',
@@ -166,6 +202,120 @@ describe('PaymentService', () => {
       );
       expect(email.sendPaymentConfirmed).not.toHaveBeenCalled();
       expect(res.action).toBe('reject');
+    });
+  });
+
+  describe('handleWebhook (PAY-3)', () => {
+    const ORDER = {
+      id: 'o1',
+      number: 'ORD-1',
+      shopId: SHOP,
+      customerId: 'cust-1',
+      state: 'checkout',
+      paymentState: 'balance_due',
+    };
+
+    afterEach(() => {
+      delete process.env.PAYMENT_WEBHOOK_SECRET;
+    });
+
+    it('rejects a webhook without an orderId', async () => {
+      await expect(
+        service.handleWebhook({ transactionId: 'tx', status: 'success' } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('throws NotFound when the order is unknown', async () => {
+      prisma.order.findFirst.mockResolvedValue(null);
+      await expect(
+        service.handleWebhook({ transactionId: 'tx', orderId: 'o1', status: 'success' } as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('success: marks the order paid/confirmed, records the txn, notifies + emails', async () => {
+      prisma.order.findFirst.mockResolvedValue(ORDER);
+      prisma.order.update.mockResolvedValue({ ...ORDER, state: 'confirmed', paymentState: 'paid' });
+      prisma.customer.findUnique.mockResolvedValue({ email: 'buyer@test.dev' });
+
+      const res = await service.handleWebhook({
+        transactionId: 'tx-9',
+        orderId: 'o1',
+        status: 'success',
+      } as any);
+
+      expect(prisma.payment.updateMany).toHaveBeenCalledWith({
+        where: { orderId: 'o1', state: { in: ['checkout', 'pending'] } },
+        data: { state: 'completed', responseCode: 'tx-9' },
+      });
+      expect(prisma.order.update).toHaveBeenCalledWith({
+        where: { id: 'o1' },
+        data: { state: 'confirmed', paymentState: 'paid' },
+      });
+      expect(gateway.notifyUser).toHaveBeenCalledWith(
+        SHOP,
+        'cust-1',
+        'CUSTOMER',
+        'PAYMENT_CONFIRMED',
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({ orderId: 'o1', transactionId: 'tx-9' }),
+      );
+      expect(email.sendPaymentConfirmed).toHaveBeenCalled();
+      expect(res).toMatchObject({ status: 'success', paymentState: 'paid' });
+    });
+
+    it('failure: restocks + fails payments via voidOrder and notifies rejected', async () => {
+      prisma.order.findFirst.mockResolvedValue(ORDER);
+
+      const res = await service.handleWebhook({
+        transactionId: 'tx-9',
+        orderId: 'o1',
+        status: 'failed',
+      } as any);
+
+      expect(orderService.voidOrder).toHaveBeenCalledWith(
+        prisma,
+        ORDER,
+        expect.objectContaining({ restock: true, failPayments: true }),
+      );
+      expect(gateway.notifyUser).toHaveBeenCalledWith(
+        SHOP,
+        'cust-1',
+        'CUSTOMER',
+        'PAYMENT_REJECTED',
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({ orderId: 'o1' }),
+      );
+      expect(email.sendPaymentConfirmed).not.toHaveBeenCalled();
+      expect(res).toMatchObject({ status: 'failed' });
+    });
+
+    it('is idempotent — ignores a callback for an already-paid order', async () => {
+      prisma.order.findFirst.mockResolvedValue({ ...ORDER, paymentState: 'paid' });
+
+      const res = await service.handleWebhook({
+        transactionId: 'tx-9',
+        orderId: 'o1',
+        status: 'success',
+      } as any);
+
+      expect(res).toMatchObject({ status: 'ignored' });
+      expect(prisma.order.update).not.toHaveBeenCalled();
+      expect(orderService.voidOrder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a forged webhook when a secret is configured', async () => {
+      process.env.PAYMENT_WEBHOOK_SECRET = 'shh';
+      await expect(
+        service.handleWebhook({
+          transactionId: 'tx',
+          orderId: 'o1',
+          status: 'success',
+        } as any),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      // Verification happens before any DB lookup.
+      expect(prisma.order.findFirst).not.toHaveBeenCalled();
     });
   });
 

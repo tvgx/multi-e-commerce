@@ -130,6 +130,26 @@ describe('ShopService', () => {
     });
   });
 
+  describe('getWarehouse', () => {
+    it('reads only the default stock location (no full-shop fetch)', async () => {
+      prisma.stockLocation.findFirst.mockResolvedValue({ id: 'sl-1', addressLine: '1 Le Loi' });
+
+      const res = await service.getWarehouse(SHOP);
+
+      const arg = prisma.stockLocation.findFirst.mock.calls[0][0];
+      expect(arg.where).toEqual({ shopId: SHOP, isDefault: true });
+      expect(arg.select.addressLine).toBe(true);
+      // does not pull the shop row to get the warehouse
+      expect(prisma.shop.findUnique).not.toHaveBeenCalled();
+      expect(res).toEqual({ id: 'sl-1', addressLine: '1 Le Loi' });
+    });
+
+    it('returns null when no warehouse is set yet', async () => {
+      prisma.stockLocation.findFirst.mockResolvedValue(null);
+      expect(await service.getWarehouse(SHOP)).toBeNull();
+    });
+  });
+
   describe('completeOnboardingStep', () => {
     it('throws NotFound for an unknown shop', async () => {
       prisma.shop.findUnique.mockResolvedValue(null);

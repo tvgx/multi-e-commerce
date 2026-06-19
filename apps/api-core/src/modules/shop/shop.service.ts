@@ -164,6 +164,26 @@ export class ShopService {
     return this.prisma.stockLocation.create({ data: { shopId, ...data } });
   }
 
+  /**
+   * Chỉ lấy địa chỉ kho mặc định. Trang cài đặt vận chuyển trước đây phải GET cả shop
+   * (kèm bankAccount) chỉ để đọc stockLocations[0] → endpoint này tránh over-fetch đó.
+   */
+  async getWarehouse(shopId: string) {
+    return this.prisma.stockLocation.findFirst({
+      where: { shopId, isDefault: true },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        addressLine: true,
+        provinceCode: true,
+        wardCode: true,
+        note: true,
+      },
+    });
+  }
+
   // Bật/tắt phương thức thanh toán cơ bản (COD, Chuyển khoản) — upsert theo (shopId, type).
   async setPaymentMethods(shopId: string, dto: UpdatePaymentMethodsDto) {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });

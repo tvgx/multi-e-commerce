@@ -59,7 +59,8 @@ export class ThemeMarketController {
   @Public()
   @Get(':themeId')
   async getTheme(@Param('themeId') themeId: string) {
-    const data = await this.themeMarket.getTheme(themeId);
+    // Public browse: only published themes, internal IDs stripped (THEME-2).
+    const data = await this.themeMarket.getPublishedTheme(themeId);
     return BaseResponseDto.success(data);
   }
 

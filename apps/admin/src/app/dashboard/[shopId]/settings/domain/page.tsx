@@ -1,12 +1,12 @@
 "use client";
 
-import React, { use, useState } from "react";
-import { useOnboarding } from "@/hooks/useOnboarding";
-import { 
-  Globe, 
-  CheckCircle2, 
-  AlertCircle, 
-  Copy, 
+import React, { useState } from "react";
+import { useDomainVerification } from "@/hooks/useDomainVerification";
+import {
+  Globe,
+  CheckCircle2,
+  AlertCircle,
+  Copy,
   RefreshCcw,
   ExternalLink,
   ArrowLeft,
@@ -14,32 +14,22 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
-import { apiClient } from "@/lib/api-client";
 
 export default function DomainSettings({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
-  const { status, refresh } = useOnboarding(shopId);
-  const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { domain, refresh, verifying, error, verify } = useDomainVerification(shopId);
   const [success, setSuccess] = useState(false);
 
   const verificationRecord = `shopVolo-verification=${shopId}`;
-  const shopDomain = status?.domain || "mystore.omnicommerce.com";
+  const shopDomain = domain || "mystore.omnicommerce.com";
 
   const handleVerify = async () => {
-    setVerifying(true);
-    setError(null);
     setSuccess(false);
-    try {
-      // Trigger background build process
-      await apiClient.post(`/api/shops/${shopId}/build`, {}, { shopId });
+    const ok = await verify();
+    if (ok) {
       setSuccess(true);
       // Redirect to dashboard with finalizing=true so it shows progress bar
       window.location.href = `/dashboard/${shopId}?finalizing=true`;
-    } catch (err: any) {
-      setError(err.message || "DNS verification failed. Please check your records and try again.");
-    } finally {
-      setVerifying(false);
     }
   };
 

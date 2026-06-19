@@ -5,6 +5,7 @@ import {
   Post,
   BadRequestException,
   UnauthorizedException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExtractorService } from './extractor.service';
@@ -42,7 +43,15 @@ export class ExtractorController {
     @Body() body: ExtractThemeBody,
   ) {
     const expected = this.config.get<string>('INTERNAL_API_KEY');
-    if (!expected || internalKey !== expected) {
+    // Distinguish a server misconfig from a genuine bad key so the failure isn't
+    // a silent 401 (THEME-3). Serve-mode boot already fail-fasts on a missing
+    // key, but the CLI path can still reach here without it.
+    if (!expected) {
+      throw new ServiceUnavailableException(
+        'design-agent INTERNAL_API_KEY is not configured',
+      );
+    }
+    if (internalKey !== expected) {
       throw new UnauthorizedException('Invalid internal key');
     }
     if (!body?.fileKey) throw new BadRequestException('fileKey is required');

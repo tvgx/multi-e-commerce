@@ -1,25 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
-import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations, useLocale } from '@ecommerce/i18n/src/react';
-
-interface WalletData {
-    id: string;
-    balance: number;
-    pendingTopups: { id: string; amount: number; status: string; createdAt: string; expiresAt: string }[];
-}
-
-interface TxRow {
-    id: string;
-    type: string;
-    amount: number;
-    balanceAfter: number;
-    note?: string | null;
-    createdAt: string;
-}
+import { useWallet } from '@/hooks/useWallet';
 
 const QUICK_AMOUNTS = [100000, 200000, 500000];
 
@@ -28,79 +13,24 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
     const locale = useLocale();
     const intlLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
 
-    const [wallet, setWallet] = useState<WalletData | null>(null);
-    const [txs, setTxs] = useState<TxRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        wallet,
+        txs,
+        loading,
+        error,
+        requesting,
+        topupResult,
+        clearTopupResult,
+        requestTopup,
+    } = useWallet(shopInfo.id, shopSlug);
 
-    // Topup state
+    // Form input is the only piece of local UI state left in the view.
     const [topupAmount, setTopupAmount] = useState('');
-    const [requesting, setRequesting] = useState(false);
-    const [topupResult, setTopupResult] = useState<any>(null);
-
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-    const getToken = useCallback(() => document.cookie.split(';')
-        .find(c => c.trim().startsWith(`shop_session_${shopSlug}=`))
-        ?.split('=')[1], [shopSlug]);
-
-    const authHeaders = useCallback((): Record<string, string> => ({
-        'x-shop-id': shopInfo.id,
-        'Authorization': `Bearer ${getToken() || ''}`,
-    }), [shopInfo.id, getToken]);
-
-    const fetchWallet = useCallback(async () => {
-        try {
-            const [walletRes, txRes] = await Promise.all([
-                fetch(`${API_BASE}/api/wallet/me`, { headers: authHeaders() }),
-                fetch(`${API_BASE}/api/wallet/me/transactions?limit=30`, { headers: authHeaders() }),
-            ]);
-            if (!walletRes.ok) {
-                const body = await walletRes.json().catch(() => ({}));
-                throw new Error(body.message || t('wallet.loadFailed'));
-            }
-            const walletData = await walletRes.json();
-            setWallet(walletData);
-
-            if (txRes.ok) {
-                const txData = await txRes.json();
-                setTxs(txData.data || []);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [API_BASE, authHeaders, t]);
-
-    useEffect(() => {
-        fetchWallet();
-    }, [fetchWallet]);
 
     const handleTopup = async (e: React.FormEvent) => {
         e.preventDefault();
-        const amount = Number(topupAmount);
-        if (!amount || amount < 1000) {
-            toast.error(t('wallet.minAmount'));
-            return;
-        }
-        setRequesting(true);
-        try {
-            const res = await fetch(`${API_BASE}/api/wallet/topup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...authHeaders() },
-                body: JSON.stringify({ amount }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t('wallet.topupFailed'));
-            setTopupResult(data);
-            setTopupAmount('');
-            await fetchWallet();
-        } catch (err: any) {
-            toast.error(err.message);
-        } finally {
-            setRequesting(false);
-        }
+        const ok = await requestTopup(Number(topupAmount));
+        if (ok) setTopupAmount('');
     };
 
     if (loading) {
@@ -160,7 +90,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                             </div>
                         </div>
                         <button
-                            onClick={() => setTopupResult(null)}
+                            onClick={clearTopupResult}
                             className="text-sm font-medium text-slate-500 hover:text-slate-900"
                         >
                             {t('wallet.createAnother')}

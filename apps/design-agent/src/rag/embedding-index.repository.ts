@@ -67,8 +67,13 @@ export class EmbeddingIndexRepository {
     return res.deletedCount ?? 0;
   }
 
-  /** Load candidate vectors for retrieval, optionally filtered by tenant. */
-  async findForRetrieval(tenantId?: string): Promise<StoredEmbedding[]> {
+  /**
+   * Load candidate vectors for retrieval. `undefined` searches across all
+   * tenants (admin/CLI); a string scopes to that tenant; a literal `null` scopes
+   * to the un-tenanted layouts ONLY — so a null-tenant chat session can't pull
+   * in other tenants' sections.
+   */
+  async findForRetrieval(tenantId?: string | null): Promise<StoredEmbedding[]> {
     return this.model
       .find(tenantScope(tenantId))
       .lean()
@@ -87,9 +92,10 @@ export class EmbeddingIndexRepository {
 
 /**
  * `undefined` tenant = index/search across all tenants; an explicit tenant id
- * scopes to that tenant only. (A literal `null` tenant_id is stored for layouts
- * extracted without `--tenant`.)
+ * scopes to that tenant only; a literal `null` scopes to the un-tenanted
+ * layouts stored without `--tenant`. `null` is deliberately NOT collapsed into
+ * `undefined`/all — a null-tenant chat session is a real isolation boundary.
  */
-function tenantScope(tenantId?: string): Record<string, unknown> {
+function tenantScope(tenantId?: string | null): Record<string, unknown> {
   return tenantId === undefined ? {} : { tenant_id: tenantId };
 }

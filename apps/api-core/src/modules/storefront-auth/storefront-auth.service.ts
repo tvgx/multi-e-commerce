@@ -157,12 +157,15 @@ export class StorefrontAuthService {
     _body: any,
     _customerId: string,
   ): Promise<BaseResponseDto<any>> {
-    // Password management is now handled by Better Auth via CustomerAccount
-    // Use /api/auth/customer/change-password endpoint
-    return BaseResponseDto.success({
-      message:
-        'Use /api/auth/customer/change-password endpoint (Better Auth) for password changes.',
-    });
+    // SFAUTH-1: password management lives in Better Auth (CustomerAccount). This
+    // endpoint can't change a password, so FAIL LOUDLY instead of returning a
+    // success wrapper — a 200 here was a silent "false success" if any UI wired
+    // to it. Callers must use /api/auth/customer/change-password (Better Auth).
+    throw new CustomException(
+      ResponseCodes.EXCEPTION_ERROR,
+      'Password changes are handled by Better Auth — call /api/auth/customer/change-password instead.',
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   async getMe(customerId: string): Promise<BaseResponseDto<any>> {
@@ -188,11 +191,14 @@ export class StorefrontAuthService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiration
 
-    // customerVerification logic 
+    // customerVerification logic
+    // SEC-1: bind the reset to its shop. Customer is unique per (shopId, email),
+    // so storing the bare email here would let resetPassword resolve a same-email
+    // customer in a DIFFERENT shop. Encode shopId so the reset stays shop-scoped.
     await this.prisma.customerVerification.create({
       data: {
         id: randomUUID(),
-        identifier: email,
+        identifier: `${shopId}:${email}`,
         value: token,
         expiresAt,
         createdAt: new Date(),
@@ -217,8 +223,20 @@ export class StorefrontAuthService {
       throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid or expired token', HttpStatus.BAD_REQUEST);
     }
 
-    const customer = await this.prisma.customer.findFirst({
-      where: { email: verification.identifier }
+    // SEC-1: identifier is stored as `${shopId}:${email}`. Resolve via the
+    // composite unique key so the reset can only ever touch the customer in the
+    // shop the token was issued for — findFirst by email alone could hit a
+    // same-email customer in another shop (split on the first ':' since shopId
+    // never contains one).
+    const sepIndex = verification.identifier.indexOf(':');
+    if (sepIndex === -1) {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid or expired token', HttpStatus.BAD_REQUEST);
+    }
+    const shopId = verification.identifier.slice(0, sepIndex);
+    const email = verification.identifier.slice(sepIndex + 1);
+
+    const customer = await this.prisma.customer.findUnique({
+      where: { shopId_email: { shopId, email } }
     });
 
     if (!customer) {

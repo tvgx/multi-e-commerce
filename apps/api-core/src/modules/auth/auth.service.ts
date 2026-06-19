@@ -148,8 +148,16 @@ export class AuthService {
   /**
    * Register — proxy qua Better Auth signUpEmail.
    * Tạo user + session, trả về token + user data trong response body.
+   *
+   * @deprecated AUTH-2: endpoint này KHÔNG set Set-Cookie (better-auth được gọi
+   * không kèm `asResponse`), nên không tạo được session cookie cho trình duyệt.
+   * Admin dùng better-auth client trực tiếp; customer dùng `/api/storefront-auth/register`.
+   * Giữ lại để tương thích nhưng đừng nối UI mới vào đây — sẽ "thành công giả".
    */
   async register(dto: RegisterDto): Promise<BaseResponseDto<any>> {
+    this.logger.warn(
+      'DEPRECATED POST /api/auth/register called — returns a body token but no session cookie (AUTH-2). Use the better-auth client or /api/storefront-auth/register.',
+    );
     try {
       const result = await this.ownerAuth.api.signUpEmail({
         body: {
@@ -195,8 +203,15 @@ export class AuthService {
   /**
    * Login — proxy qua Better Auth signInEmail.
    * Xác thực credentials, tạo session, trả về token + user data.
+   *
+   * @deprecated AUTH-2: như {@link register}, không set Set-Cookie nên không
+   * thiết lập được session cookie. Admin dùng better-auth client trực tiếp;
+   * customer dùng `/api/storefront-auth/login`.
    */
   async login(dto: LoginDto): Promise<BaseResponseDto<any>> {
+    this.logger.warn(
+      'DEPRECATED POST /api/auth/login called — returns a body token but no session cookie (AUTH-2). Use the better-auth client or /api/storefront-auth/login.',
+    );
     try {
       const result = await this.ownerAuth.api.signInEmail({
         body: {

@@ -4,8 +4,12 @@ import { EmbeddingIndexRepository } from './embedding-index.repository';
 import { cosineSimilarity } from './similarity';
 
 export interface RetrieveOptions {
-  /** Multi-tenant filter. Omit to search across all tenants. */
-  tenant_id?: string;
+  /**
+   * Multi-tenant filter. `undefined` searches across all tenants; a string
+   * scopes to that tenant; a literal `null` scopes to the un-tenanted layouts
+   * only (it is NOT treated as "all tenants").
+   */
+  tenant_id?: string | null;
   /** Number of chunks to return (default 5). */
   k?: number;
 }

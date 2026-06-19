@@ -97,6 +97,9 @@ export interface IMasterTemplateCatalog extends Document {
     description: string;
     icon: string;
     isCustom: boolean;
+    // layout JSON for custom templates (LAY-1). NOT named `schema` — that clashes
+    // with Mongoose Document's built-in `.schema`.
+    layoutSchema?: Record<string, unknown>;
 }
 
 export const MasterTemplateCatalogSchema: Schema = new Schema({
@@ -107,6 +110,9 @@ export const MasterTemplateCatalogSchema: Schema = new Schema({
     description: { type: String, required: true },
     icon: { type: String, required: true },
     isCustom: { type: Boolean, default: false },
+    // Custom templates created via POST /layouts/master carry their layout JSON
+    // here. Built-in templates leave it unset (UI reads them by templateKey).
+    layoutSchema: { type: Schema.Types.Mixed },
 }, { timestamps: true, collection: 'master_template_catalog' });
 
 // ------------------------------------------
