@@ -47,13 +47,12 @@ export function createOwnerAuth(prisma: PrismaService) {
       useSecureCookies: process.env.NODE_ENV === 'production',
       // Cookie prefix để phân biệt với customer sessions
       cookiePrefix: 'owner',
-      // Cho phép cookie được chia sẻ giữa các port khác nhau trên localhost
-      // (admin:3001 proxy → api:3000). Trong production: set domain đúng subdomain.
-      crossSubDomainCookies: {
-        // enabled: process.env.NODE_ENV !== 'production',
-        enabled: false,
-        domain: 'localhost',
-      },
+      // Production: đặt COOKIE_DOMAIN=.tvgx1.id.vn để cookie được chia sẻ giữa
+      // admin.tvgx1.id.vn ↔ api.tvgx1.id.vn (cùng eTLD+1 nên là same-site).
+      // Bỏ trống ở local → cookie host-only như cũ.
+      crossSubDomainCookies: process.env.COOKIE_DOMAIN
+        ? { enabled: true, domain: process.env.COOKIE_DOMAIN }
+        : { enabled: false, domain: 'localhost' },
     },
   });
 }

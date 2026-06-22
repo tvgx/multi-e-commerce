@@ -20,12 +20,37 @@ async function bootstrap() {
     logger: ['log', 'warn', 'error', 'debug', 'fatal'],
   });
 
-  // Enable CORS cho admin và storefront
-  app.enableCors({
-    origin: [
+  // Enable CORS cho admin và storefront.
+  // Multi-tenant: mỗi shop là một subdomain (vd shop1.tvgx1.id.vn) gọi thẳng API
+  // từ browser kèm credentials → không thể whitelist tĩnh. Dùng function origin:
+  //  - khớp chính xác ADMIN_URL / STOREFRONT_URL + localhost dev
+  //  - khớp mọi subdomain của ROOT_DOMAIN (vd *.tvgx1.id.vn) khi đặt env này
+  const allowedExactOrigins = new Set(
+    [
       process.env.ADMIN_URL || 'http://localhost:3001',
       process.env.STOREFRONT_URL || 'http://localhost:3002',
-    ],
+    ].filter(Boolean),
+  );
+  const rootDomain = process.env.ROOT_DOMAIN; // vd "tvgx1.id.vn" (không có dấu chấm đầu)
+  const isAllowedOrigin = (origin?: string): boolean => {
+    // Không có Origin header (same-origin, curl, SSR server-to-server) → cho phép
+    if (!origin) return true;
+    if (allowedExactOrigins.has(origin)) return true;
+    if (rootDomain) {
+      try {
+        const host = new URL(origin).hostname;
+        if (host === rootDomain || host.endsWith(`.${rootDomain}`)) return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-type', 'x-shop-id', 'x-tenant-id', 'x-request-id'],

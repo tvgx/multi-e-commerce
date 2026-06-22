@@ -1,21 +1,17 @@
 name: Deploy Staging
 
+# NOTE: This is the legacy K8s/K3s deploy targeting a self-hosted baremetal runner.
+# Production now deploys via Docker Compose on Lightsail (see deploy/DEPLOY.md), so the
+# automatic `workflow_run` trigger was REMOVED — it fired after every CI/CD run and went
+# red (no self-hosted runner / cluster), polluting `main` status. Kept as manual-only.
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - CI/CD Pipeline
-    types:
-      - completed
-    branches:
-      - main
 
 env:
   K8S_NAMESPACE: ecommerce
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success')
     runs-on:
       - self-hosted
       - linux

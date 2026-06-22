@@ -5,6 +5,13 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": [
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_IMAGE_PROXY_URL",
+        "NEXT_PUBLIC_STOREFRONT_URL",
+        "NEXT_PUBLIC_STOREFRONT_HOST",
+        "NEXT_PUBLIC_STOREFRONT_PROTOCOL"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"]
     },
     "lint": {

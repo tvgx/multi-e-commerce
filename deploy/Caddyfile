@@ -1,0 +1,58 @@
+# Caddy reverse proxy + TLS tự động cho production.
+# Dùng image chính thức caddy:2-alpine — KHÔNG cần plugin DNS, KHÔNG cần wildcard cert.
+#
+# - api/admin/cdn/images/apex: cert thường qua HTTP-01 (chỉ cần A record + cổng 80 mở).
+# - tenant storefront *.<domain>: cert cấp ON-DEMAND lúc request đầu (HTTP-01 per-host),
+#   được chặn lạm dụng bởi endpoint `ask` (chỉ cấp cho subdomain của ROOT_DOMAIN).
+#
+# Env (truyền từ compose): ROOT_DOMAIN, ACME_EMAIL.
+
+{
+	email {$ACME_EMAIL}
+	on_demand_tls {
+		ask http://localhost:5555/check
+	}
+}
+
+# ── ask endpoint (Caddy tự trả lời chính nó) ─────────────────────────────────
+# Caddy gọi GET http://localhost:5555/check?domain=<host> trước khi cấp cert.
+# Chỉ trả 200 nếu host là subdomain của ROOT_DOMAIN → tránh ai đó trỏ domain lạ
+# vào IP box để ép cấp cert / DoS Let's Encrypt.
+:5555 {
+	@allowed expression `{http.request.uri.query.domain}.endsWith('.{$ROOT_DOMAIN}')`
+	respond @allowed 200
+	respond 403
+}
+
+# ── Backend API ──────────────────────────────────────────────────────────────
+api.{$ROOT_DOMAIN} {
+	reverse_proxy api-core:3000
+}
+
+# ── Admin dashboard ──────────────────────────────────────────────────────────
+admin.{$ROOT_DOMAIN} {
+	reverse_proxy admin:3000
+}
+
+# ── CDN: ảnh public phục vụ trực tiếp từ MinIO (path-style /<bucket>/<key>) ───
+cdn.{$ROOT_DOMAIN} {
+	reverse_proxy minio:9000
+}
+
+# ── Image optimizer (imgproxy) ───────────────────────────────────────────────
+images.{$ROOT_DOMAIN} {
+	reverse_proxy imgproxy:8080
+}
+
+# ── Storefront apex (cert thường) ────────────────────────────────────────────
+{$ROOT_DOMAIN} {
+	reverse_proxy storefront:3002
+}
+
+# ── Storefront tenant subdomains: bắt mọi host còn lại, cert on-demand ────────
+https:// {
+	tls {
+		on_demand
+	}
+	reverse_proxy storefront:3002
+}

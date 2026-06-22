@@ -23,6 +23,18 @@ RUN npm install
 # Copy source code and build
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
+
+# NEXT_PUBLIC_* được Next.js bake vào bundle TẠI build-time → phải truyền qua
+# --build-arg khi build image cho production (mặc định fallback localhost cho dev).
+ARG NEXT_PUBLIC_API_URL=http://localhost:3000
+ARG NEXT_PUBLIC_STOREFRONT_URL
+ARG NEXT_PUBLIC_STOREFRONT_HOST
+ARG NEXT_PUBLIC_STOREFRONT_PROTOCOL=https
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_STOREFRONT_URL=${NEXT_PUBLIC_STOREFRONT_URL}
+ENV NEXT_PUBLIC_STOREFRONT_HOST=${NEXT_PUBLIC_STOREFRONT_HOST}
+ENV NEXT_PUBLIC_STOREFRONT_PROTOCOL=${NEXT_PUBLIC_STOREFRONT_PROTOCOL}
+
 RUN turbo run build --filter=admin...
 
 # Runner stage

@@ -26,6 +26,11 @@ coverage
 out/
 build
 dist
+# ...but a bare `build`/`dist` also matches SOURCE dirs of the same name
+# (e.g. the NestJS module apps/api-core/src/modules/build/). Build output never
+# lives under a src/ tree, so re-include any build/dist dir that does.
+!**/src/**/build/
+!**/src/**/dist/
 
 
 # Debug

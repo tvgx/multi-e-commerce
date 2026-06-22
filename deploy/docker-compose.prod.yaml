@@ -1,0 +1,175 @@
+# Production stack — chạy trên 1 box (AWS Lightsail 2GB Ubuntu).
+# Image được build sẵn trên CI (ghcr.io); box CHỈ kéo về chạy (không build → tránh OOM).
+#
+# Cách dùng (trong thư mục deploy/ trên box):
+#   cp .env.prod.example .env   # rồi điền secret thật
+#   export GHCR_OWNER=<github-owner>/<repo>   # vd lordfeeder/multi-e-commerce
+#   docker compose -f docker-compose.prod.yaml pull
+#   docker compose -f docker-compose.prod.yaml up -d
+#
+# Lưu ý RAM 2GB: tổng mem limit > 2GB nhưng đây là TRẦN (không phải reservation);
+# usage thực thấp hơn. Vẫn nên tạo swap 2–4GB (xem DEPLOY.md) để an toàn khi build job spike.
+
+name: ecommerce-prod
+
+# Image mặc định trỏ ghcr.io/lordfeeder/multi-e-commerce-<service>:latest.
+# Override bằng biến môi trường *_IMAGE trong .env nếu owner/repo/tag khác.
+
+services:
+  # ── Reverse proxy + TLS tự động (Let's Encrypt) ──────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      ROOT_DOMAIN: ${ROOT_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      - api-core
+      - admin
+      - storefront
+      - minio
+      - imgproxy
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+
+  # ── Backend API (NestJS) — stateless HTTP + WebSocket (CHỈ 1 replica) ─────────
+  api-core:
+    image: ${API_CORE_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-api-core:latest}
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+    depends_on:
+      - redis
+      - minio
+    deploy:
+      resources:
+        limits:
+          memory: 450M
+
+  # ── Admin dashboard (Next.js SSR) ────────────────────────────────────────────
+  admin:
+    image: ${ADMIN_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-admin:latest}
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    depends_on:
+      - api-core
+    deploy:
+      resources:
+        limits:
+          memory: 350M
+
+  # ── Storefront (Next.js standalone) ──────────────────────────────────────────
+  storefront:
+    image: ${STOREFRONT_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-storefront:latest}
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3002"
+      # Next standalone phải bind 0.0.0.0 để Caddy (container khác) truy cập được.
+      HOSTNAME: "0.0.0.0"
+      # SSR gọi backend qua mạng nội bộ Docker (nhanh + không qua CORS/Caddy).
+      API_CORE_URL: http://api-core:3000
+    depends_on:
+      - api-core
+    deploy:
+      resources:
+        limits:
+          memory: 320M
+
+  # ── Shop-build worker (Bull queue consumer) ──────────────────────────────────
+  shop-builder:
+    image: ${SHOP_BUILDER_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-shop-builder:latest}
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      SHOP_BUILD_CONCURRENCY: ${SHOP_BUILD_CONCURRENCY:-2}
+    depends_on:
+      - redis
+      - minio
+    deploy:
+      resources:
+        limits:
+          memory: 450M
+
+  # ── Object storage (S3-compatible) ───────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
+  # ── Image optimizer (on-the-fly resize/webp/avif) ────────────────────────────
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    restart: unless-stopped
+    environment:
+      IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_AUTO_AVIF: "true"
+      # Cho phép fetch ảnh gốc từ CDN công khai (https://cdn.<domain>/...).
+      IMGPROXY_ALLOWED_SOURCES: "https://cdn.${ROOT_DOMAIN}/"
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+
+  # ── Redis (Bull queue + cache) ───────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+
+volumes:
+  caddy_data:
+  caddy_config:
+  minio_data:
+  redis_data:

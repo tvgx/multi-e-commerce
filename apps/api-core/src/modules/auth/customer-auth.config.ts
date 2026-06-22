@@ -52,6 +52,12 @@ export function createCustomerAuth(prisma: PrismaService) {
       useSecureCookies: process.env.NODE_ENV === 'production',
       // Cookie prefix riêng cho customer
       cookiePrefix: 'customer',
+      // Production: COOKIE_DOMAIN=.tvgx1.id.vn để cookie customer hợp lệ trên
+      // mọi storefront subdomain (shop1.tvgx1.id.vn …) khi gọi api.tvgx1.id.vn.
+      // Bỏ trống ở local → cookie host-only như cũ.
+      ...(process.env.COOKIE_DOMAIN
+        ? { crossSubDomainCookies: { enabled: true, domain: process.env.COOKIE_DOMAIN } }
+        : {}),
     },
   });
 }
