@@ -54,12 +54,12 @@ export function CollectionListsGrid({
                 <div className={cn("grid gap-4 md:gap-8", gridColsClass)}>
                     {items.map((item, i) => (
                         <a href="#" key={i} className="flex flex-col items-center group">
-                            <div className="w-full aspect-square rounded-full overflow-hidden mb-4 bg-slate-100 p-2 border-2 border-transparent group-hover:border-emerald-500 transition-colors">
+                            <div className="w-full aspect-square rounded-full overflow-hidden mb-4 bg-slate-100 p-2 border-2 border-transparent group-hover:border-brand transition-colors">
                                 <div className="w-full h-full rounded-full overflow-hidden bg-slate-200">
                                     <SmartImage src={`http://localhost:9000/assets/default-3.png`} alt={`Category ${item}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" sizes="(min-width: 768px) 16vw, 33vw" />
                                 </div>
                             </div>
-                            <h3 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors text-center">Category {item}</h3>
+                            <h3 className="font-semibold text-slate-900 group-hover:text-brand transition-colors text-center">Category {item}</h3>
                         </a>
                     ))}
                 </div>

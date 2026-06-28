@@ -5,10 +5,11 @@ import { useCallback, useState } from 'react';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface FiltersSidebarProps {
-  categories: string[];
+  // Lọc theo id (giá trị lưu trên URL), hiển thị theo name
+  categories?: { id: string; name: string }[];
 }
 
-export function FiltersSidebar({ categories }: FiltersSidebarProps) {
+export function FiltersSidebar({ categories = [] }: FiltersSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('shop');
@@ -32,8 +33,8 @@ export function FiltersSidebar({ categories }: FiltersSidebarProps) {
     [searchParams]
   );
 
-  const handleCategoryChange = (category: string) => {
-    const newVal = currentCategory === category ? '' : category;
+  const handleCategoryChange = (categoryId: string) => {
+    const newVal = currentCategory === categoryId ? '' : categoryId;
     router.push(`?${createQueryString('category', newVal)}`);
   };
 
@@ -56,14 +57,14 @@ export function FiltersSidebar({ categories }: FiltersSidebarProps) {
           <h3 className="font-bold mb-4 text-slate-800">{t('filters.category')}</h3>
           <div className="space-y-3 text-sm text-slate-600">
             {categories.map((cat) => (
-              <label key={cat} className="flex items-center gap-3 cursor-pointer group">
-                <input 
-                  type="checkbox" 
+              <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
                   className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand transition-colors"
-                  checked={currentCategory === cat}
-                  onChange={() => handleCategoryChange(cat)}
+                  checked={currentCategory === cat.id}
+                  onChange={() => handleCategoryChange(cat.id)}
                 />
-                <span className="group-hover:text-brand transition-colors">{cat}</span>
+                <span className="group-hover:text-brand transition-colors">{cat.name}</span>
               </label>
             ))}
           </div>

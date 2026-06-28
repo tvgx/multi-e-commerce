@@ -62,7 +62,7 @@ export function HeroBottomAligned({
                         link={ctaLink || "#"} 
                         style="primary"
                         size="lg"
-                        className="rounded-none font-bold tracking-widest uppercase hover:bg-emerald-600 transition-colors w-full md:w-auto text-center"
+                        className="rounded-none font-bold tracking-widest uppercase hover:bg-brand transition-colors w-full md:w-auto text-center"
                     />
                 </div>
             </div>

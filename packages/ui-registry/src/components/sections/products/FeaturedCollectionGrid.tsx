@@ -36,7 +36,7 @@ export function FeaturedCollectionGrid({
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl hover:bg-emerald-500 transition-colors text-sm">Add to Cart</button>
+                                    <button className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl hover:bg-brand transition-colors text-sm">Add to Cart</button>
                                 </div>
                             </div>
                             <div>

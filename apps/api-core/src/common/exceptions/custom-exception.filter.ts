@@ -6,7 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { CustomException } from './custom.exception';
+import { ResponseCodes } from '../constants/response-codes.constant';
 
 @Catch()
 export class CustomExceptionFilter implements ExceptionFilter {
@@ -34,6 +36,46 @@ export class CustomExceptionFilter implements ExceptionFilter {
       if (status === 401) code = '9998'; // Token is invalid / Unauthorized
       if (status === 403) code = '1009'; // Not access
       if (status === 404) code = '1005'; // Unknown (Not found)
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      // Map các lỗi DB phổ biến sang HTTP/code có nghĩa thay vì 500 "Exception error.".
+      switch (exception.code) {
+        case 'P2002': {
+          // Unique constraint violation → 409 Conflict
+          status = 409;
+          code = ResponseCodes.PARAM_VALUE_INVALID;
+          const target = (exception.meta?.target as string[] | string) ?? '';
+          const fields = Array.isArray(target) ? target.join(', ') : target;
+          message = fields
+            ? `Giá trị đã tồn tại: ${fields}`
+            : 'Dữ liệu đã tồn tại (vi phạm ràng buộc duy nhất).';
+          break;
+        }
+        case 'P2025': {
+          // Record not found (update/delete trên bản ghi không tồn tại) → 404
+          status = 404;
+          code = ResponseCodes.UNKNOWN_ERROR;
+          message =
+            (exception.meta?.cause as string) || 'Không tìm thấy bản ghi.';
+          break;
+        }
+        case 'P2003': {
+          // Foreign key constraint violation → 400
+          status = 400;
+          code = ResponseCodes.PARAM_VALUE_INVALID;
+          message = 'Tham chiếu không hợp lệ (vi phạm khóa ngoại).';
+          break;
+        }
+        default: {
+          status = 400;
+          code = ResponseCodes.PARAM_VALUE_INVALID;
+          message = `Lỗi cơ sở dữ liệu (${exception.code}).`;
+        }
+      }
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      // Sai kiểu/thiếu trường khi gọi Prisma → 400 thay vì 500
+      status = 400;
+      code = ResponseCodes.PARAM_TYPE_INVALID;
+      message = 'Dữ liệu gửi lên không hợp lệ.';
     }
 
     // Keep response format stable while surfacing root cause in server logs.

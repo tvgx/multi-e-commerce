@@ -7,6 +7,7 @@
     "dev:api": "npm run dev --workspace=api-core",
     "dev:admin": "npm run dev --workspace=admin",
     "dev:storefront": "npm run dev --workspace=storefront",
+    "dev:agent": "npm run serve --workspace=design-agent",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",

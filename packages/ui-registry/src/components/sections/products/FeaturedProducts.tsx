@@ -27,7 +27,7 @@ export function FeaturedProducts({
         <section className="w-full py-20 px-4 md:px-12 bg-slate-900 text-white">
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
                 <div className={cn('lg:w-1/2 w-full', isRight ? 'lg:order-2' : 'lg:order-1')}>
-                    <div className="aspect-square bg-slate-800 rounded-full overflow-hidden relative shadow-[0_0_50px_rgba(16,185,129,0.2)] p-4">
+                    <div className="aspect-square bg-slate-800 rounded-full overflow-hidden relative shadow-2xl shadow-brand/20 p-4">
                         <div className="w-full h-full rounded-full overflow-hidden border border-slate-700">
                             <SmartImage
                                 src={backgroundImageUrl || DEFAULT_IMG}
@@ -36,7 +36,7 @@ export function FeaturedProducts({
                             />
                         </div>
                         <div className="absolute top-1/4 -left-4 bg-white text-slate-900 px-4 py-2 rounded-xl font-bold shadow-xl rotate-[-5deg]">★ Top Rated</div>
-                        <div className="absolute bottom-1/4 -right-4 bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">Limited Stock</div>
+                        <div className="absolute bottom-1/4 -right-4 bg-brand text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">Limited Stock</div>
                     </div>
                 </div>
 
@@ -57,7 +57,7 @@ export function FeaturedProducts({
                             label="Add To Cart"
                             style="primary"
                             size="lg"
-                            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 rounded-full shadow-lg shadow-emerald-500/20"
+                            className="w-full sm:w-auto bg-brand hover:opacity-90 text-brand-fg rounded-full shadow-lg shadow-brand/20"
                         />
                     </div>
                 </div>

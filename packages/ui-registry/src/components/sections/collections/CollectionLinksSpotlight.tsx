@@ -32,13 +32,13 @@ export function CollectionLinksSpotlight({
                     <p className="text-lg opacity-80">{subtitle || 'Discover pieces that speak to your style. Handpicked by our experts for the season ahead.'}</p>
 
                     <div className="flex flex-col space-y-4">
-                        <a href="#" className="text-2xl font-bold hover:text-emerald-500 hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
+                        <a href="#" className="text-2xl font-bold hover:text-brand hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
                             Womenswear
                         </a>
-                        <a href="#" className="text-2xl font-bold hover:text-emerald-500 hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
+                        <a href="#" className="text-2xl font-bold hover:text-brand hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
                             Menswear
                         </a>
-                        <a href="#" className="text-2xl font-bold hover:text-emerald-500 hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
+                        <a href="#" className="text-2xl font-bold hover:text-brand hover:translate-x-2 transition-transform flex items-center justify-between border-b border-current/20 pb-4">
                             Accessories
                         </a>
                     </div>
@@ -52,7 +52,7 @@ export function CollectionLinksSpotlight({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-10">
                         <div className="text-white">
-                            <span className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3 inline-block">Featured</span>
+                            <span className="bg-brand text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3 inline-block">Featured</span>
                             <h3 className="text-3xl font-bold">{ctaText || 'The Autumn Edit'}</h3>
                         </div>
                     </div>

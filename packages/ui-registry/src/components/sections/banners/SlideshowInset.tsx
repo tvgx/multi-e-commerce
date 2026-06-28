@@ -76,7 +76,7 @@ export function SlideshowInset({
                             <a
                                 href={slide.ctaLink || '#'}
                                 onClick={e => e.stopPropagation()}
-                                className="font-bold text-xl text-emerald-600 hover:text-emerald-700 transition-colors"
+                                className="font-bold text-xl text-brand hover:text-brand transition-colors"
                             >
                                 {slide.ctaText}
                             </a>

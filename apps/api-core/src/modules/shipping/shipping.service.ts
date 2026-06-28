@@ -4,6 +4,7 @@ import { TenantService } from '../../common/services/tenant.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { EmailService } from '../email/email.service';
 import { OrderService } from '../order/order.service';
+import { computeShippingFee } from './shipping-fee.util';
 import {
   CreateShippingMethodDto,
   UpdateShippingMethodDto,
@@ -39,8 +40,7 @@ export class ShippingService {
 
   /** Phí ship của một phương thức theo subtotal (áp dụng ngưỡng freeship nếu có) */
   static computeFee(method: { baseFee: number; freeThreshold: number | null }, subtotal: number): number {
-    if (method.freeThreshold != null && subtotal >= method.freeThreshold) return 0;
-    return method.baseFee;
+    return computeShippingFee(method, subtotal);
   }
 
   // ==========================================

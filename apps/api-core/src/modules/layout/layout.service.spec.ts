@@ -233,8 +233,8 @@ describe('LayoutService', () => {
         where: { id: SHOP },
         data: expect.objectContaining({
           status: 'PUBLISHED',
-          onboardingStep: 5,
-          onboardingStatus: expect.objectContaining({ step1: 'COMPLETED', step5: 'COMPLETED' }),
+          onboardingStep: 4,
+          onboardingStatus: expect.objectContaining({ step1: 'COMPLETED', step4: 'COMPLETED' }),
         }),
       });
     });

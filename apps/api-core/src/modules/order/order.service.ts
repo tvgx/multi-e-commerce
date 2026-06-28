@@ -10,7 +10,7 @@ import * as QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import { WalletService, WALLET_PAYMENT_TYPE } from '../wallet/wallet.service';
-import { ShippingService } from '../shipping/shipping.service';
+import { computeShippingFee } from '../shipping/shipping-fee.util';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 
@@ -141,7 +141,7 @@ export class OrderService {
         where: { id: dto.shippingMethodId, shopId, active: true }
       });
       if (!shippingMethod) throw new BadRequestException('Invalid shipping method for this shop');
-      shipmentTotal = ShippingService.computeFee(shippingMethod, subtotal);
+      shipmentTotal = computeShippingFee(shippingMethod, subtotal);
       totalAmount += shipmentTotal;
     }
 

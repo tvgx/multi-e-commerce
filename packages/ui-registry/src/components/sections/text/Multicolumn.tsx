@@ -17,7 +17,7 @@ export function Multicolumn() {
                         </p>
                     </div>
 
-                    <div className="border-t-2 border-emerald-500 pt-8 mt-8 md:mt-16">
+                    <div className="border-t-2 border-brand pt-8 mt-8 md:mt-16">
                         <h3 className="text-2xl font-bold text-slate-900 mb-4 uppercase tracking-wider">02. Longevity</h3>
                         <p className="text-slate-600 leading-relaxed">
                             We reject the concept of planned obsolescence. Our materials are chosen for their ability to age gracefully, developing character rather than falling apart.

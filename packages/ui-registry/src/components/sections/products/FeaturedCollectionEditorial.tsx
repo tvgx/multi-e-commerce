@@ -19,16 +19,16 @@ export function FeaturedCollectionEditorial({
     return (
         <section className="w-full bg-white flex flex-col md:flex-row min-h-[700px]">
             {/* Sticky Editorial Half */}
-            <div className="w-full md:w-1/2 p-12 md:p-24 bg-emerald-950 text-emerald-50 flex flex-col justify-center">
+            <div className="w-full md:w-1/2 p-12 md:p-24 bg-brand text-white flex flex-col justify-center">
                 <div className="max-w-md mx-auto xl:ml-auto xl:mr-12 sticky top-24">
-                    <span className="text-emerald-400 font-mono text-sm mb-6 block uppercase tracking-widest">The Edit</span>
+                    <span className="text-brand font-mono text-sm mb-6 block uppercase tracking-widest">The Edit</span>
                     <h2 className="text-5xl md:text-7xl font-bold mb-8 leading-none">
-                        {title || <span>Modern <br /><span className="text-emerald-500 italic">Classics</span></span>}
+                        {title || <span>Modern <br /><span className="text-brand italic">Classics</span></span>}
                     </h2>
-                    <p className="text-emerald-200/80 mb-8">
+                    <p className="text-white/80 mb-8">
                         {subtitle || "Pieces that transcend seasons. We've curated a selection of timeless garments that form the foundation of any sophisticated wardrobe."}
                     </p>
-                    <a href="#" className="inline-block border-b-2 border-emerald-400 pb-1 text-emerald-400 font-bold hover:text-white hover:border-white transition-colors uppercase tracking-widest text-sm">
+                    <a href="#" className="inline-block border-b-2 border-brand pb-1 text-brand font-bold hover:text-white hover:border-white transition-colors uppercase tracking-widest text-sm">
                         Shop The Complete Edit
                     </a>
                 </div>
@@ -45,7 +45,7 @@ export function FeaturedCollectionEditorial({
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                         </div>
-                        <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Classic Denim {i}</h3>
+                        <h3 className="font-bold text-slate-900 group-hover:text-brand transition-colors">Classic Denim {i}</h3>
                         <p className="text-slate-500 text-sm mt-1">${89 + i * 5}.00</p>
                     </a>
                 ))}

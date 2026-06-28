@@ -67,7 +67,7 @@ Các trường trạng thái quan trọng: `Order.state` (`cart`/`checkout`/`con
 
 ### 4.3.2 Kết quả đạt được
 
-[Mô tả sản phẩm + bảng thống kê: số module, endpoint, bảng, LOC.] Backend gồm khoảng 22 module với 25 controller; tài liệu API đầy đủ (request/response từng endpoint) ở [api-doc](../../../api-doc/); 16 nhóm model Prisma cho PostgreSQL và schema Mongoose cho layout/chat. [Bổ sung số liệu thực đo bằng `cloc` và đếm endpoint.]
+Hệ thống gồm 5 ứng dụng (`api-core`, `admin`, `storefront`, `design-agent`, `cli-tool`) trong một monorepo Turborepo, tổng khoảng **65.500 dòng** TypeScript/TSX (không tính `node_modules`/`dist`/`.next`). Backend `api-core` gồm **23 module**, **28 controller**, **31 service** và **188 endpoint** HTTP; tài liệu API đầy đủ (request/response từng endpoint) ở [api-doc](../../../api-doc/). Lớp dữ liệu có **49 model Prisma** chia thành **16 nhóm** theo domain (ghép tự động khi build schema) trên PostgreSQL, cùng schema Mongoose cho layout/chat trên MongoDB. [Có thể trình bày các số liệu trên dưới dạng bảng thống kê khi chuyển sang LaTeX.]
 
 ### 4.3.3 Minh họa các chức năng chính
 
@@ -83,10 +83,10 @@ Backend dùng **Jest** với mẫu **prisma-mock** (mock `PrismaService`) cho un
 - **UC-5 Cập nhật trạng thái** (kiểm thử máy trạng thái): chuyển hợp lệ `confirmed → processing`; chuyển sai `checkout → shipped` → `1004`; kiểm tra đồng bộ `shipmentState` khi `shipped`.
 - **UC-2 Xuất bản** (kiểm thử tích hợp Mongo): lưu `draftData` rồi publish → `publishedData` khớp, `Shop.status = PUBLISHED`.
 
-[Tổng kết: số test case, tỉ lệ pass, lỗi phát hiện.]
+Tính đến thời điểm hiện tại, bộ kiểm thử đơn vị của `api-core` gồm **34 suite** với **441 ca kiểm thử**, đạt **100% pass**. Quá trình kiểm thử cũng giúp phát hiện và xử lý các lỗi tiềm ẩn — ví dụ lỗi gửi email đặt lại mật khẩu cho người bán bị "nuốt" âm thầm (do thiếu cấu hình `sendResetPassword`), sau khi sửa đã được bổ sung ca kiểm thử hồi quy ở tầng cấu hình `owner-auth`. Kiểm thử tải/hiệu năng diện rộng được đặt trong hướng phát triển (§6.2).
 
 ## 4.5 Triển khai
 
 Triển khai trên **Kubernetes** (`k8s/`): các app trong `k8s/apps/` (`api-core`, `admin`, `storefront`, `design-agent`); hạ tầng trong `k8s/infrastructure/` (MinIO, Redis, Cloudflared, monitoring); định tuyến qua `k8s/ingress/`; sao lưu định kỳ qua CronJob (`k8s/backup/`, `k8s/jobs/`); tác vụ CLI trong `k8s/cli/`; mẫu độ sẵn sàng (anti-affinity, pod-disruption-budget) trong `k8s/templates/`. Tên miền riêng định tuyến qua Cloudflare Tunnel.
 
-Môi trường phát triển cục bộ dùng `docker/docker-compose.yaml`; cổng dev: `api-core` 3000, `admin` 3001, `storefront` 3002. Toàn dự án chốt Node 22 (`.nvmrc` + `engines`). [Nêu kết quả thực tế: số gian hàng demo, thời gian phản hồi trung bình, thời gian dựng một gian hàng, RPM chịu tải.]
+Môi trường phát triển cục bộ dùng `docker/docker-compose.yaml`; cổng dev: `api-core` 3000, `admin` 3001, `storefront` 3002. Toàn dự án chốt Node 22 (`.nvmrc` + `engines`). [Các số liệu hiệu năng định lượng — thời gian phản hồi trung bình, thời gian dựng một gian hàng, RPM chịu tải — cần được đo bằng kiểm thử tải và là một phần của hướng phát triển (§6.2); chưa thực hiện ở giai đoạn này.]

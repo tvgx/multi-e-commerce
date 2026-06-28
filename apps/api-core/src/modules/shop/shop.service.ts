@@ -1,6 +1,7 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { resolveTxt } from 'dns/promises';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { UpdateShopDto } from './dto/update-shop.dto';
@@ -17,6 +18,8 @@ export class CreateShopDto {
 
 @Injectable()
 export class ShopService {
+  private readonly logger = new Logger(ShopService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
@@ -97,6 +100,150 @@ export class ShopService {
       where: { id: shopId },
       data: dto,
     });
+  }
+
+  // ─── Custom domain (P0-2: xác thực thật qua bản ghi TXT) ──────────────
+
+  /** Giá trị bản ghi TXT người bán phải thêm để chứng minh sở hữu tên miền. */
+  private domainVerificationValue(shopId: string): string {
+    return `shopVolo-verification=${shopId}`;
+  }
+
+  /** Chuẩn hoá + validate tên miền (không có ValidationPipe nên làm tay). */
+  private normalizeCustomDomain(raw: string): string {
+    if (!raw || typeof raw !== 'string') {
+      throw new BadRequestException('Tên miền không hợp lệ');
+    }
+    const host = raw
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '') // bỏ scheme
+      .replace(/\/.*$/, '') // bỏ path
+      .replace(/:\d+$/, ''); // bỏ port
+    // hostname hợp lệ: nhiều nhãn, TLD ≥ 2 ký tự, tổng ≤ 253
+    const valid =
+      /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(
+        host,
+      );
+    if (!valid) {
+      throw new BadRequestException(
+        'Tên miền không hợp lệ (ví dụ hợp lệ: store.example.com)',
+      );
+    }
+    // Chặn tên miền của chính nền tảng
+    const platformHosts = (
+      process.env.PLATFORM_HOSTS || 'localhost,omnicommerce.com,tvgx1.id.vn'
+    )
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (platformHosts.some((ph) => host === ph || host.endsWith(`.${ph}`))) {
+      throw new BadRequestException(
+        'Không thể dùng tên miền của nền tảng làm tên miền riêng',
+      );
+    }
+    return host;
+  }
+
+  /** Lưu tên miền riêng người bán muốn dùng; reset trạng thái xác thực. */
+  async setCustomDomain(shopId: string, rawDomain: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true },
+    });
+    if (!shop) throw new NotFoundException('Shop not found');
+
+    const host = this.normalizeCustomDomain(rawDomain);
+
+    const taken = await this.prisma.shop.findFirst({
+      where: { customDomain: host, NOT: { id: shopId } },
+      select: { id: true },
+    });
+    if (taken) {
+      throw new BadRequestException(
+        'Tên miền này đã được một cửa hàng khác sử dụng',
+      );
+    }
+
+    const updated = await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { customDomain: host, domainVerified: false },
+      select: { id: true, customDomain: true, domainVerified: true },
+    });
+
+    return {
+      ...updated,
+      verification: {
+        type: 'TXT',
+        host: '@',
+        value: this.domainVerificationValue(shopId),
+      },
+    };
+  }
+
+  /**
+   * Xác thực THẬT: resolve bản ghi TXT của customDomain và so khớp giá trị xác
+   * thực. Khớp → đánh dấu domainVerified = true. (Thay cho hành vi cosmetic cũ.)
+   */
+  async verifyCustomDomain(shopId: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, customDomain: true, domainVerified: true },
+    });
+    if (!shop) throw new NotFoundException('Shop not found');
+    if (!shop.customDomain) {
+      throw new BadRequestException(
+        'Chưa cấu hình tên miền riêng cho cửa hàng này',
+      );
+    }
+
+    const expected = this.domainVerificationValue(shopId);
+    let records: string[][] = [];
+    try {
+      records = await resolveTxt(shop.customDomain);
+    } catch (err) {
+      // ENOTFOUND / ENODATA: chưa có bản ghi TXT nào
+      this.logger.warn(
+        `TXT lookup failed for ${shop.customDomain}: ${(err as Error).message}`,
+      );
+      throw new BadRequestException(
+        'Chưa tìm thấy bản ghi TXT cho tên miền. DNS có thể cần tới 24-48 giờ để cập nhật — vui lòng thử lại sau.',
+      );
+    }
+
+    // Mỗi TXT record là một mảng các chunk; nối lại rồi so khớp.
+    const matched = records
+      .map((parts) => parts.join('').trim())
+      .some((value) => value === expected);
+
+    if (!matched) {
+      throw new BadRequestException(
+        'Bản ghi TXT chưa khớp giá trị xác thực. Hãy kiểm tra lại giá trị đã thêm vào DNS.',
+      );
+    }
+
+    const updated = await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { domainVerified: true },
+      select: { id: true, customDomain: true, domainVerified: true },
+    });
+    this.logger.log(`Custom domain verified: ${shop.customDomain} → ${shopId}`);
+    return updated;
+  }
+
+  /**
+   * Tra cứu cho storefront middleware: host (tên miền riêng đã xác thực) → slug.
+   * Trả null nếu không có shop nào khớp/đã xác thực (host lạ → để 404 bình thường).
+   */
+  async resolveByHost(host: string) {
+    const clean = (host || '').split(':')[0].trim().toLowerCase();
+    if (!clean) return null;
+    const shop = await this.prisma.shop.findFirst({
+      where: { customDomain: clean, domainVerified: true },
+      select: { id: true, domain: true },
+    });
+    if (!shop) return null;
+    return { id: shop.id, slug: shop.domain || shop.id };
   }
 
   async getCurrentShop() {

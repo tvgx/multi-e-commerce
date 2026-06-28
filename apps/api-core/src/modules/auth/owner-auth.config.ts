@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaService } from '../../database/prisma.service';
+import { EmailService } from '../email/email.service';
 
 /**
  * Owner / Admin Auth Instance
@@ -9,7 +10,7 @@ import { PrismaService } from '../../database/prisma.service';
  * Sử dụng các bảng: users, sessions, accounts, verifications (Better Auth standard).
  * Được mount tại: /api/auth/owner/*
  */
-export function createOwnerAuth(prisma: PrismaService) {
+export function createOwnerAuth(prisma: PrismaService, emailService: EmailService) {
   return betterAuth({
     database: prismaAdapter(prisma, {
       provider: 'postgresql',
@@ -19,6 +20,16 @@ export function createOwnerAuth(prisma: PrismaService) {
       autoSignInAfterSignUp: true,
       // Có thể bật email verification sau:
       // requireEmailVerification: true,
+      // Reset mật khẩu: better-auth tự sinh + lưu token (bảng verifications) rồi
+      // gọi callback này với link đã kèm token & callbackURL (redirectTo từ client).
+      // Thiếu callback này thì forgetPassword() ném lỗi → reset owner chết âm thầm.
+      sendResetPassword: async ({ user, url }) => {
+        await emailService.sendResetPasswordEmail(
+          user.email,
+          url,
+          user.name ?? 'bạn',
+        );
+      },
     },
     session: {
       // Lưu session data trong signed cookie 5 phút — tránh query DB

@@ -2,9 +2,9 @@ import React from 'react';
 
 export function EditorialJumboText() {
     return (
-        <section className="w-full py-32 bg-emerald-500 flex items-center justify-center overflow-hidden relative">
+        <section className="w-full py-32 bg-brand flex items-center justify-center overflow-hidden relative">
             {/* Massive background text */}
-            <div className="absolute whitespace-nowrap text-[30vw] font-black text-emerald-600/30 tracking-tighter select-none z-0">
+            <div className="absolute whitespace-nowrap text-[30vw] font-black text-brand/30 tracking-tighter select-none z-0">
                 SUSTAINABLE
             </div>
 

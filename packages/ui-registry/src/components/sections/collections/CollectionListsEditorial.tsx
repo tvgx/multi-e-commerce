@@ -24,7 +24,7 @@ export function CollectionListsEditorial({
     const items = [1, 2];
 
     return (
-        <section className="w-full py-24 px-4 md:px-12 bg-emerald-950 text-emerald-50">
+        <section className="w-full py-24 px-4 md:px-12 bg-brand text-white">
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                 <div className="order-2 lg:order-1">
                     <div className="flex flex-col gap-12">
@@ -38,15 +38,15 @@ export function CollectionListsEditorial({
                         )}
 
                         {items.map((i) => (
-                            <div key={i} className="flex flex-col border-b border-emerald-800 pb-12 group">
-                                <span className="text-emerald-500 font-mono mb-2">0{i}</span>
-                                <a href="#" className="text-4xl md:text-5xl font-bold hover:text-emerald-400 transition-colors mb-4">Collection {i}</a>
-                                <p className="text-emerald-200/80 max-w-sm mb-6">Lightweight fabrics and vibrant patterns for the warmer days ahead.</p>
+                            <div key={i} className="flex flex-col border-b border-white/20 pb-12 group">
+                                <span className="text-brand font-mono mb-2">0{i}</span>
+                                <a href="#" className="text-4xl md:text-5xl font-bold hover:text-brand transition-colors mb-4">Collection {i}</a>
+                                <p className="text-white/80 max-w-sm mb-6">Lightweight fabrics and vibrant patterns for the warmer days ahead.</p>
                                 <ButtonBlock
                                     label="Shop Now"
                                     link="#"
                                     style="link"
-                                    className="text-emerald-400 hover:text-white uppercase tracking-widest text-sm font-bold"
+                                    className="text-brand hover:text-white uppercase tracking-widest text-sm font-bold"
                                 />
                             </div>
                         ))}
@@ -57,7 +57,7 @@ export function CollectionListsEditorial({
                                     label="Xem tất cả bộ sưu tập"
                                     link={viewAllLink}
                                     style="outline"
-                                    className="border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                    className="border-brand text-brand hover:bg-brand hover:text-white"
                                 />
                             </div>
                         )}
@@ -65,7 +65,7 @@ export function CollectionListsEditorial({
                 </div>
 
                 <div className="order-1 lg:order-2">
-                    <div className="w-full aspect-[4/5] overflow-hidden rounded-t-full relative bg-emerald-900">
+                    <div className="w-full aspect-[4/5] overflow-hidden rounded-t-full relative bg-brand">
                         <SmartImage
                             src={finalImage}
                             alt="Editorial"

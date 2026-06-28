@@ -4,7 +4,7 @@ import React from 'react';
 import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store';
 import { schemaRegistry } from '@ecommerce/ui-registry/src/registry';
 import { GOOGLE_FONTS } from '@ecommerce/ui-registry/src/component-schemas';
-import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft, Upload, Paintbrush } from 'lucide-react';
+import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft, Upload, Paintbrush, SlidersHorizontal } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 
@@ -70,68 +70,51 @@ function FontRow({ label, value, onChange }: { label: string; value: string; onC
 }
 
 function ThemeSettingsPanel() {
-    const rawTheme = useBuilderStore(s => s.theme);
-    const setTheme = useBuilderStore(s => s.setTheme);
-    const theme = rawTheme as Record<string, string>;
+    const theme = useBuilderStore(s => s.theme) as Record<string, string>;
+
+    // Toàn bộ cài đặt chung (màu/font/logo/tên/social) đã gom về SetupWizard để
+    // tránh sửa màu ở hai nơi. Panel này chỉ là điểm vào nhanh — page đang mở
+    // builder lắng nghe sự kiện và bật lại SetupWizard.
+    const openSetup = () => window.dispatchEvent(new CustomEvent('builder:open-setup'));
 
     return (
         <div className="flex flex-col h-full bg-[#0a0a0f]">
             <div className="p-4 border-b border-white/5 sticky top-0 bg-[#0a0a0f] z-10 shrink-0">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <Paintbrush size={16} className="text-indigo-400" />
-                    Theme Settings
+                    Thiết lập chung
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Cài đặt chung cho toàn bộ cửa hàng</p>
+                <p className="text-xs text-slate-500 mt-0.5">Màu sắc, logo, thông tin cửa hàng</p>
             </div>
 
-            <div className="p-5 space-y-6 overflow-y-auto flex-1">
-                {/* Store info */}
-                <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Thông tin cửa hàng</h4>
-                    <div className="space-y-3">
-                        <div className="space-y-1.5">
-                            <label className="text-xs text-slate-400">Tên cửa hàng</label>
-                            <input
-                                type="text"
-                                value={theme.shopName || ''}
-                                onChange={e => setTheme({ shopName: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                                placeholder="Tên cửa hàng..."
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs text-slate-400">Logo URL</label>
-                            <input
-                                type="text"
-                                value={theme.logoUrl || ''}
-                                onChange={e => setTheme({ logoUrl: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                                placeholder="https://..."
-                            />
-                        </div>
-                    </div>
-                </section>
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+                <p className="text-sm text-slate-400 leading-relaxed">
+                    Chọn một section ở khu vực giữa để chỉnh sửa nội dung của nó, hoặc mở
+                    <span className="text-slate-200 font-medium"> Thiết lập chung</span> để đổi màu sắc, font, logo,
+                    favicon và thông tin cửa hàng.
+                </p>
 
-                {/* Colors */}
-                <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Màu sắc</h4>
-                    <div className="bg-slate-900/50 rounded-xl px-3 divide-y divide-white/5">
-                        <ColorRow label="Màu chủ đạo" value={theme.primaryColor || '#6366f1'} onChange={v => setTheme({ primaryColor: v })} />
-                        <ColorRow label="Màu nền" value={theme.backgroundColor || '#ffffff'} onChange={v => setTheme({ backgroundColor: v })} />
-                        <ColorRow label="Màu chữ" value={theme.textColor || '#111111'} onChange={v => setTheme({ textColor: v })} />
-                        <ColorRow label="Màu nút" value={theme.buttonColor || '#6366f1'} onChange={v => setTheme({ buttonColor: v })} />
-                        <ColorRow label="Màu chữ nút" value={theme.buttonTextColor || '#ffffff'} onChange={v => setTheme({ buttonTextColor: v })} />
-                    </div>
-                </section>
+                <button
+                    onClick={openSetup}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+                >
+                    <SlidersHorizontal size={15} />
+                    Mở Thiết lập chung
+                </button>
 
-                {/* Typography */}
-                <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Kiểu chữ</h4>
-                    <div className="space-y-3">
-                        <FontRow label="Font tiêu đề" value={theme.headingFont || 'Inter'} onChange={v => setTheme({ headingFont: v })} />
-                        <FontRow label="Font nội dung" value={theme.bodyFont || 'Inter'} onChange={v => setTheme({ bodyFont: v })} />
+                <div className="rounded-xl border border-white/5 bg-slate-900/50 p-3 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Đang áp dụng</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                        <span className="h-5 w-5 rounded border border-white/10 shrink-0" style={{ background: theme.primaryColor || '#059669' }} />
+                        Màu chủ đạo
+                        <span className="ml-auto font-mono text-slate-500 uppercase">{theme.primaryColor || '#059669'}</span>
                     </div>
-                </section>
+                    {theme.shopName && (
+                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                            <span className="text-slate-500">Tên:</span> {theme.shopName}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

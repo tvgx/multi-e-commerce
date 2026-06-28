@@ -3,23 +3,21 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Rocket, CheckCircle2, ChevronRight, Store, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Rocket, Link as LinkIcon, Loader2, Sparkles } from "lucide-react";
 import { useCreateShop } from "@/hooks/useCreateShop";
 
 export default function CreateShopPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    shopName: "",
-    domain: "",
-  });
+  const [domain, setDomain] = useState("");
   const { createShop, loading } = useCreateShop();
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 2));
-  const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
-
   const handleSubmit = async () => {
-    const shopId = await createShop({ shopName: formData.shopName, domain: formData.domain });
+    // Tên cửa hàng giờ được hỏi ở bước "Thiết lập chung" trong trình thiết kế.
+    // Ở đây chỉ cần một tên tạm (suy từ domain) để tạo metadata shop.
+    const tempName = domain
+      ? domain.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "Cửa hàng của tôi";
+    const shopId = await createShop({ shopName: tempName, domain });
     // Step 1 (Create Store) is auto-completed; dashboard guides the remaining steps.
     if (shopId) router.push(`/dashboard/${shopId}`);
   };
@@ -40,114 +38,65 @@ export default function CreateShopPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-2xl h-[50%] bg-indigo-600/20 blur-[120px] rounded-full -z-10 mix-blend-screen" />
 
         <div className="w-full max-w-2xl">
-          {/* Progress Bar */}
-          <div className="mb-8 relative flex items-center justify-between before:absolute before:top-1/2 before:left-0 before:h-0.5 before:w-full before:-translate-y-1/2 before:bg-white/10 before:-z-10">
-            <div
-              className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-indigo-500 transition-all duration-500 -z-10"
-              style={{ width: `${(step - 1) * 100}%` }}
-            />
-            {[1, 2].map((s) => (
-              <div
-                key={s}
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${s < step ? "bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]" : s === step ? "bg-indigo-600 text-white ring-4 ring-indigo-500/30" : "bg-slate-900 border border-white/10 text-slate-500"
-                  }`}
-              >
-                {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
-              </div>
-            ))}
-          </div>
-
           <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-8 sm:p-12 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-            {step === 1 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="mb-8">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-                    Tên cửa hàng của bạn là gì?
-                  </h2>
-                  <p className="text-slate-400">Tên này sẽ hiển thị ở tiêu đề trang web OmniCommerce.</p>
-                </div>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
+                  Chọn địa chỉ cửa hàng
+                </h2>
+                <p className="text-slate-400">
+                  Khách hàng sẽ truy cập qua địa chỉ này. Tên, logo và màu sắc sẽ được thiết lập ngay sau đó trong
+                  trình thiết kế.
+                </p>
+              </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                      <Store className="w-4 h-4 text-indigo-400" /> Tên cửa hàng
-                    </label>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4 text-indigo-400" /> Domain tùy chỉnh
+                  </label>
+                  <div className="flex bg-black/50 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
                     <input
                       type="text"
-                      className="w-full px-5 py-3 rounded-xl bg-black/50 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="VD: Sneaker Head Store"
-                      value={formData.shopName}
-                      onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                      autoFocus
+                      className="flex-1 bg-transparent px-5 py-3 text-white placeholder:text-slate-600 focus:outline-none"
+                      placeholder="my-shop"
+                      value={domain}
+                      onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                      onKeyDown={(e) => { if (e.key === "Enter" && domain.trim() && !loading) handleSubmit(); }}
                     />
-                  </div>
-                </div>
-
-                <div className="mt-10 flex justify-end">
-                  <button
-                    onClick={handleNext}
-                    disabled={!formData.shopName.trim()}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:bg-slate-200 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Tiếp tục <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="mb-8">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-                    Thiết lập tên miền
-                  </h2>
-                  <p className="text-slate-400">Khách hàng sẽ truy cập cửa hàng của bạn qua địa chỉ này.</p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                      <LinkIcon className="w-4 h-4 text-emerald-400" /> Domain tùy chỉnh
-                    </label>
-                    <div className="flex bg-black/50 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
-                      <input
-                        type="text"
-                        className="flex-1 bg-transparent px-5 py-3 text-white placeholder:text-slate-600 focus:outline-none"
-                        placeholder="my-shop"
-                        value={formData.domain}
-                        onChange={(e) => setFormData({ ...formData, domain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                      />
-                      <div className="flex items-center px-4 border-l border-white/10 text-slate-500 font-mono text-sm bg-black/30 rounded-r-xl">
-                        .omnicommerce.com
-                      </div>
+                    <div className="flex items-center px-4 border-l border-white/10 text-slate-500 font-mono text-sm bg-black/30 rounded-r-xl">
+                      .omnicommerce.com
                     </div>
-                    <p className="mt-2 text-xs text-indigo-400">
-                      Bạn có thể kết nối domain riêng của mình sau trong trang Admin.
-                    </p>
                   </div>
+                  <p className="mt-2 text-xs text-indigo-400">
+                    Bạn có thể kết nối domain riêng của mình sau trong trang Admin.
+                  </p>
                 </div>
 
-                <div className="mt-10 flex justify-between items-center">
-                  <button
-                    onClick={handlePrev}
-                    disabled={loading}
-                    className="inline-flex items-center px-6 py-3 font-medium text-slate-400 hover:text-white transition-colors disabled:opacity-50"
-                  >
-                    Quay lại
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={loading || !formData.domain.trim()}
-                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    {loading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Đang khởi tạo...</>
-                    ) : (
-                      "Hoàn tất tạo Shop"
-                    )}
-                  </button>
+                <div className="flex items-start gap-3 rounded-xl bg-indigo-500/5 border border-indigo-500/15 px-4 py-3">
+                  <Sparkles className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Bước tiếp theo: <span className="text-slate-200 font-medium">Thiết lập chung</span> — đặt tên cửa
+                    hàng, chọn màu sắc, tải logo &amp; favicon, thêm liên kết mạng xã hội trước khi thiết kế giao diện.
+                  </p>
                 </div>
               </div>
-            )}
+
+              <div className="mt-10 flex justify-end">
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !domain.trim()}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {loading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Đang khởi tạo...</>
+                  ) : (
+                    "Tạo cửa hàng & tiếp tục"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </main>

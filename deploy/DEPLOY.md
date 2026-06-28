@@ -17,8 +17,8 @@ Caddy(:80/:443) ── api.<d>      → api-core:3000
 
 ## 0. Build images trên CI (làm 1 lần / mỗi lần đổi code)
 
-Workflow [.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml) build & push 4 image
-lên ghcr.io: `-api-core`, `-admin`, `-storefront`, `-shop-builder`.
+Workflow [.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml) build & push 5 image
+lên ghcr.io: `-api-core`, `-admin`, `-storefront`, `-shop-builder`, `-design-agent`.
 
 - Trigger: push lên `main`, **hoặc** GitHub → Actions → *CI/CD Pipeline* → *Run workflow*.
 - `NEXT_PUBLIC_*` được bake lúc build, mặc định domain `tvgx1.id.vn`. Nếu dùng domain
@@ -144,7 +144,14 @@ docker image prune -f
   [minio.service.ts](../apps/api-core/src/common/services/minio.service.ts).
 - **TLS tenant subdomain** dùng on-demand (Caddyfile). Nếu muốn 1 wildcard cert qua DNS-01,
   chuyển nameserver sang Cloudflare + dùng caddy-dns/cloudflare (xem comment trong Caddyfile).
-- **RAM 2GB sát ngưỡng.** Nếu hay OOM: nâng Lightsail 4GB, hoặc giảm `SHOP_BUILD_CONCURRENCY`,
-  hoặc offload Redis sang Upstash free (đổi `REDIS_HOST`/`REDIS_PORT` trong compose).
+- **design-agent (Import Figma) là DỊCH VỤ TRẢ PHÍ + nội bộ.** Chỉ api-core gọi nó qua
+  mạng Docker (`DESIGN_AGENT_URL=http://design-agent:3100`), KHÔNG mở route public. Cần điền
+  `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `FIGMA_TOKEN` trong `.env` và `INTERNAL_API_KEY` phải
+  **giống** giữa api-core ↔ design-agent. Không chạy design-agent thì nút "Import Figma" sẽ báo
+  lỗi cấu hình — phần còn lại của hệ thống vẫn hoạt động bình thường.
+- **RAM 2GB sát ngưỡng.** Thêm design-agent (~400M trần) đẩy tổng trần lên cao → khi bật
+  design-agent nên dùng box **4GB** (~$24/mo). Nếu giữ 2GB: tăng swap, hoặc giảm
+  `SHOP_BUILD_CONCURRENCY`. Nếu hay OOM: nâng Lightsail 4GB, hoặc offload Redis sang
+  Upstash free (đổi `REDIS_HOST`/`REDIS_PORT` trong compose).
 - **Backup:** Supabase/Atlas có backup riêng. MinIO data nằm ở volume `minio_data` —
   snapshot Lightsail định kỳ hoặc sync sang S3.

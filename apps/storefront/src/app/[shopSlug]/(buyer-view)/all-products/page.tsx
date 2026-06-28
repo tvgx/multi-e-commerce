@@ -1,4 +1,4 @@
-import { getShopProducts, getShopInfo, recordSearchHistory } from '@/lib/api/storefront.api';
+import { getShopProducts, getShopInfo, getShopCategories, recordSearchHistory } from '@/lib/api/storefront.api';
 import { cookies } from 'next/headers';
 import React from 'react';
 import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
@@ -36,13 +36,16 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
     const shopInfo = await getShopInfo(shopSlug);
     const limit = shopInfo?.productsPerPage || 30;
 
-    const { products } = await getShopProducts(shopSlug, {
-        limit,
-        search: finalSearch,
-        categoryId: category,
-        minPrice: minPrice ? Number(minPrice) : undefined,
-        maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    });
+    const [{ products }, categoryOptions] = await Promise.all([
+        getShopProducts(shopSlug, {
+            limit,
+            search: finalSearch,
+            categoryId: category,
+            minPrice: minPrice ? Number(minPrice) : undefined,
+            maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        }),
+        getShopCategories(shopSlug),
+    ]);
 
     // Khách đăng nhập + có từ khoá → lưu lịch sử tìm kiếm (fire-and-forget)
     if (finalSearch) {
@@ -68,8 +71,8 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
 
             <div className="flex flex-col md:flex-row gap-8">
                 {/* ── Filters Sidebar ── */}
-                <FiltersSidebar 
-                    categories={[...new Set(products.map((p) => p.category).filter(Boolean))] as string[]}
+                <FiltersSidebar
+                    categories={categoryOptions}
                 />
 
                 {/* ── Product Grid ── */}

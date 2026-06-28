@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
@@ -68,6 +68,12 @@ export function useShippingSettings(shopId: string) {
       setLoading(false);
     }
   }, [shopId]);
+
+  // Nạp dữ liệu khi mount / đổi shop. (Bị mất trong lần "code refractor" tách
+  // logic ra hook — trước đó page tự gọi fetchData trong useEffect.)
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   /** Tạo/cập nhật phương thức. Trả về true nếu lưu thành công. */
   const saveMethod = useCallback(async (

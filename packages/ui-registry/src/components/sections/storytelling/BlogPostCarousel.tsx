@@ -42,11 +42,11 @@ export function BlogPostCarousel({
                             />
                         </div>
                         <div className="flex gap-4 items-center mb-3">
-                            <span className="text-emerald-600 font-bold uppercase tracking-widest text-xs">Style Guide</span>
+                            <span className="text-brand font-bold uppercase tracking-widest text-xs">Style Guide</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300" />
                             <span className="text-slate-500 text-xs font-medium">May 12, 2024</span>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors mb-3 leading-tight">10 Ways to Style the Essential White Sneaker This Season</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 group-hover:text-brand transition-colors mb-3 leading-tight">10 Ways to Style the Essential White Sneaker This Season</h3>
                         <p className="text-slate-600 line-clamp-2">Discover how a simple pair of white sneakers can transform your entire wardrobe.</p>
                     </a>
                 ))}

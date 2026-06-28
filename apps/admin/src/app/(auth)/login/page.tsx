@@ -94,7 +94,7 @@ function LoginContent() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-sm font-medium text-slate-300">Password</label>
-                  <Link href="/forgot-password" title="Coming soon" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                  <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -141,8 +141,8 @@ function LoginContent() {
         {/* Footer Links */}
         <div className="mt-8 flex justify-center gap-6 text-xs text-slate-500">
           <Link href="/" className="hover:text-slate-300 transition-colors">Home</Link>
-          <Link href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
-          <Link href="#" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+          <Link href="/legal/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link href="/legal/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
         </div>
       </div>
     </div>

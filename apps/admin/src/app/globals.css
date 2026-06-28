@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Storefront section/block components (rendered inside the builder canvas) live
+   in the shared ui-registry package. Scan its source so their `brand` theme
+   utilities resolve in the preview regardless of cwd. */
+@source "../../../../packages/ui-registry/src";
+
 :root {
   --background: 45 20% 96%;
   --foreground: 0 0% 7%;

@@ -45,7 +45,7 @@ export function FeaturedCollectionCarousel({
                         </div>
                         <div className="flex justify-between items-start">
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors">Premium Essential Tee {i}</h3>
+                                <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-brand transition-colors">Premium Essential Tee {i}</h3>
                                 <p className="text-slate-500 text-sm">Cotton Blend</p>
                             </div>
                             <span className="font-bold text-lg text-slate-900">${29 + i * 10}.00</span>

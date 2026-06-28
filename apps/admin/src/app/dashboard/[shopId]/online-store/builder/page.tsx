@@ -6,10 +6,12 @@ import { SectionList } from '@/components/builder/SectionList';
 import { PropEditor } from '@/components/builder/PropEditor';
 import { PageSwitcher } from '@/components/builder/PageSwitcher';
 import { CanvasRenderer } from '@ecommerce/ui-registry/src/components/builder/canvas-renderer';
-import { ArrowLeft, Save, Loader2, Monitor, Smartphone, RotateCcw, RotateCw, Globe, CheckCircle } from 'lucide-react';
+import { SetupWizard } from '@/components/builder/SetupWizard';
+import { ArrowLeft, Save, Loader2, Monitor, Smartphone, RotateCcw, RotateCw, Globe, CheckCircle, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { apiClient } from '@/lib/api-client';
 
 export default function BuilderPage({ params }: { params: Promise<{ shopId: string }> }) {
     const { shopId } = use(params);
@@ -22,11 +24,14 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     const undo = useBuilderStore(s => s.undo);
     const redo = useBuilderStore(s => s.redo);
     const history = useBuilderStore(s => s.history);
+    const theme = useBuilderStore(s => s.theme) as Record<string, any>;
 
     const [saving, setSaving] = React.useState(false);
     const [publishing, setPublishing] = React.useState(false);
     const [publishSuccess, setPublishSuccess] = React.useState(false);
     const [isNavigating, setIsNavigating] = React.useState(false);
+    const [showSetup, setShowSetup] = React.useState(false);
+    const setupCheckedRef = React.useRef(false);
     const router = useRouter();
 
     const canUndo = history.past.length > 0;
@@ -35,6 +40,38 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     useEffect(() => {
         loadTemplate(shopId);
     }, [loadTemplate, shopId]);
+
+    // First time into the builder for a shop that hasn't finished Setup → open the
+    // Setup gateway. After it's done once (theme.setupCompleted) we go straight to
+    // the canvas; the owner can reopen Setup from the toolbar any time.
+    useEffect(() => {
+        if (!isLoading && !setupCheckedRef.current) {
+            setupCheckedRef.current = true;
+            if (!theme?.setupCompleted) setShowSetup(true);
+        }
+    }, [isLoading, theme]);
+
+    // The "nothing selected" panel (PropEditor) reopens Setup via this event.
+    useEffect(() => {
+        const open = () => setShowSetup(true);
+        window.addEventListener('builder:open-setup', open);
+        return () => window.removeEventListener('builder:open-setup', open);
+    }, []);
+
+    // Real products for a truthful preview; falls back to the sample catalog when
+    // the shop has none yet (handled inside CanvasRenderer).
+    const [previewProducts, setPreviewProducts] = React.useState<any[]>([]);
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await apiClient.get<any>(`/api/catalog/products/shop/${shopId}?limit=12`, { shopId });
+                const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : [];
+                if (!cancelled) setPreviewProducts(list);
+            } catch { /* keep sample fallback */ }
+        })();
+        return () => { cancelled = true; };
+    }, [shopId]);
 
     // Keyboard shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z / Ctrl+S
     useEffect(() => {
@@ -80,6 +117,14 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
         );
     }
 
+    if (showSetup) {
+        return (
+            <div className="h-[calc(100vh-80px)] -m-8">
+                <SetupWizard shopId={shopId} onComplete={() => setShowSetup(false)} />
+            </div>
+        );
+    }
+
     return (
         <div className="h-[calc(100vh-80px)] flex flex-col -m-8">
             {/* Toolbar */}
@@ -94,6 +139,14 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                     </Link>
                     <span className="hidden lg:inline text-sm font-semibold text-white truncate">Trình thiết kế</span>
                     <PageSwitcher variant="dark" />
+                    <button
+                        onClick={() => setShowSetup(true)}
+                        title="Thiết lập chung (màu, logo, thông tin shop)"
+                        className="flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors text-xs font-medium px-2 py-1.5 rounded-md shrink-0"
+                    >
+                        <SlidersHorizontal size={14} />
+                        <span className="hidden xl:inline">Thiết lập chung</span>
+                    </button>
                 </div>
 
                 {/* Center: device + undo/redo */}
@@ -181,7 +234,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                 {/* Center: Canvas */}
                 <div className="flex-1 bg-[#050510] overflow-auto flex items-start justify-center p-8 relative">
                     <div className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-white/5 ${deviceMode === 'mobile' ? 'w-[390px] rounded-[2rem]' : 'w-full max-w-[1280px] rounded-xl'}`}>
-                        <CanvasRenderer />
+                        <CanvasRenderer previewProducts={previewProducts} />
                     </div>
                 </div>
 

@@ -1,4 +1,5 @@
 import { getShopBootstrapData } from '@/lib/api/storefront.api';
+import type { Metadata } from 'next';
 import React from 'react';
 import { CartInitializer } from '@ecommerce/ui-registry/src/components/cart/CartInitializer';
 import { CartSidebar } from '@ecommerce/ui-registry/src/components/cart/CartSidebar';
@@ -23,6 +24,19 @@ interface Props {
     params: Promise<{ shopSlug: string }>;
 }
 
+// Per-shop browser tab title + favicon, driven by the merchant's Setup
+// (theme.faviconUrl). Reuses the cached bootstrap fetch, so no extra round-trip.
+export async function generateMetadata({ params }: { params: Promise<{ shopSlug: string }> }): Promise<Metadata> {
+    const { shopSlug } = await params;
+    const bootstrap = await getShopBootstrapData(shopSlug);
+    const name = bootstrap?.shop?.name || shopSlug;
+    const faviconUrl = bootstrap?.globalLayout?.theme?.faviconUrl;
+    return {
+        title: name,
+        ...(faviconUrl ? { icons: { icon: faviconUrl } } : {}),
+    };
+}
+
 export default async function BuyerLayout({ children, params }: Props) {
     const { shopSlug } = await params;
 
@@ -44,14 +58,29 @@ export default async function BuyerLayout({ children, params }: Props) {
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
     const globalComponents = globalLayout?.globalComponents || [];
 
+    // Merchant theme → CSS variables consumed by the storefront (and bridged to
+    // Tailwind `brand`/`button` utilities in globals.css). Every value falls
+    // back to the previous emerald/light defaults so un-themed shops are
+    // unchanged. `bodyFont`/`headingFont` are the new Setup fields; `fontFamily`
+    // is the legacy single-font field kept for backward compatibility.
+    const theme = globalLayout?.theme || {};
+    const bodyFont = theme.bodyFont || theme.fontFamily || 'Inter, sans-serif';
+    const themeStyle = {
+        '--theme-primary': theme.primaryColor || '#059669',
+        '--theme-bg': theme.backgroundColor || '#ffffff',
+        '--theme-text': theme.textColor || '#111111',
+        '--theme-button': theme.buttonColor || theme.primaryColor || '#059669',
+        '--theme-button-text': theme.buttonTextColor || '#ffffff',
+        '--theme-heading-font': theme.headingFont || bodyFont,
+        '--theme-body-font': bodyFont,
+        fontFamily: bodyFont,
+    } as React.CSSProperties;
+
     return (
         <StorefrontPreviewProvider>
-            <div 
+            <div
                 className="flex flex-col min-h-screen storefront-layout-wrapper"
-            style={{
-                '--theme-primary': globalLayout?.theme?.primaryColor || '#059669',
-                fontFamily: globalLayout?.theme?.fontFamily || 'Inter, sans-serif'
-            } as React.CSSProperties}
+            style={themeStyle}
         >
             {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
             {shopInfo?.id && <VisitTracker shopId={shopInfo.id} customerId={customerId} />}

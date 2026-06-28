@@ -16,7 +16,7 @@ export function RichText() {
                         Welcome to a smarter way to build your wardrobe.
                     </p>
                 </div>
-                <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg text-sm uppercase tracking-widest inline-flex items-center gap-2">
+                <button className="bg-brand hover:bg-brand text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg text-sm uppercase tracking-widest inline-flex items-center gap-2">
                     Read Our Story <span>&rarr;</span>
                 </button>
             </div>

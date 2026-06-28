@@ -258,8 +258,13 @@ export class AuthService {
       await (this.ownerAuth.api as any).forgetPassword({
         body: { email: dto.email, redirectTo: '/reset-password' },
       });
-    } catch {
-      // Không leak xem email có tồn tại hay không
+    } catch (error: unknown) {
+      // Vẫn trả message trung tính để không leak email có tồn tại hay không,
+      // nhưng PHẢI log: trước đây `catch {}` nuốt lỗi khiến reset owner chết âm
+      // thầm khi sendResetPassword chưa cấu hình.
+      const message =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`forgotPassword failed for ${dto.email}: ${message}`);
     }
     return BaseResponseDto.success({
       message: 'If the email exists, a reset link will be sent.',

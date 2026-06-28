@@ -6,7 +6,7 @@ export function Marquee() {
             <div className="inline-block animate-[slider_30s_linear_infinite] whitespace-nowrap">
                 {Array(6).fill(null).map((_, i) => (
                     <span key={i} className="text-slate-400 font-bold uppercase tracking-widest text-sm mx-8 flex-inline items-center justify-center">
-                        <span className="text-emerald-500 mr-8">✦</span>
+                        <span className="text-brand mr-8">✦</span>
                         DESIGNED IN NEW YORK. CRAFTED IN ITALY. WORN WORLDWIDE.
                     </span>
                 ))}

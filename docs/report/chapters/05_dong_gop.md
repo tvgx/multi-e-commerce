@@ -5,7 +5,7 @@
 ## 5.1 Kết xuất giao diện động đa tenant (Zero-File Engine)
 - **Vấn đề**: phục vụ hàng nghìn gian hàng, mỗi gian hàng giao diện riêng, nhưng không thể sinh và triển khai mã nguồn cho từng gian hàng (chi phí build/triển khai bùng nổ).
 - **Giải pháp**: mô tả giao diện bằng JSON; bộ khung Master Template kết hợp **deep-merge** với phần ghi đè Tenant Layout tạo cấu hình cuối; storefront dùng Dynamic Component Resolver ánh xạ `componentType` → component trong `packages/ui-registry` để kết xuất. Chỉ lưu phần ghi đè của tenant nhằm tối ưu lưu trữ; kết quả merge được cache trên Redis và vô hiệu hóa khi xuất bản.
-- **Kết quả**: một mã nguồn storefront phục vụ mọi gian hàng; thêm gian hàng không cần thêm mã. [Bổ sung số liệu: thời gian kết xuất, kích thước payload JSON, tỉ lệ cache hit.]
+- **Kết quả**: một mã nguồn storefront phục vụ mọi gian hàng; thêm gian hàng chỉ là thêm bản ghi cấu hình JSON, không cần viết hay triển khai thêm mã. Các số liệu định lượng (thời gian kết xuất, kích thước payload JSON, tỉ lệ cache hit) cần đo bằng kiểm thử tải và được đặt trong hướng phát triển (§6.2).
 
 ## 5.2 Quy trình thiết kế–xuất bản gian hàng chạy nền
 - **Vấn đề**: dựng và xuất bản một gian hàng là tác vụ nặng (seed trang, biên dịch cấu hình), không nên chặn luồng request của người dùng.

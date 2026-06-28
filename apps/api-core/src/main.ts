@@ -145,4 +145,10 @@ async function bootstrap() {
   logger.log(`🪣 MinIO Storage: http://${minioEndpoint}:${minioPort}`);
   logger.log(`=================================================`);
 }
-bootstrap();
+
+// Lỗi khi khởi động (DI fail, không kết nối được DB…) phải log rõ ràng và thoát
+// hẳn thay vì để treo dưới dạng unhandled promise rejection.
+bootstrap().catch((err) => {
+  new Logger('Bootstrap').error('Failed to start application', err instanceof Error ? err.stack : String(err));
+  process.exit(1);
+});

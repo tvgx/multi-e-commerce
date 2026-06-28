@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Req, Param, Query } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import type { CreateShopDto } from './shop.service';
 import { UpdateShopDto } from './dto/update-shop.dto';
+import { SetDomainDto } from './dto/set-domain.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
 import { UpdatePaymentMethodsDto } from './dto/update-payment-methods.dto';
@@ -28,6 +29,15 @@ export class ShopController {
   @Get('bootstrap/:identifier')
   async getShopBootstrapData(@Param('identifier') identifier: string): Promise<BaseResponseDto<any>> {
     const data = await this.shopService.getShopBootstrapData(identifier);
+    return BaseResponseDto.success(data);
+  }
+
+  // Storefront middleware gọi để map tên miền riêng (đã xác thực) → slug.
+  // Dùng query param để né vấn đề mã hoá dấu chấm trong path segment.
+  @Public()
+  @Get('by-host')
+  async resolveByHost(@Query('host') host: string): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.resolveByHost(host);
     return BaseResponseDto.success(data);
   }
 
@@ -115,6 +125,24 @@ export class ShopController {
   @Patch(':shopId/payment-methods')
   async updatePaymentMethods(@Param('shopId') shopId: string, @Body() dto: UpdatePaymentMethodsDto): Promise<BaseResponseDto<any>> {
     const data = await this.shopService.setPaymentMethods(shopId, dto);
+    return BaseResponseDto.success(data);
+  }
+
+  // Lưu tên miền riêng + trả bản ghi TXT cần thêm vào DNS
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Patch(':shopId/domain')
+  async setCustomDomain(@Param('shopId') shopId: string, @Body() dto: SetDomainDto): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.setCustomDomain(shopId, dto.customDomain);
+    return BaseResponseDto.success(data);
+  }
+
+  // Xác thực thật: resolve bản ghi TXT của tên miền và đối chiếu
+  @UseGuards(BetterAuthGuard, RolesGuard)
+  @RequireRoles('ADMIN', 'OWNER')
+  @Post(':shopId/domain/verify')
+  async verifyCustomDomain(@Param('shopId') shopId: string): Promise<BaseResponseDto<any>> {
+    const data = await this.shopService.verifyCustomDomain(shopId);
     return BaseResponseDto.success(data);
   }
 

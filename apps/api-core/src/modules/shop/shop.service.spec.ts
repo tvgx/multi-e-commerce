@@ -7,6 +7,11 @@ import { TenantService } from '../../common/services/tenant.service';
 import { createMockPrisma, MockPrisma } from '../../../test/helpers/prisma-mock';
 import { createMockCache } from '../../../test/helpers/mocks';
 
+jest.mock('dns/promises', () => ({ resolveTxt: jest.fn() }));
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { resolveTxt } = require('dns/promises');
+const mockResolveTxt = resolveTxt as jest.Mock;
+
 describe('ShopService', () => {
   let service: ShopService;
   let prisma: MockPrisma;
@@ -175,6 +180,115 @@ describe('ShopService', () => {
           status: 'PUBLISHED',
         }),
       });
+    });
+  });
+
+  describe('setCustomDomain (P0-2)', () => {
+    beforeEach(() => {
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP });
+      prisma.shop.findFirst.mockResolvedValue(null); // not taken
+      prisma.shop.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: SHOP, customDomain: data.customDomain, domainVerified: data.domainVerified }),
+      );
+    });
+
+    it('normalizes scheme/path/case and resets verification, returns TXT record', async () => {
+      const res = await service.setCustomDomain(SHOP, 'https://Store.Example.com/path');
+
+      expect(prisma.shop.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: SHOP },
+          data: { customDomain: 'store.example.com', domainVerified: false },
+        }),
+      );
+      expect(res.customDomain).toBe('store.example.com');
+      expect(res.verification).toEqual({
+        type: 'TXT',
+        host: '@',
+        value: `shopVolo-verification=${SHOP}`,
+      });
+    });
+
+    it('rejects an invalid hostname', async () => {
+      await expect(service.setCustomDomain(SHOP, 'not a domain')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.shop.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a platform hostname (localhost / subdomain of platform)', async () => {
+      await expect(service.setCustomDomain(SHOP, 'shop.localhost')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('rejects a domain already taken by another shop', async () => {
+      prisma.shop.findFirst.mockResolvedValue({ id: 'other-shop' });
+      await expect(
+        service.setCustomDomain(SHOP, 'store.example.com'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('verifyCustomDomain (P0-2)', () => {
+    it('throws when no custom domain is configured', async () => {
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP, customDomain: null });
+      await expect(service.verifyCustomDomain(SHOP)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('marks verified when a TXT record matches the expected value', async () => {
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP, customDomain: 'store.example.com' });
+      // TXT records arrive as chunk arrays; one chunk split to exercise join()
+      mockResolveTxt.mockResolvedValue([
+        ['unrelated=1'],
+        ['shopVolo-verification=', SHOP],
+      ]);
+      prisma.shop.update.mockResolvedValue({ id: SHOP, customDomain: 'store.example.com', domainVerified: true });
+
+      const res = await service.verifyCustomDomain(SHOP);
+
+      expect(mockResolveTxt).toHaveBeenCalledWith('store.example.com');
+      expect(prisma.shop.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { domainVerified: true } }),
+      );
+      expect(res.domainVerified).toBe(true);
+    });
+
+    it('rejects when no TXT record matches', async () => {
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP, customDomain: 'store.example.com' });
+      mockResolveTxt.mockResolvedValue([['something-else']]);
+      await expect(service.verifyCustomDomain(SHOP)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.shop.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects (not crash) when DNS lookup fails', async () => {
+      prisma.shop.findUnique.mockResolvedValue({ id: SHOP, customDomain: 'store.example.com' });
+      mockResolveTxt.mockRejectedValue(Object.assign(new Error('ENOTFOUND'), { code: 'ENOTFOUND' }));
+      await expect(service.verifyCustomDomain(SHOP)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('resolveByHost (P0-2)', () => {
+    it('returns the slug for a verified custom domain', async () => {
+      prisma.shop.findFirst.mockResolvedValue({ id: SHOP, domain: 'my-slug' });
+      const res = await service.resolveByHost('Store.Example.com:443');
+      expect(prisma.shop.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { customDomain: 'store.example.com', domainVerified: true },
+        }),
+      );
+      expect(res).toEqual({ id: SHOP, slug: 'my-slug' });
+    });
+
+    it('returns null for an unknown/unverified host', async () => {
+      prisma.shop.findFirst.mockResolvedValue(null);
+      expect(await service.resolveByHost('unknown.com')).toBeNull();
     });
   });
 });

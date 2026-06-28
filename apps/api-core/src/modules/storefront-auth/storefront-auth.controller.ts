@@ -35,24 +35,18 @@ export class StorefrontAuthController {
     }
 
     const token = authHeader.split(' ')[1];
-    try {
-      const payload = verifyJwt(token);
-      return this.authService.changePassword(body, payload.sub);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
+    // verifyJwt tự ném UnauthorizedException (401) khi token hỏng; lỗi nghiệp
+    // vụ/DB từ service vẫn nổi lên đúng mã của nó (không bị che thành 401).
+    const payload = verifyJwt(token);
+    return this.authService.changePassword(body, payload.sub);
   }
 
   @Get('me')
   async getMe(@Headers('authorization') authHeader: string): Promise<BaseResponseDto<any>> {
     if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException('Missing or invalid token');
     const token = authHeader.split(' ')[1];
-    try {
-      const payload = verifyJwt(token);
-      return this.authService.getMe(payload.sub);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
+    const payload = verifyJwt(token);
+    return this.authService.getMe(payload.sub);
   }
 
   @Post('forgot-password')

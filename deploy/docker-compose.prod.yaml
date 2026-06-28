@@ -56,6 +56,8 @@ services:
       MINIO_ENDPOINT: minio
       MINIO_PORT: "9000"
       MINIO_USE_SSL: "false"
+      # Theme-market gọi design-agent (extract Figma) qua mạng nội bộ Docker.
+      DESIGN_AGENT_URL: http://design-agent:3100
     depends_on:
       - redis
       - minio
@@ -121,6 +123,32 @@ services:
       resources:
         limits:
           memory: 450M
+
+  # ── Design agent (NestJS) — Figma→theme extractor + AI chatbot ───────────────
+  # CHỈ phục vụ NỘI BỘ: api-core (theme-market) gọi POST /design-agent/extract-theme
+  # qua mạng Docker. KHÔNG publish ra ngoài, KHÔNG có route Caddy → không cần TLS.
+  # Cần key TRẢ PHÍ (đặt trong .env): ANTHROPIC_API_KEY, VOYAGE_API_KEY, FIGMA_TOKEN.
+  design-agent:
+    image: ${DESIGN_AGENT_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-design-agent:latest}
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env            # ANTHROPIC_API_KEY, VOYAGE_API_KEY, VOYAGE_MODEL,
+                              # FIGMA_TOKEN, FIGMA_FILE_KEY, MONGO_DB_ATLAS,
+                              # MINIO_ACCESS_KEY/SECRET, CDN_BASE_URL, INTERNAL_API_KEY
+    environment:
+      NODE_ENV: production
+      DESIGN_AGENT_PORT: "3100"
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      # Chatbot guard ủy quyền xác thực session về api-core (cùng mạng nội bộ).
+      API_CORE_URL: http://api-core:3000
+    depends_on:
+      - minio
+      - api-core
+    deploy:
+      resources:
+        limits:
+          memory: 400M
 
   # ── Object storage (S3-compatible) ───────────────────────────────────────────
   minio:

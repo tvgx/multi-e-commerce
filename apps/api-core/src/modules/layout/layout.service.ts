@@ -69,8 +69,12 @@ export class LayoutService {
   ) {}
 
   // Xuất bản giao diện = đưa shop lên sóng: chuyển DRAFT → PUBLISHED và đánh dấu
-  // bước "thiết kế" (step 5) hoàn tất. Idempotent, không hạ cấp shop đã publish.
-  // Public: worker /scripts/shop-builder gọi qua Nest context.
+  // bước "Thiết kế giao diện" (step 4 trong getOnboardingProgress) hoàn tất.
+  // LƯU Ý: trước đây ghi nhầm `step5` — nhưng step5 là "Setup Payment" (suy ra từ
+  // số phương thức thanh toán, KHÔNG đọc từ status map), còn step4 ("Design UI")
+  // mới là bước đọc từ status map. Nên ghi step5 vừa vô tác dụng vừa khiến bước
+  // thiết kế không bao giờ được tick "đã hoàn thành" dù đã xuất bản giao diện.
+  // Idempotent, không hạ cấp shop đã publish. Public: worker /scripts/shop-builder.
   async markShopPublished(shopId: string): Promise<void> {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
@@ -81,10 +85,10 @@ export class LayoutService {
       where: { id: shopId },
       data: {
         status: 'PUBLISHED',
-        onboardingStep: Math.max(shop.onboardingStep ?? 1, 5),
+        onboardingStep: Math.max(shop.onboardingStep ?? 1, 4),
         onboardingStatus: {
           ...((shop.onboardingStatus as Record<string, any>) || {}),
-          step5: 'COMPLETED',
+          step4: 'COMPLETED',
         },
       },
     });
@@ -388,6 +392,38 @@ export class LayoutService {
     }
   }
 
+  // 04b — Purge ISR cache của storefront cho shop này. Storefront cache layout
+  // (global + từng page) theo tag `layout-<shopId>-global` / `layout-<shopId>-page-<pageType>`
+  // với revalidate 60s; nếu không gọi purge thì sau khi xuất bản khách vẫn thấy
+  // giao diện cũ tới 1 phút (cảm giác "không cập nhật"). Route đích:
+  // POST {STOREFRONT_URL}/api/revalidate?tag=<tag>&secret=<REVALIDATE_SECRET>.
+  // Không chặn publish: mọi lỗi chỉ log cảnh báo.
+  async revalidateStorefront(shopId: string, pageTypes?: string[]): Promise<void> {
+    const base = process.env.STOREFRONT_URL || 'http://localhost:3002';
+    const secret = process.env.REVALIDATE_SECRET || 'dev_secret_revalidate_12345';
+    const pages = pageTypes ?? [...EDITABLE_PAGE_TYPES];
+    const tags = [`layout-${shopId}-global`, ...pages.map((p) => `layout-${shopId}-page-${p}`)];
+
+    await Promise.all(
+      tags.map(async (tag) => {
+        const url = `${base}/api/revalidate?tag=${encodeURIComponent(tag)}&secret=${encodeURIComponent(secret)}`;
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 5_000);
+          const res = await fetch(url, { method: 'POST', signal: controller.signal });
+          clearTimeout(timer);
+          if (!res.ok) {
+            this.logger.warn(`Revalidate storefront tag "${tag}" → HTTP ${res.status}`);
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Revalidate storefront tag "${tag}" thất bại: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }),
+    );
+  }
+
   // URL storefront chính thức (server là source-of-truth). Theo định dạng hiện tại
   // <identifier>.<host> — dùng domain nếu có, fallback shopId.
   async buildStorefrontUrl(shopId: string): Promise<string> {
@@ -426,6 +462,8 @@ export class LayoutService {
     await this.persistPublished(shopId, compiledGlobal, compiledPages);
     await onProgress(95, 'minio');
     await this.markShopPublished(shopId);
+    // Purge ISR cache để giao diện vừa xuất bản hiển thị ngay, không phải chờ TTL 60s.
+    await this.revalidateStorefront(shopId);
     const storefrontUrl = await this.buildStorefrontUrl(shopId);
     await onProgress(100, 'published');
 
@@ -454,6 +492,8 @@ export class LayoutService {
         { new: true },
       )
       .exec();
+    // Purge cache của riêng page vừa publish (global không đổi ở nhánh này).
+    await this.revalidateStorefront(shopId, [pageType]);
     return { status: 'published', shopId, pageType };
   }
 

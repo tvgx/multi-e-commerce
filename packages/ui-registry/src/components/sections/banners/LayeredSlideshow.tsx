@@ -60,7 +60,7 @@ export function LayeredSlideshow({
                     <p className="opacity-80 mb-8 text-lg">{activeSlide.subtitle || 'Slide subtitle goes here.'}</p>
                     <a
                         href={activeSlide.ctaLink || '#'}
-                        className="bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20 inline-block"
+                        className="bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-brand transition-colors shadow-lg shadow-brand/20 inline-block"
                     >
                         {activeSlide.ctaText || 'View Lookbook'}
                     </a>

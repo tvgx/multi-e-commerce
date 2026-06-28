@@ -1,4 +1,4 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as crypto from 'crypto';
@@ -22,8 +22,10 @@ export class EncryptionInterceptor implements NestInterceptor {
     if (request.body && request.body.encryptedData) {
       try {
         request.body = JSON.parse(this.decrypt(request.body.encryptedData));
-      } catch (e) {
-        // Fallback or handle invalid encryption
+      } catch {
+        // Đừng nuốt lỗi rồi cho body mã hoá lỗi đi tiếp (gây lỗi validation
+        // khó hiểu ở downstream) — trả 400 rõ ràng.
+        throw new BadRequestException('Invalid encrypted payload');
       }
     }
 

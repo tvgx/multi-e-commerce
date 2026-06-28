@@ -111,12 +111,15 @@ model Shop {
   id      String  @id @default(uuid())
   ownerId String
   name    String
-  domain  String? @unique // Custom domain (vd: store.duck.com)
+  domain  String? @unique // Slug/subdomain định danh storefront (vd: my-cool-shop) — dùng cho [shopSlug]
+  // Tên miền riêng người bán trỏ về (vd: store.example.com). Khác `domain` (slug):
+  // được xác thực qua bản ghi TXT rồi storefront middleware route host này về slug.
+  customDomain     String?   @unique
   status           String    @default("DRAFT") // DRAFT, PUBLISHED
   templateType     String    @default("standard")
   onboardingStep   Int       @default(1)
   onboardingStatus Json?     @default("{}")
-  domainVerified   Boolean   @default(false)
+  domainVerified   Boolean   @default(false) // true khi customDomain đã xác thực TXT
   bankAccount      ShopBankAccount?
 
   // Thông tin định danh doanh nghiệp

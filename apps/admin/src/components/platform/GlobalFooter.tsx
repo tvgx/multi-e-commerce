@@ -8,10 +8,8 @@ export function GlobalFooter() {
         &copy; 2026 OmniCommerce, Inc. All rights reserved.
       </div>
       <div className="flex items-center gap-4">
-        <Link href="#" className="hover:text-zinc-300 transition-colors">Documentation</Link>
-        <Link href="#" className="hover:text-zinc-300 transition-colors">System Status</Link>
-        <Link href="#" className="hover:text-zinc-300 transition-colors">Privacy</Link>
-        <Link href="#" className="hover:text-zinc-300 transition-colors">Terms</Link>
+        <Link href="/legal/privacy" className="hover:text-zinc-300 transition-colors">Privacy</Link>
+        <Link href="/legal/terms" className="hover:text-zinc-300 transition-colors">Terms</Link>
       </div>
     </footer>
   );

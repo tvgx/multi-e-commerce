@@ -52,7 +52,7 @@ export function CollectionListsCarousel({
                         <div className="w-full h-[400px] rounded-2xl overflow-hidden mb-4 relative bg-slate-100">
                             <SmartImage src={`http://localhost:9000/assets/default-2.png`} alt="Collection" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 768px) 33vw, 80vw" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Collection {i}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-brand transition-colors">Collection {i}</h3>
                         <p className="text-slate-500 mt-1 text-sm font-medium">Explore Items &rarr;</p>
                     </a>
                 ))}

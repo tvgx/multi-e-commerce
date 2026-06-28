@@ -21,23 +21,20 @@ export class StorefrontAuthGuard implements CanActivate {
 
     const token = authHeader.split(' ')[1];
 
-    try {
-      const payload = verifyJwt(token);
-      const customerId = payload.sub;
+    // verifyJwt tự ném UnauthorizedException (401) khi token hỏng. Lỗi DB
+    // (prisma) bên dưới KHÔNG bị che thành 401 — nổi lên filter với mã của nó.
+    const payload = verifyJwt(token);
 
-      const customer = await this.prisma.customer.findUnique({
-        where: { id: customerId },
-      });
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: payload.sub },
+    });
 
-      if (!customer) {
-        throw new UnauthorizedException('Customer not found');
-      }
-
-      // Attach customer to request
-      request.user = { id: customer.id, email: customer.email, shopId: customer.shopId };
-      return true;
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+    if (!customer) {
+      throw new UnauthorizedException('Customer not found');
     }
+
+    // Attach customer to request
+    request.user = { id: customer.id, email: customer.email, shopId: customer.shopId };
+    return true;
   }
 }

@@ -32,7 +32,7 @@ export function ProductHighlight({
 
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <div className={cn('space-y-8', isRight ? 'order-2 lg:order-1' : 'order-2 lg:order-2')}>
-                        <span className="text-emerald-500 font-bold tracking-widest uppercase">Spotlight</span>
+                        <span className="text-brand font-bold tracking-widest uppercase">Spotlight</span>
                         <HeadingBlock
                             content={title || 'Artisan Crafted Leather Tote.'}
                             level="h2"
@@ -45,7 +45,7 @@ export function ProductHighlight({
                                 label="Discover Details - $285"
                                 style="primary"
                                 size="lg"
-                                className="bg-slate-900 text-white rounded-xl shadow-xl hover:bg-emerald-600"
+                                className="bg-slate-900 text-white rounded-xl shadow-xl hover:bg-brand"
                             />
                         </div>
                     </div>
@@ -58,7 +58,7 @@ export function ProductHighlight({
                                 className="w-full h-full object-cover"
                             />
                         </div>
-                        <div className="absolute -bottom-8 -right-8 w-full h-full border-2 border-emerald-500 rounded-3xl z-0" />
+                        <div className="absolute -bottom-8 -right-8 w-full h-full border-2 border-brand rounded-3xl z-0" />
                     </div>
                 </div>
             </div>

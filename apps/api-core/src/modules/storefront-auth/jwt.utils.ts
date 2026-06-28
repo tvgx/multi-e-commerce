@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common';
 import * as crypto from 'crypto';
 
 const SECRET =
@@ -43,38 +44,45 @@ export function signJwt(
   return `${signatureInput}.${signature}`;
 }
 
-// Verify JWT Token
+// Verify JWT Token.
+// Ném UnauthorizedException (HttpException) với message cụ thể thay vì gộp tất cả
+// thành plain Error('Unauthorized') — vừa giữ đúng mã 401 khi nổi lên filter,
+// vừa phân biệt được token sai cấu trúc / sai chữ ký / hết hạn để debug.
 export function verifyJwt(token: string): Record<string, any> {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new UnauthorizedException('Invalid token structure');
+  }
+
+  const [encodedHeader, encodedPayload, signature] = parts;
+  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+  const expectedSignature = crypto
+    .createHmac('sha256', SECRET)
+    .update(signatureInput)
+    .digest('base64url');
+
+  // So sánh chống timing attack — phải khớp độ dài trước khi timingSafeEqual.
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expectedSignature);
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    throw new UnauthorizedException('Invalid signature');
+  }
+
+  let payload: Record<string, any>;
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token structure');
-    }
-
-    const [encodedHeader, encodedPayload, signature] = parts;
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', SECRET)
-      .update(signatureInput)
-      .digest('base64url');
-
-    if (signature !== expectedSignature) {
-      throw new Error('Invalid signature');
-    }
-
-    const payload = JSON.parse(
+    payload = JSON.parse(
       Buffer.from(encodedPayload, 'base64url').toString('utf-8'),
     );
-
-    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
-      throw new Error('Token expired');
-    }
-
-    return payload;
-  } catch (error) {
-    throw new Error('Unauthorized');
+  } catch {
+    throw new UnauthorizedException('Malformed token payload');
   }
+
+  if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
+    throw new UnauthorizedException('Token expired');
+  }
+
+  return payload;
 }
 
 // Password Hashing
@@ -82,7 +90,9 @@ export async function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const salt = crypto.randomBytes(16).toString('hex');
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) reject(err);
+      // Thiếu `return` ở đây: khi err set, derivedKey undefined →
+      // derivedKey.toString() ném TypeError trong callback libuv → crash process.
+      if (err) return reject(err);
       resolve(salt + ':' + derivedKey.toString('hex'));
     });
   });
@@ -98,7 +108,7 @@ export async function verifyPassword(
     if (!salt || !key) return resolve(false);
 
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) reject(err);
+      if (err) return reject(err);
       resolve(key === derivedKey.toString('hex'));
     });
   });

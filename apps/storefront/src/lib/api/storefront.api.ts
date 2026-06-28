@@ -41,6 +41,7 @@ export interface ProductCard {
     basePrice: number;
     images: string[];
     category?: string;
+    categoryId?: string;
     variants?: { stock: number }[];
 }
 
@@ -265,7 +266,9 @@ export async function getShopProducts(
             title: p.title,
             basePrice: p.basePrice ?? Math.min(...(p.variants?.map((v: any) => v.price) ?? [0])),
             images: p.images ?? (p.imageUrl ? [p.imageUrl] : []),
-            category: p.category,
+            // API trả quan hệ category (object) — UI dùng category dạng string (tên)
+            category: typeof p.category === 'string' ? p.category : p.category?.name,
+            categoryId: p.categoryId ?? p.category?.id,
             variants: p.variants,
         }));
 
@@ -276,6 +279,43 @@ export async function getShopProducts(
     } catch (err) {
         console.error(`[storefront.api] getShopProducts failed for shopIdentifier=${shopIdentifier}`, err);
         return { products: [], hasMore: false };
+    }
+}
+
+export interface ShopCategory {
+    id: string;
+    name: string;
+    slug: string;
+}
+
+/**
+ * Fetches the shop's category list (độc lập với bộ lọc sản phẩm) để sidebar
+ * luôn hiển thị đủ danh mục. Endpoint @Public() dùng tenant context (x-shop-id).
+ */
+export async function getShopCategories(shopIdentifier: string): Promise<ShopCategory[]> {
+    try {
+        const resolvedShop = await resolveShopContext(shopIdentifier);
+        if (!resolvedShop?.id) return [];
+
+        const shopId = resolvedShop.id;
+        const res = await loggedFetch(`${API_BASE_URL}/api/catalog/categories`, {
+            headers: getTenantHeaders(shopId),
+            next: {
+                tags: [`categories-${shopId}`],
+                revalidate: 60,
+            },
+        });
+
+        if (!res.ok) return [];
+
+        const body = await res.json();
+        const items: any[] = Array.isArray(body.data) ? body.data : [];
+        return items
+            .filter((c) => c.isActive !== false)
+            .map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
+    } catch (err) {
+        console.error(`[storefront.api] getShopCategories failed for shopIdentifier=${shopIdentifier}`, err);
+        return [];
     }
 }
 

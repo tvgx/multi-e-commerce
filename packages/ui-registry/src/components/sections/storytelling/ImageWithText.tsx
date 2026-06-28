@@ -47,7 +47,7 @@ export function ImageWithText({
                         <p className="text-lg mb-8 leading-relaxed opacity-80" style={{ color: textColor || '#0f172a' }}>
                             {subtitle || 'Discover our new range of heavy knits and insulated outerwear. Designed to keep you warm without sacrificing your silhouette.'}
                         </p>
-                        <button className="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg text-sm uppercase tracking-widest">
+                        <button className="bg-slate-900 hover:bg-brand text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg text-sm uppercase tracking-widest">
                             {ctaText || 'Shop The Lookbook'}
                         </button>
                     </div>

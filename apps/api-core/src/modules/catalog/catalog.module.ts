@@ -7,10 +7,12 @@ import { OptionTypeController } from './option-type.controller';
 import { OptionTypeService } from './option-type.service';
 import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
+import { PlatformCatalogController } from './platform-catalog.controller';
+import { PlatformCatalogService } from './platform-catalog.service';
 
 @Module({
-  controllers: [CatalogController, StorefrontCatalogController, OptionTypeController, CategoryController],
-  providers: [CatalogService, CatalogStreamService, OptionTypeService, CategoryService]
+  controllers: [CatalogController, StorefrontCatalogController, OptionTypeController, CategoryController, PlatformCatalogController],
+  providers: [CatalogService, CatalogStreamService, OptionTypeService, CategoryService, PlatformCatalogService]
 })
 export class CatalogModule {}
 

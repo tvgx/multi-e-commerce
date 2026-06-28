@@ -121,6 +121,8 @@ export class CatalogService {
     return this.prisma.collection.findMany({
       where: { shopId },
       orderBy: { createdAt: 'desc' },
+      // Admin "Categories" list hiển thị số sản phẩm qua _count.products
+      include: { _count: { select: { products: true } } },
     });
   }
 
@@ -273,7 +275,7 @@ export class CatalogService {
         skip,
         take: limit,
         orderBy: { [sortColumn]: sortDirection },
-        include: { variants: true },
+        include: { variants: true, category: true },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -293,7 +295,7 @@ export class CatalogService {
     const shopId = this.getShopId();
     const product = await this.prisma.product.findFirst({
       where: { id, shopId },
-      include: { variants: true },
+      include: { variants: true, category: true },
     });
     if (!product) throw new NotFoundException('Product not found');
     const ratings = await this.getRatingStats(shopId, [product.id]);
@@ -304,7 +306,7 @@ export class CatalogService {
     const shopId = this.getShopId();
     const product = await this.prisma.product.findUnique({
       where: { shopId_slug: { shopId, slug } },
-      include: { variants: true },
+      include: { variants: true, category: true },
     });
     if (!product) throw new NotFoundException('Product not found');
     const ratings = await this.getRatingStats(shopId, [product.id]);

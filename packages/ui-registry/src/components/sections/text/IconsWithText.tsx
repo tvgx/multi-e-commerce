@@ -6,7 +6,7 @@ export function IconsWithText() {
             <div className="max-w-7xl mx-auto px-4 md:px-12">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 text-center">
                     <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 text-2xl">
+                        <div className="w-16 h-16 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-6 text-2xl">
                             🌍
                         </div>
                         <h4 className="font-bold text-slate-900 mb-2">Worldwide Shipping</h4>
@@ -14,7 +14,7 @@ export function IconsWithText() {
                     </div>
 
                     <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 text-2xl">
+                        <div className="w-16 h-16 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-6 text-2xl">
                             ♻️
                         </div>
                         <h4 className="font-bold text-slate-900 mb-2">Sustainable Materials</h4>
@@ -22,7 +22,7 @@ export function IconsWithText() {
                     </div>
 
                     <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 text-2xl">
+                        <div className="w-16 h-16 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-6 text-2xl">
                             🛡️
                         </div>
                         <h4 className="font-bold text-slate-900 mb-2">Lifetime Warranty</h4>
@@ -30,7 +30,7 @@ export function IconsWithText() {
                     </div>
 
                     <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 text-2xl">
+                        <div className="w-16 h-16 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-6 text-2xl">
                             🔙
                         </div>
                         <h4 className="font-bold text-slate-900 mb-2">Easy Returns</h4>

@@ -29,7 +29,7 @@ export function RecommendedProducts({
                             <div className="aspect-[4/5] bg-slate-100 rounded-xl overflow-hidden mb-3">
                                 <SmartImage src={`http://localhost:9000/assets/default-3.png`} alt="Recommended" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 768px) 25vw, 50vw" />
                             </div>
-                            <h3 className="font-medium text-slate-900 text-sm mb-1 group-hover:text-emerald-600 transition-colors">Perfect Match Item {i}</h3>
+                            <h3 className="font-medium text-slate-900 text-sm mb-1 group-hover:text-brand transition-colors">Perfect Match Item {i}</h3>
                             <p className="font-bold text-slate-900 text-sm">${45 + i * 3}.00</p>
                         </a>
                     ))}

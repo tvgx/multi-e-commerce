@@ -21,18 +21,18 @@ describe('jwt.utils', () => {
         .replace(/\+/g, '-')
         .replace(/\//g, '_');
       expect(() => verifyJwt(`${h}.${forgedPayload}.${s}`)).toThrow(
-        'Unauthorized',
+        'Invalid signature',
       );
     });
 
     it('rejects a structurally invalid token', () => {
-      expect(() => verifyJwt('not-a-jwt')).toThrow('Unauthorized');
+      expect(() => verifyJwt('not-a-jwt')).toThrow('Invalid token structure');
     });
 
     it('rejects an expired token', () => {
       // expiresInDays negative -> exp in the past
       const expired = signJwt({ sub: 'c1' }, -1);
-      expect(() => verifyJwt(expired)).toThrow('Unauthorized');
+      expect(() => verifyJwt(expired)).toThrow('Token expired');
     });
   });
 

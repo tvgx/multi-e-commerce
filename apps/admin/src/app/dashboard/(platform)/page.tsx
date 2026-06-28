@@ -127,51 +127,48 @@ export default function PlatformOverviewPage() {
               </Link>
             </div>
 
-            {/* Catalog (Soon) */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 flex flex-col h-full relative overflow-hidden opacity-80">
-              <div className="absolute top-4 right-4 px-2 py-1 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
-                Coming Soon
-              </div>
+            {/* Catalog (Active) */}
+            <div className="rounded-xl border border-zinc-700 bg-zinc-800/80 p-5 shadow-sm hover:border-emerald-500/50 transition-all group flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                   <Package size={20} />
                 </div>
               </div>
-              <h3 className="text-base font-bold text-zinc-300 mb-2">Product Catalog</h3>
-              <p className="text-sm text-zinc-500 mb-6 flex-1">Centralized product management. Create once, distribute to multiple shops.</p>
-              <Link href="/dashboard/catalog" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 hover:text-white">
-                Learn More <ArrowRight size={16} />
+              <h3 className="text-base font-bold text-white mb-2">Product Catalog</h3>
+              <p className="text-sm text-zinc-400 mb-6 flex-1">Quản lý sản phẩm trên mọi cửa hàng và phân phối một sản phẩm sang nhiều shop.</p>
+              <Link href="/dashboard/catalog" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-400 group-hover:text-emerald-300">
+                Mở Catalog <ArrowRight size={16} />
               </Link>
             </div>
 
-            {/* Themes (Soon) */}
+            {/* Themes (Active) */}
+            <div className="rounded-xl border border-zinc-700 bg-zinc-800/80 p-5 shadow-sm hover:border-pink-500/50 transition-all group flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center">
+                  <Palette size={20} />
+                </div>
+              </div>
+              <h3 className="text-base font-bold text-white mb-2">Theme Market</h3>
+              <p className="text-sm text-zinc-400 mb-6 flex-1">Review and approve storefront themes submitted by shop owners across the platform.</p>
+              <Link href="/dashboard/themes" className="inline-flex items-center gap-2 text-sm font-semibold text-pink-400 group-hover:text-pink-300">
+                Open Theme Market <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            {/* Billing (Soon) */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 flex flex-col h-full relative overflow-hidden opacity-80">
               <div className="absolute top-4 right-4 px-2 py-1 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
                 Coming Soon
               </div>
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
-                  <Palette size={20} />
-                </div>
-              </div>
-              <h3 className="text-base font-bold text-zinc-300 mb-2">Theme Market</h3>
-              <p className="text-sm text-zinc-500 mb-6 flex-1">Premium storefront templates and UI components to boost conversions.</p>
-              <Link href="/dashboard/themes" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 hover:text-white">
-                Learn More <ArrowRight size={16} />
-              </Link>
-            </div>
-
-            {/* Billing (Active) */}
-            <div className="rounded-xl border border-zinc-700 bg-zinc-800/80 p-5 shadow-sm hover:border-violet-500/50 transition-all group flex flex-col h-full">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center">
                   <CreditCard size={20} />
                 </div>
               </div>
-              <h3 className="text-base font-bold text-white mb-2">Billing & Plans</h3>
-              <p className="text-sm text-zinc-400 mb-6 flex-1">Manage your platform subscription, view invoices, and upgrade features.</p>
-              <Link href="/dashboard/billing" className="inline-flex items-center gap-2 text-sm font-semibold text-violet-400 group-hover:text-violet-300">
-                Manage Billing <ArrowRight size={16} />
+              <h3 className="text-base font-bold text-zinc-300 mb-2">Billing & Plans</h3>
+              <p className="text-sm text-zinc-500 mb-6 flex-1">Manage your platform subscription, view invoices, and upgrade features.</p>
+              <Link href="/dashboard/billing" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 hover:text-white">
+                Learn More <ArrowRight size={16} />
               </Link>
             </div>
 

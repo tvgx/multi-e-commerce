@@ -19,7 +19,7 @@ export function FAQ() {
                         <details key={i} className="group bg-white rounded-2xl border border-slate-200 overflow-hidden cursor-pointer" open={i === 0}>
                             <summary className="font-bold text-lg text-slate-900 p-6 flex justify-between items-center select-none group-open:bg-slate-50">
                                 {item.q}
-                                <span className="text-emerald-500 font-normal transition-transform group-open:rotate-180">↓</span>
+                                <span className="text-brand font-normal transition-transform group-open:rotate-180">↓</span>
                             </summary>
                             <div className="px-6 pb-6 pt-2 text-slate-600 border-t border-slate-100 group-open:bg-slate-50">
                                 {item.a}

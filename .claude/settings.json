@@ -21,7 +21,9 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow\\)\\)\")",
-      "Bash(node -e \"const a = require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow; console.log\\('valid JSON, first rule:', a[0], '| total:', a.length\\)\")"
+      "Bash(node -e \"const a = require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow; console.log\\('valid JSON, first rule:', a[0], '| total:', a.length\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('@prisma/client'\\)\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('@ecommerce/database'\\)\\)\")"
     ]
   }
 }

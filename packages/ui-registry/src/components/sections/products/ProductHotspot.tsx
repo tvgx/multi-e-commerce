@@ -68,13 +68,13 @@ export function HotspotBlock({
                 transform: 'translate(-50%, -50%)',
             }}
         >
-            <div className="w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center relative cursor-pointer z-10 text-emerald-600">
+            <div className="w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center relative cursor-pointer z-10 text-brand">
                 <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-75" />
                 <span className="relative font-bold text-xs">+</span>
             </div>
             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-48 bg-white p-3 rounded-lg shadow-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-20 origin-bottom">
                 <p className="font-bold text-sm text-slate-900">Product {productId || 'Item'}</p>
-                <p className="font-bold text-emerald-600 text-sm mt-1">$99.00</p>
+                <p className="font-bold text-brand text-sm mt-1">$99.00</p>
                 <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-4 h-4 bg-white rotate-45" />
             </div>
         </div>
