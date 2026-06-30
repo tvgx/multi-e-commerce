@@ -23,7 +23,8 @@
       "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow\\)\\)\")",
       "Bash(node -e \"const a = require\\('/home/lordfeeder/workspaces/multi-e-commerce/.claude/settings.json'\\).permissions.allow; console.log\\('valid JSON, first rule:', a[0], '| total:', a.length\\)\")",
       "Bash(node -e \"console.log\\(require.resolve\\('@prisma/client'\\)\\)\")",
-      "Bash(node -e \"console.log\\(require.resolve\\('@ecommerce/database'\\)\\)\")"
+      "Bash(node -e \"console.log\\(require.resolve\\('@ecommerce/database'\\)\\)\")",
+      "Bash(curl -s -m 8 http://localhost:3000/api/products/shop/__TRACKED_VAR__?limit=3)"
     ]
   }
 }

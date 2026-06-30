@@ -1,0 +1,276 @@
+================================================================================
+ HƯỚNG DẪN TRIỂN KHAI TOÀN DỰ ÁN LÊN PRODUCTION (gồm cả design-agent)
+ ShopVolo / multi-e-commerce — 1 box Docker Compose + Supabase/Atlas free
+ Cập nhật: 2026-06-28
+================================================================================
+
+ĐỐI TƯỢNG: bạn ĐÃ CÓ sẵn DB Supabase + MongoDB Atlas + domain (DNS).
+           bạn CHƯA CÓ box máy chủ → hướng dẫn dựng từ đầu.
+           Phạm vi: TOÀN BỘ 5 dịch vụ image + design-agent (dịch vụ TRẢ PHÍ).
+
+--------------------------------------------------------------------------------
+ KIẾN TRÚC ĐÍCH (chạy trên 1 box)
+--------------------------------------------------------------------------------
+  Caddy (:80/:443)  ── api.<d>     -> api-core:3000
+                    ── admin.<d>   -> admin:3000
+                    ── cdn.<d>     -> minio:9000      (ảnh public)
+                    ── images.<d>  -> imgproxy:8080
+                    ── <d> + *.<d> -> storefront:3002 (multi-tenant, TLS on-demand)
+
+  NỘI BỘ (không ra ngoài Internet):
+    api-core  --(http://design-agent:3100)-->  design-agent   (Import Figma)
+    redis, minio, imgproxy                                    (mạng Docker)
+
+  <d> = ROOT_DOMAIN (ví dụ tvgx1.id.vn)
+
+  DB ngoài box: PostgreSQL = Supabase free | MongoDB = Atlas free
+  Object storage / Redis / imgproxy / Caddy: chạy TRÊN box.
+
+  design-agent CHỈ phục vụ nội bộ: api-core (module theme-market) gọi
+  POST /design-agent/extract-theme qua mạng Docker. KHÔNG mở route public,
+  KHÔNG cần cert. Endpoint /chat tồn tại nhưng UI admin chưa dùng ở prod.
+
+
+================================================================================
+ PHẦN A — ĐÃ WIRE SẴN TRONG REPO (không cần làm gì thêm, chỉ để biết)
+================================================================================
+  - .github/workflows/ci-cd.yml        : có job build-and-push-design-agent
+                                         => CI build 5 image (thêm -design-agent)
+  - deploy/docker-compose.prod.yaml     : có service design-agent (nội bộ, 400M RAM)
+                                         + api-core có DESIGN_AGENT_URL=http://design-agent:3100
+  - deploy/.env.prod.example            : có khối key trả phí (ANTHROPIC/VOYAGE/FIGMA)
+
+
+================================================================================
+ BƯỚC 0 — GOM SẴN MỌI GIÁ TRỊ (làm 1 lần, ghi ra giấy nháp)
+================================================================================
+Từ tài khoản ĐÃ CÓ:
+
+  [Supabase]  Project -> Settings -> Database:
+     DATABASE_URL = chuỗi "Transaction pooler"  (port 6543, có ?pgbouncer=true)
+     DIRECT_URL   = chuỗi "Session / Direct"    (port 5432) — chỉ dùng khi migrate
+
+  [Atlas]     Cluster -> Connect -> Drivers:
+     MONGO_DB_ATLAS = mongodb+srv://USER:PASS@CLUSTER.mongodb.net/
+     => Atlas -> Network Access: thêm IP TĨNH của box (hoặc tạm 0.0.0.0/0)
+
+  [Domain]    Chọn ROOT_DOMAIN. Nếu KHÁC "tvgx1.id.vn" thì phải set GitHub
+              Variables ở BƯỚC 1.
+
+Phải ĐĂNG KÝ MỚI (TRẢ PHÍ — vì có design-agent):
+     ANTHROPIC_API_KEY   (console.anthropic.com -> API keys)   : Claude
+     VOYAGE_API_KEY      (dashboard.voyageai.com)              : RAG embeddings
+     VOYAGE_MODEL        = voyage-3
+     FIGMA_TOKEN         (Figma -> Settings -> Personal access tokens)
+
+Sinh secret nội bộ (chạy và lưu lại):
+     openssl rand -hex 32      ->  BETTER_AUTH_SECRET
+     openssl rand -hex 24      ->  INTERNAL_API_KEY   (api-core và design-agent
+                                   PHẢI dùng CHUNG 1 giá trị này)
+     openssl rand -hex 24      ->  REVALIDATE_SECRET
+     (MINIO_SECRET_KEY: tự đặt 1 chuỗi >= 8 ký tự)
+
+
+================================================================================
+ BƯỚC 1 — BUILD 5 IMAGE TRÊN CI (GitHub Actions)
+================================================================================
+1) GitHub -> repo -> Settings -> Secrets and variables -> Actions -> tab Variables
+   Nếu domain KHÁC tvgx1.id.vn => tạo 5 "Repository variables" (thay <d>):
+       NEXT_PUBLIC_API_URL            = https://api.<d>
+       NEXT_PUBLIC_STOREFRONT_URL     = https://<d>
+       NEXT_PUBLIC_STOREFRONT_HOST    = <d>
+       NEXT_PUBLIC_STOREFRONT_PROTOCOL= https
+       NEXT_PUBLIC_IMAGE_PROXY_URL    = https://images.<d>
+   Nếu domain = tvgx1.id.vn => BỎ QUA (workflow đã có default).
+
+   LƯU Ý: các key TRẢ PHÍ (ANTHROPIC/VOYAGE/FIGMA) KHÔNG đặt ở GitHub — chúng
+   chỉ nạp lúc CHẠY trên box qua .env, không bake vào image.
+
+2) Push code lên nhánh main  HOẶC  Actions -> "CI/CD Pipeline" -> Run workflow.
+   CI chạy lint-and-test rồi build & push 5 image lên ghcr.io.
+
+3) GitHub -> Packages -> với MỖI package dưới đây:
+       multi-e-commerce-api-core
+       multi-e-commerce-admin
+       multi-e-commerce-storefront
+       multi-e-commerce-shop-builder
+       multi-e-commerce-design-agent
+   -> Package settings -> Change visibility -> Public
+   (để box pull không cần đăng nhập; nếu giữ Private thì docker login ở BƯỚC 4)
+
+
+================================================================================
+ BƯỚC 2 — DỰNG BOX (bạn chưa có)
+================================================================================
+KHUYẾN NGHỊ: vì có design-agent, dùng box 4GB RAM / 2 vCPU (~$24/mo).
+Nếu kẹt ngân sách: 2GB + swap 4GB vẫn chạy được nếu ÍT khi Import Figma trùng
+lúc build shop.
+
+1) AWS Lightsail -> Create instance -> Ubuntu 22.04 -> plan 4GB.
+   Tạo và GÁN Static IP cho instance.
+2) Networking -> mở cổng TCP: 22, 80, 443.
+3) SSH vào box, tạo swap + cài Docker:
+
+     sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
+     sudo mkswap /swapfile && sudo swapon /swapfile
+     echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+     curl -fsSL https://get.docker.com | sudo sh
+     sudo usermod -aG docker $USER && exit      # đăng nhập lại để có quyền docker
+
+4) Atlas -> Network Access -> thêm Static IP của box vào allowlist.
+
+
+================================================================================
+ BƯỚC 3 — DNS (domain bạn đã có)
+================================================================================
+Tạo các bản ghi A trỏ về Static IP của box:
+
+     @  (apex)      A    <STATIC_IP>
+     *  (wildcard)  A    <STATIC_IP>
+     api            A    <STATIC_IP>
+     admin          A    <STATIC_IP>
+     cdn            A    <STATIC_IP>
+     images         A    <STATIC_IP>
+
+design-agent KHÔNG cần bản ghi DNS (chỉ nội bộ).
+
+Ghi chú: id.vn là public suffix => <d>.id.vn là registrable domain; các subdomain
+same-site nên cookie Domain=.<d> chia sẻ được giữa admin. <-> api.
+
+
+================================================================================
+ BƯỚC 4 — LẤY FILE DEPLOY + ĐIỀN .env (trên box)
+================================================================================
+     git clone https://github.com/lordfeeder/multi-e-commerce.git
+     cd multi-e-commerce/deploy
+
+     # CHỈ khi image để Private:
+     echo "<GHCR_PAT_read:packages>" | docker login ghcr.io -u <github-user> --password-stdin
+
+     cp .env.prod.example .env
+     nano .env
+
+Điền .env theo giá trị gom ở BƯỚC 0:
+     ROOT_DOMAIN, ACME_EMAIL
+     DATABASE_URL, DIRECT_URL          (Supabase)
+     MONGO_DB_ATLAS                    (Atlas)
+     MINIO_ACCESS_KEY, MINIO_SECRET_KEY
+     BETTER_AUTH_SECRET, BETTER_AUTH_URL=https://api.<d>
+     COOKIE_DOMAIN=.<d>
+     ADMIN_URL=https://admin.<d>,  STOREFRONT_URL=https://<d>
+     INTERNAL_API_KEY, REVALIDATE_SECRET
+     CDN_BASE_URL=https://cdn.<d>
+     -- Khối design-agent (TRẢ PHÍ) --
+     ANTHROPIC_API_KEY, VOYAGE_API_KEY, VOYAGE_MODEL=voyage-3, FIGMA_TOKEN
+     (FIGMA_FILE_KEY để trống cũng được)
+
+QUAN TRỌNG: INTERNAL_API_KEY phải GIỐNG NHAU (api-core và design-agent cùng đọc
+từ .env này) — nếu lệch, Import Figma luôn bị 401.
+
+
+================================================================================
+ BƯỚC 5 — DB SCHEMA (Supabase của bạn đang dùng cho dev?)
+================================================================================
+TRƯỜNG HỢP A — trỏ ĐÚNG Supabase đang dev (đã có schema + dữ liệu geo):
+     => BỎ QUA migrate. Chỉ kiểm tra:
+
+     docker compose -f docker-compose.prod.yaml run --rm shop-builder \
+       sh -lc "npm run prisma:build && npx prisma migrate status \
+       --schema=packages/database/prisma/schema.prisma"
+
+     LƯU Ý: repo dùng migration VIẾT TAY. Nếu báo drift, ĐỪNG chạy migrate deploy
+     mù — đối chiếu thủ công trước.
+
+TRƯỜNG HỢP B — DB hoàn toàn MỚI:
+     docker compose -f docker-compose.prod.yaml run --rm shop-builder \
+       sh -lc "npm run prisma:build && npx prisma migrate deploy \
+       --schema=packages/database/prisma/schema.prisma"
+     docker compose -f docker-compose.prod.yaml run --rm shop-builder npm run seed:geo
+
+
+================================================================================
+ BƯỚC 6 — KHỞI ĐỘNG
+================================================================================
+     docker compose -f docker-compose.prod.yaml pull
+     docker compose -f docker-compose.prod.yaml up -d
+     docker compose -f docker-compose.prod.yaml ps      # 9 service đều Up
+     docker stats --no-stream                           # xem tổng RAM
+
+Caddy tự xin cert Let's Encrypt cho api/admin/cdn/images/apex; subdomain tenant
+cấp cert ON-DEMAND ở request đầu. MinIO tự tạo bucket + public-read khi api-core boot.
+
+
+================================================================================
+ BƯỚC 7 — SMOKE TEST (gồm cả design-agent)
+================================================================================
+1) API sống + cert hợp lệ:
+     curl -I https://api.<d>/api/docs                   # kỳ vọng 200
+
+2) design-agent sống & nội bộ (CHẠY TỪ TRONG box):
+     docker compose -f docker-compose.prod.yaml exec api-core \
+       sh -lc 'curl -s -o /dev/null -w "%{http_code}\n" \
+       -X POST http://design-agent:3100/design-agent/extract-theme'
+     # kỳ vọng 401 (thiếu INTERNAL_API_KEY header) = SỐNG và chặn đúng.
+     # nếu 000 = service chưa lên; xem log:
+     docker compose -f docker-compose.prod.yaml logs --tail=30 design-agent
+
+3) Admin: mở https://admin.<d> -> login owner (không lỗi CORS/401, cookie .<d>
+   gửi sang api.).
+4) Storefront: https://<d> và 1 shop https://<shop>.<d> -> render OK.
+5) Upload ảnh sản phẩm -> URL https://cdn.<d>/shop-public/<shopId>/... mở được.
+6) Tạo + publish 1 shop -> logs -f shop-builder thấy job build-shop;
+   bảng shop_build_jobs chạy percent.
+7) Admin -> Import theme từ Figma -> job chạy, KHÔNG báo
+   "INTERNAL_API_KEY chưa cấu hình".
+
+
+================================================================================
+ BƯỚC 8 — VẬN HÀNH & SỰ CỐ
+================================================================================
+Deploy bản mới (sau khi CI build xong :latest):
+     docker compose -f docker-compose.prod.yaml pull
+     docker compose -f docker-compose.prod.yaml up -d
+     docker image prune -f
+
+Log / Restart 1 service:
+     docker compose -f docker-compose.prod.yaml logs -f <service>
+     docker compose -f docker-compose.prod.yaml restart <service>
+
+Sự cố thường gặp:
+  - OOM (hay xảy ra khi design-agent + build shop chạy trùng):
+      nâng box 4GB | giảm SHOP_BUILD_CONCURRENCY=1 | offload Redis -> Upstash free.
+  - api-core CHỈ 1 replica (Socket.io giữ state in-memory) — KHÔNG scale > 1.
+  - Import Figma lỗi 500: kiểm tra ANTHROPIC_API_KEY / VOYAGE_API_KEY trong .env
+      và INTERNAL_API_KEY khớp 2 bên.
+  - Import Figma lỗi 401: INTERNAL_API_KEY lệch giữa api-core và design-agent.
+  - Cert chưa cấp: kiểm tra A record đã trỏ đúng IP và cổng 80 mở.
+  - Atlas timeout: chưa whitelist IP box trong Network Access.
+
+Backup:
+  - Supabase / Atlas có backup riêng.
+  - MinIO data nằm ở volume minio_data -> snapshot Lightsail định kỳ, hoặc sync S3.
+
+
+================================================================================
+ BẢNG TÀI NGUYÊN & CHI PHÍ (tham khảo)
+================================================================================
+  Service        mem limit (trần)     Ghi chú
+  caddy          100M                 reverse proxy + TLS
+  api-core       450M                 1 replica (WebSocket)
+  admin          350M                 Next.js SSR
+  storefront     320M                 Next.js standalone
+  shop-builder   450M                 Bull worker (concurrency=2)
+  design-agent   400M                 NestJS, nội bộ, TRẢ PHÍ (Claude+Voyage)
+  minio          300M                 object storage
+  imgproxy       150M                 resize/webp/avif on-the-fly
+  redis          150M                 Bull queue + cache (maxmemory 128mb)
+
+  Chi phí ước tính:
+    Box Lightsail 4GB ~ $24/mo (2GB ~ $12/mo, thường free 3 tháng đầu)
+    Postgres (Supabase free) + MongoDB (Atlas M0 free)         = $0
+    Claude / Voyage / Figma = trả theo dùng (chỉ khi Import Figma / chatbot)
+  => Chi phí biên mỗi shop ~ $0 (chỉ vài JSON layout + ảnh).
+
+================================================================================
+ HẾT
+================================================================================
