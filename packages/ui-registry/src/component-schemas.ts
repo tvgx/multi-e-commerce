@@ -235,9 +235,57 @@ export const FeaturedCollectionGridSchema: ComponentSchema = {
   id: 'FeaturedCollectionGrid', title: 'Sản phẩm nổi bật (Grid)', type: 'section',
   settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, { type: 'number', id: 'columns', label: 'Số cột', default: 4 }, ...commonTextSettings, ...commonStyleSettings ]
 };
+// --- Product card blocks (Phase B) ---
+// Thẻ sản phẩm trong FeaturedProducts/RecommendedProducts được ghép từ các
+// block con — bật/tắt (isHidden), đổi thứ tự, chỉnh props từng phần.
+export const ProductCardImageSchema: ComponentSchema = {
+  id: 'ProductCardImage', title: 'Ảnh sản phẩm', type: 'block',
+  settings: [
+    {
+      type: 'select', id: 'fit', label: 'Kiểu hiển thị', default: 'cover',
+      options: [
+        { value: 'cover', label: 'Phủ kín (cover)' },
+        { value: 'contain', label: 'Vừa khung (contain)' },
+      ],
+    },
+  ]
+};
+export const ProductCardNameSchema: ComponentSchema = {
+  id: 'ProductCardName', title: 'Tên sản phẩm', type: 'block',
+  settings: []
+};
+export const ProductCardPriceSchema: ComponentSchema = {
+  id: 'ProductCardPrice', title: 'Giá', type: 'block',
+  settings: []
+};
+export const ProductCardButtonSchema: ComponentSchema = {
+  id: 'ProductCardButton', title: 'Nút mua', type: 'block',
+  settings: [
+    { type: 'text', id: 'label', label: 'Nhãn nút', default: 'Thêm vào giỏ' },
+  ]
+};
+export const ProductCardRatingSchema: ComponentSchema = {
+  id: 'ProductCardRating', title: 'Đánh giá (badge)', type: 'block',
+  settings: [
+    { type: 'text', id: 'label', label: 'Nội dung badge', default: '★ Top Rated' },
+  ]
+};
+
+const PRODUCT_CARD_BLOCK_IDS = [
+  'ProductCardImage', 'ProductCardName', 'ProductCardPrice', 'ProductCardButton', 'ProductCardRating',
+];
+const PRODUCT_CARD_DEFAULT_BLOCKS: DefaultBlock[] = [
+  { componentId: 'ProductCardImage', props: {} },
+  { componentId: 'ProductCardName', props: {} },
+  { componentId: 'ProductCardPrice', props: {} },
+  { componentId: 'ProductCardButton', props: { label: 'Thêm vào giỏ' } },
+];
+
 export const FeaturedProductsSchema: ComponentSchema = {
   id: 'FeaturedProducts', title: 'Sản phẩm nổi bật', type: 'section',
-  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+  settings: [ ...commonTextSettings, ...commonStyleSettings ],
+  allowedBlocks: PRODUCT_CARD_BLOCK_IDS,
+  defaultBlocks: [...PRODUCT_CARD_DEFAULT_BLOCKS, { componentId: 'ProductCardRating', props: { label: '★ Top Rated' } }],
 };
 export const ProductHighlightSchema: ComponentSchema = {
   id: 'ProductHighlight', title: 'Highlight Sản phẩm', type: 'section',
@@ -249,7 +297,9 @@ export const ProductHotspotSchema: ComponentSchema = {
 };
 export const RecommendedProductsSchema: ComponentSchema = {
   id: 'RecommendedProducts', title: 'Sản phẩm gợi ý', type: 'section',
-  settings: [ ...commonTextSettings, ...commonStyleSettings ]
+  settings: [ ...commonTextSettings, ...commonStyleSettings ],
+  allowedBlocks: PRODUCT_CARD_BLOCK_IDS,
+  defaultBlocks: PRODUCT_CARD_DEFAULT_BLOCKS,
 };
 export const FiltersSidebarSchema: ComponentSchema = {
   id: 'FiltersSidebar', title: 'Bộ lọc (Sidebar)', type: 'section',
@@ -434,6 +484,12 @@ export const ComponentSchemas: Record<string, ComponentSchema> = {
   RecommendedProducts: RecommendedProductsSchema,
   FiltersSidebar: FiltersSidebarSchema,
   SearchBar: SearchBarSchema,
+  // Product card blocks (con của FeaturedProducts/RecommendedProducts)
+  ProductCardImage: ProductCardImageSchema,
+  ProductCardName: ProductCardNameSchema,
+  ProductCardPrice: ProductCardPriceSchema,
+  ProductCardButton: ProductCardButtonSchema,
+  ProductCardRating: ProductCardRatingSchema,
 
   // Storytelling
   BlogPostCarousel: BlogPostCarouselSchema,
