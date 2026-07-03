@@ -3,7 +3,7 @@
 #
 # Cách dùng (trong thư mục deploy/ trên box):
 #   cp .env.prod.example .env   # rồi điền secret thật
-#   export GHCR_OWNER=<github-owner>/<repo>   # vd lordfeeder/multi-e-commerce
+#   export GHCR_OWNER=<github-owner>/<repo>   # vd tvgx/multi-e-commerce
 #   docker compose -f docker-compose.prod.yaml pull
 #   docker compose -f docker-compose.prod.yaml up -d
 #
@@ -12,7 +12,7 @@
 
 name: ecommerce-prod
 
-# Image mặc định trỏ ghcr.io/lordfeeder/multi-e-commerce-<service>:latest.
+# Image mặc định trỏ ghcr.io/tvgx/multi-e-commerce-<service>:latest.
 # Override bằng biến môi trường *_IMAGE trong .env nếu owner/repo/tag khác.
 
 services:
@@ -43,7 +43,7 @@ services:
 
   # ── Backend API (NestJS) — stateless HTTP + WebSocket (CHỈ 1 replica) ─────────
   api-core:
-    image: ${API_CORE_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-api-core:latest}
+    image: ${API_CORE_IMAGE:-ghcr.io/tvgx/multi-e-commerce-api-core:latest}
     pull_policy: always
     restart: unless-stopped
     env_file: .env
@@ -68,7 +68,7 @@ services:
 
   # ── Admin dashboard (Next.js SSR) ────────────────────────────────────────────
   admin:
-    image: ${ADMIN_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-admin:latest}
+    image: ${ADMIN_IMAGE:-ghcr.io/tvgx/multi-e-commerce-admin:latest}
     pull_policy: always
     restart: unless-stopped
     env_file: .env
@@ -84,7 +84,7 @@ services:
 
   # ── Storefront (Next.js standalone) ──────────────────────────────────────────
   storefront:
-    image: ${STOREFRONT_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-storefront:latest}
+    image: ${STOREFRONT_IMAGE:-ghcr.io/tvgx/multi-e-commerce-storefront:latest}
     pull_policy: always
     restart: unless-stopped
     env_file: .env
@@ -104,7 +104,7 @@ services:
 
   # ── Shop-build worker (Bull queue consumer) ──────────────────────────────────
   shop-builder:
-    image: ${SHOP_BUILDER_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-shop-builder:latest}
+    image: ${SHOP_BUILDER_IMAGE:-ghcr.io/tvgx/multi-e-commerce-shop-builder:latest}
     pull_policy: always
     restart: unless-stopped
     env_file: .env
@@ -129,7 +129,7 @@ services:
   # qua mạng Docker. KHÔNG publish ra ngoài, KHÔNG có route Caddy → không cần TLS.
   # Cần key TRẢ PHÍ (đặt trong .env): ANTHROPIC_API_KEY, VOYAGE_API_KEY, FIGMA_TOKEN.
   design-agent:
-    image: ${DESIGN_AGENT_IMAGE:-ghcr.io/lordfeeder/multi-e-commerce-design-agent:latest}
+    image: ${DESIGN_AGENT_IMAGE:-ghcr.io/tvgx/multi-e-commerce-design-agent:latest}
     pull_policy: always
     restart: unless-stopped
     env_file: .env            # ANTHROPIC_API_KEY, VOYAGE_API_KEY, VOYAGE_MODEL,

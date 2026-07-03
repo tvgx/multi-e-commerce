@@ -66,7 +66,7 @@ Tạo các bản ghi **A** trỏ về IP tĩnh:
 ## 3. Lấy file deploy + login ghcr
 
 ```bash
-git clone https://github.com/lordfeeder/multi-e-commerce.git
+git clone https://github.com/tvgx/multi-e-commerce.git
 cd multi-e-commerce/deploy
 # Nếu image để private:
 echo "<GHCR_PAT_read:packages>" | docker login ghcr.io -u <github-user> --password-stdin

@@ -141,7 +141,7 @@ same-site nên cookie Domain=.<d> chia sẻ được giữa admin. <-> api.
 ================================================================================
  BƯỚC 4 — LẤY FILE DEPLOY + ĐIỀN .env (trên box)
 ================================================================================
-     git clone https://github.com/lordfeeder/multi-e-commerce.git
+     git clone https://github.com/tvgx/multi-e-commerce.git
      cd multi-e-commerce/deploy
 
      # CHỈ khi image để Private:
