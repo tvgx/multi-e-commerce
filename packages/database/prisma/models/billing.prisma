@@ -1,0 +1,102 @@
+// ==========================================
+// Platform Billing & Plans (owner SaaS subscription)
+// ==========================================
+// Gói dịch vụ nền tảng cho OWNER (không phải per-shop): owner đăng ký một Plan,
+// có đúng một Subscription, và mỗi lần thanh toán sinh một Invoice. Thanh toán
+// theo mô hình QR self-attested (giống PaymentConfirmToken của order): subscribe
+// tạo Invoice PENDING + BillingConfirmToken, quét QR mở trang xác nhận →
+// Invoice PAID + Subscription ACTIVE.
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  VOID
+}
+
+model Plan {
+  id                 String   @id @default(uuid())
+  key                String   @unique // free | pro | business
+  name               String
+  description        String?
+  priceMonthly       Float    @default(0) // VND
+  currency           String   @default("VND")
+  interval           String   @default("month")
+  maxShops           Int      @default(1)
+  maxProductsPerShop Int      @default(100)
+  features           Json?    @default("{}")
+  isActive           Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String             @unique // mỗi owner đúng một subscription
+  planId             String
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  number         String        @unique // ví dụ INV-2026-000001
+  userId         String
+  subscriptionId String?
+  planId         String? // ghi lại plan tại thời điểm phát hành (không FK — plan có thể đổi)
+  amount         Float
+  currency       String        @default("VND")
+  status         InvoiceStatus @default(PENDING)
+  periodStart    DateTime
+  periodEnd      DateTime
+  issuedAt       DateTime      @default(now())
+  paidAt         DateTime?
+  description    String?
+  createdAt      DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("invoices")
+}
+
+// Token xác nhận thanh toán subscription — mirror PaymentConfirmToken của order
+// nhưng tách bảng riêng để không đụng luồng order đã có test.
+model BillingConfirmToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  invoiceId String
+  userId    String
+  amount    Float
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([invoiceId])
+  @@map("billing_confirm_tokens")
+}

@@ -39,7 +39,7 @@ export function GlobalSidebar() {
   ];
 
   const ACCOUNT_ITEMS: NavItem[] = [
-    { icon: <CreditCard size={20} />, label: t("nav.billing"), href: "/dashboard/billing", badge: soon },
+    { icon: <CreditCard size={20} />, label: t("nav.billing"), href: "/dashboard/billing" },
     { icon: <Code2 size={20} />, label: t("nav.developer"), href: "/dashboard/developer", badge: soon },
     { icon: <Settings size={20} />, label: t("nav.settings"), href: "/dashboard/settings" },
   ];

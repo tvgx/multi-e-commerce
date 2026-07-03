@@ -28,6 +28,10 @@ model User {
   accounts Account[]
   shops    Shop[]
 
+  // Platform billing (billing.prisma): mỗi owner một subscription + lịch sử hoá đơn
+  subscription Subscription?
+  invoices     Invoice[]
+
   @@map("users")
 }
 

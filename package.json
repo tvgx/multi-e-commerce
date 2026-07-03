@@ -33,7 +33,8 @@
     "prisma:build": "cd packages/database && npm run schema:build",
     "prisma:generate": "npm run prisma:build && npx prisma generate --schema=packages/database/prisma/schema.prisma",
     "prisma:migrate": "npm run prisma:build && npx prisma migrate dev --schema=packages/database/prisma/schema.prisma",
-    "prisma:studio": "npm run prisma:build && npx prisma studio --schema=packages/database/prisma/schema.prisma"
+    "prisma:studio": "npm run prisma:build && npx prisma studio --schema=packages/database/prisma/schema.prisma",
+    "seed:plans": "npx tsx scripts/seed-plans.ts"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

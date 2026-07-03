@@ -36,6 +36,7 @@ const MODEL_FILES = [
   'notifications.prisma',
   'analytics.prisma',
   'geo.prisma',
+  'billing.prisma',
 ];
 
 /**

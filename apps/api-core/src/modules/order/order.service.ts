@@ -6,7 +6,7 @@ import { GetOrdersDto } from './dto/get-orders.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import * as QRCode from 'qrcode';
+import { generateConfirmQr } from '../../common/utils/qr.util';
 import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import { WalletService, WALLET_PAYMENT_TYPE } from '../wallet/wallet.service';
@@ -302,7 +302,7 @@ export class OrderService {
     // was extending the stock-row lock window for every bank-transfer order.
     const finalOrder = {
       ...txOrder,
-      qrCodeUrl: txOrder.confirmUrl ? await QRCode.toDataURL(txOrder.confirmUrl) : null,
+      qrCodeUrl: txOrder.confirmUrl ? await generateConfirmQr(txOrder.confirmUrl) : null,
     };
 
     // PAY-2: đơn chuyển khoản đã trừ kho lúc checkout nhưng chưa trả tiền — lên lịch
@@ -698,7 +698,7 @@ export class OrderService {
     return {
       orderId: order.id,
       confirmUrl,
-      qrCodeUrl: await QRCode.toDataURL(confirmUrl),
+      qrCodeUrl: await generateConfirmQr(confirmUrl),
       expiresAt: token.expiresAt,
     };
   }
