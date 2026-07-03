@@ -50,7 +50,8 @@
       "Bash(curl -sk --max-time 8 https://tvgx1.id.vn/)",
       "Bash(curl -skI --max-time 8 https://tvgx1.id.vn/)",
       "Bash(git -C /home/lordfeeder/workspaces/multi-e-commerce ls-files docs/)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(git rev-list *)"
     ]
   }
 }
