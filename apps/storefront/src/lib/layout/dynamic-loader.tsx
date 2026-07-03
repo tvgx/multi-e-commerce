@@ -99,7 +99,7 @@ export function DynamicRenderer({ components, pageContext }: DynamicRendererProp
                         <ComponentConstructor
                             {...comp.props}
                             {...pageContext}
-                            blocks={comp.blocks || []}
+                            blocks={(comp.blocks || []).filter((b: any) => !b.isHidden)}
                         />
                     </ErrorBoundary>
                 );

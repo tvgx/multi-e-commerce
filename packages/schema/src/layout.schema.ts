@@ -6,6 +6,8 @@ export interface UIComponentRef {
     id: string;
     componentId: string;
     type?: 'section' | 'block';
+    /** Tên hiển thị tự đặt trong cây builder (rename) — không ảnh hưởng render. */
+    name?: string;
     props?: Record<string, unknown>;
     isHidden?: boolean;
     isLocked?: boolean;
@@ -21,6 +23,7 @@ export const UIComponentRefSchema: z.ZodType<UIComponentRef> = z.lazy(() => z.ob
     id: z.string().uuid().or(z.string()), // Unique instance ID for the canvas
     componentId: z.string().min(1, { message: 'Component ID is required' }), // e.g., 'HeroBanner'
     type: z.enum(['section', 'block']).optional().default('section'),
+    name: z.string().optional(),
     props: z.record(z.string(), z.unknown()).optional(),
     isHidden: z.boolean().optional(),
     isLocked: z.boolean().optional(),

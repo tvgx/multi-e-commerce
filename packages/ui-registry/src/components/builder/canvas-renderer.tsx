@@ -232,7 +232,7 @@ const CanvasBlock = React.memo(function CanvasBlock({
             )}
 
             <div className={isActive ? '' : 'pointer-events-none'}>
-                <Component {...(previewContext || {})} {...(component.props || {})} previewMode blocks={component.blocks || []} />
+                <Component {...(previewContext || {})} {...(component.props || {})} previewMode blocks={(component.blocks || []).filter((b) => !b.isHidden)} />
             </div>
         </div>
     );

@@ -89,6 +89,10 @@ interface BuilderStoreState extends BuilderState {
     removeBlock: (blockId: string) => void;
     toggleBlockVisibility: (blockId: string) => void;
     reorderBlocks: (parentId: string, startIndex: number, endIndex: number) => void;
+    /** Đặt tên hiển thị cho node trong cây (rename); rỗng = trở về tên schema. */
+    renameNode: (nodeId: string, name: string) => void;
+    /** Nhân bản block (uuid mới, chèn ngay sau block gốc trong cùng parent). */
+    duplicateBlock: (blockId: string) => void;
 
     // History
     undo: () => void;
@@ -424,6 +428,60 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             ...hist,
             globalComponents: mapRecursive(state.globalComponents, parentId, updater),
             pages: { ...pages, [state.activePage]: mapRecursive(list, parentId, updater) },
+        };
+    }),
+
+    renameNode: (nodeId, name) => set((state) => {
+        const hist = pushHistory(state);
+        const trimmed = name.trim();
+        const updater = (c: UIComponentRef) => ({ ...c, name: trimmed || undefined });
+        const pages = { ...state.pages };
+        const list = pages[state.activePage] || [];
+        return {
+            ...hist,
+            globalComponents: mapRecursive(state.globalComponents, nodeId, updater),
+            pages: { ...pages, [state.activePage]: mapRecursive(list, nodeId, updater) },
+        };
+    }),
+
+    duplicateBlock: (blockId) => set((state) => {
+        const hist = pushHistory(state);
+
+        // Clone sâu với uuid mới cho block và mọi block con.
+        const cloneDeep = (b: UIComponentRef): UIComponentRef => ({
+            ...b,
+            id: uuidv4(),
+            props: { ...(b.props || {}) },
+            blocks: b.blocks?.map(cloneDeep),
+        });
+
+        // Tìm parent chứa blockId trong blocks và chèn bản sao ngay sau bản gốc.
+        let newBlockId: string | null = null;
+        const insertClone = (list: UIComponentRef[]): UIComponentRef[] =>
+            list.map((c) => {
+                let blocks = c.blocks;
+                if (blocks?.some((b) => b.id === blockId)) {
+                    const idx = blocks.findIndex((b) => b.id === blockId);
+                    const clone = cloneDeep(blocks[idx]);
+                    newBlockId = clone.id;
+                    const arr = [...blocks.slice(0, idx + 1), clone, ...blocks.slice(idx + 1)];
+                    blocks = arr.map((b, i) => (b.order === i ? b : { ...b, order: i }));
+                } else if (blocks) {
+                    blocks = insertClone(blocks);
+                }
+                return blocks === c.blocks ? c : { ...c, blocks };
+            });
+
+        const pages = { ...state.pages };
+        const list = pages[state.activePage] || [];
+        const nextGlobal = insertClone(state.globalComponents);
+        const nextList = insertClone(list);
+        if (!newBlockId) return state; // không tìm thấy block — giữ nguyên (bỏ cả history push)
+        return {
+            ...hist,
+            globalComponents: nextGlobal,
+            pages: { ...pages, [state.activePage]: nextList },
+            activeBlockId: newBlockId,
         };
     }),
 

@@ -19,7 +19,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Layers, Lock, Box, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { GripVertical, Trash2, Layers, Lock, Box, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Pencil } from 'lucide-react';
 
 // -----------------------------------------------------------------------
 // AddBlockInline – shows allowed blocks for a given parent section
@@ -68,16 +68,36 @@ function AddBlockInline({ parentId, parentComponentId }: { parentId: string; par
 }
 
 // -----------------------------------------------------------------------
-// BlockTree – recursive block tree renderer
+// BlockTree – recursive block tree renderer (kéo-thả block trong cùng parent)
 // -----------------------------------------------------------------------
-function BlockTree({ blocks, level = 0 }: { blocks: any[], level?: number }) {
+function BlockTree({ blocks, parentId, level = 0 }: { blocks: any[], parentId: string, level?: number }) {
+    const reorderBlocks = useBuilderStore(s => s.reorderBlocks);
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
     if (!blocks || blocks.length === 0) return null;
+
+    const handleDragEnd = (event: any) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = blocks.findIndex(b => b.id === active.id);
+            const newIndex = blocks.findIndex(b => b.id === over.id);
+            if (oldIndex !== -1 && newIndex !== -1) reorderBlocks(parentId, oldIndex, newIndex);
+        }
+    };
+
     return (
-        <div className="flex flex-col space-y-0.5 mt-0.5">
-            {blocks.map(block => (
-                <BlockItem key={block.id} block={block} level={level} />
-            ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col space-y-0.5 mt-0.5">
+                    {blocks.map(block => (
+                        <BlockItem key={block.id} block={block} level={level} />
+                    ))}
+                </div>
+            </SortableContext>
+        </DndContext>
     );
 }
 
@@ -85,30 +105,108 @@ function BlockItem({ block, level }: { block: any, level: number }) {
     const activeBlockId = useBuilderStore(s => s.activeBlockId);
     const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
     const removeBlock = useBuilderStore(s => s.removeBlock);
+    const toggleBlockVisibility = useBuilderStore(s => s.toggleBlockVisibility);
+    const duplicateBlock = useBuilderStore(s => s.duplicateBlock);
+    const renameNode = useBuilderStore(s => s.renameNode);
+
+    // Rename inline: double-click tên (hoặc icon bút) → input; Enter/blur lưu, Esc huỷ.
+    const [isEditing, setIsEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+    const style = { transform: CSS.Transform.toString(transform), transition };
+
     const isActive = activeBlockId === block.id;
     const schema = schemaRegistry[block.componentId];
-    const title = schema?.title || block.componentId;
+    const title = block.name || schema?.title || block.componentId;
+    const isHidden = !!block.isHidden;
+
+    const startRename = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+        setDraft(block.name || '');
+        setIsEditing(true);
+    };
+    const commitRename = () => {
+        renameNode(block.id, draft);
+        setIsEditing(false);
+    };
+
+    const actionBtn = 'p-0.5 rounded transition-opacity text-muted-foreground/60 opacity-0 group-hover/block:opacity-100';
 
     return (
-        <div className="flex flex-col w-full group/block">
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`flex flex-col w-full group/block ${isDragging ? 'z-50 opacity-50' : ''}`}
+        >
             <div
                 onClick={(e) => { e.stopPropagation(); setActiveBlock(block.id); }}
-                className={`flex items-center gap-2 py-1.5 pr-2 rounded-lg cursor-pointer transition-colors ${isActive
+                className={`flex items-center gap-1.5 py-1.5 pr-2 rounded-lg cursor-pointer transition-colors ${isActive
                     ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
                     : 'hover:bg-accent text-muted-foreground border border-transparent hover:text-foreground'
-                    }`}
+                    } ${isHidden ? 'opacity-50' : ''}`}
                 style={{ paddingLeft: `${(level + 1) * 14}px` }}
             >
+                <button
+                    {...attributes}
+                    {...listeners}
+                    onClick={(e) => e.stopPropagation()}
+                    className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground p-0.5 shrink-0 opacity-0 group-hover/block:opacity-100 transition-opacity"
+                >
+                    <GripVertical size={10} />
+                </button>
                 <Box size={11} className={isActive ? 'text-indigo-400 shrink-0' : 'text-muted-foreground/50 shrink-0'} />
-                <span className="flex-1 text-xs truncate">{title}</span>
+
+                {isEditing ? (
+                    <input
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onBlur={commitRename}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitRename();
+                            if (e.key === 'Escape') setIsEditing(false);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder={schema?.title || block.componentId}
+                        className="flex-1 min-w-0 text-xs bg-secondary border border-border rounded px-1.5 py-0.5 text-foreground focus:outline-none focus:border-indigo-500/50"
+                    />
+                ) : (
+                    <span className="flex-1 text-xs truncate" onDoubleClick={startRename} title={title}>
+                        {title}
+                    </span>
+                )}
+
+                {/* Rename */}
+                <button onClick={startRename} className={`${actionBtn} hover:text-foreground`} title="Đổi tên">
+                    <Pencil size={10} />
+                </button>
+                {/* Duplicate */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); duplicateBlock(block.id); }}
+                    className={`${actionBtn} hover:text-foreground`}
+                    title="Nhân bản"
+                >
+                    <Copy size={10} />
+                </button>
+                {/* Hide/show — luôn hiện khi block đang ẩn */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); toggleBlockVisibility(block.id); }}
+                    className={`p-0.5 rounded transition-opacity text-muted-foreground/60 hover:text-foreground ${isHidden ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
+                    title={isHidden ? 'Hiện khối' : 'Ẩn khối'}
+                >
+                    {isHidden ? <EyeOff size={11} /> : <Eye size={11} />}
+                </button>
+                {/* Delete */}
                 <button
                     onClick={(e) => { e.stopPropagation(); removeBlock(block.id); }}
-                    className="p-0.5 hover:text-red-400 opacity-0 group-hover/block:opacity-100 transition-opacity text-muted-foreground/60 rounded"
+                    className={`${actionBtn} hover:text-red-400`}
+                    title="Xoá khối"
                 >
                     <Trash2 size={11} />
                 </button>
             </div>
-            {block.blocks && <BlockTree blocks={block.blocks} level={level + 1} />}
+            {block.blocks && <BlockTree blocks={block.blocks} parentId={block.id} level={level + 1} />}
         </div>
     );
 }
@@ -167,7 +265,7 @@ function GlobalSectionItem({ componentId }: { componentId: string }) {
             {isExpanded && (
                 <div className="pl-3 mt-0.5 border-l border-border ml-4">
                     {section.blocks && section.blocks.length > 0 && (
-                        <BlockTree blocks={section.blocks} level={0} />
+                        <BlockTree blocks={section.blocks} parentId={section.id} level={0} />
                     )}
                     <AddBlockInline parentId={section.id} parentComponentId={section.componentId} />
                 </div>
@@ -248,7 +346,7 @@ function SortableItem({ id, section }: { id: string, section: any }) {
             {/* Expanded: block tree + add block */}
             {isExpanded && hasBlocks && (
                 <div className="pl-3 mt-0.5 border-l border-border ml-4">
-                    <BlockTree blocks={section.blocks} level={0} />
+                    <BlockTree blocks={section.blocks} parentId={id} level={0} />
                     <AddBlockInline parentId={id} parentComponentId={section.componentId} />
                 </div>
             )}
