@@ -16,6 +16,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ChatWidget } from '@ecommerce/ui-registry/src/components/chat/ChatWidget';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
+import { AnnouncementBar } from '@ecommerce/ui-registry/src/components/sections/header/AnnouncementBar';
+import { SocialLinks } from '@/components/SocialLinks';
 import { getT } from '@/lib/i18n';
 import { VisitTracker } from '@/components/VisitTracker';
 
@@ -74,7 +76,11 @@ export default async function BuyerLayout({ children, params }: Props) {
         '--theme-heading-font': theme.headingFont || bodyFont,
         '--theme-body-font': bodyFont,
         fontFamily: bodyFont,
+        // Nền trang đổi theo theme (Setup > Màu nền) thay vì trắng cố định.
+        backgroundColor: 'var(--theme-bg)',
     } as React.CSSProperties;
+
+    const announcementText = (theme.announcementText || '').trim();
 
     return (
         <StorefrontPreviewProvider>
@@ -86,7 +92,16 @@ export default async function BuyerLayout({ children, params }: Props) {
             {shopInfo?.id && <VisitTracker shopId={shopInfo.id} customerId={customerId} />}
             <CartSidebar />
             <NotificationToast token={token ?? undefined} />
-            
+
+            {/* ── Announcement bar (theme.announcementText, ẩn khi rỗng) ── */}
+            {announcementText && (
+                <AnnouncementBar
+                    text={announcementText}
+                    backgroundColor={theme.primaryColor || '#059669'}
+                    textColor={theme.buttonTextColor || '#ffffff'}
+                />
+            )}
+
             {/* ── Global Header (Dynamic) or Fallback ── */}
             <DynamicGlobalHeader initialComponents={globalComponents}>
             {globalComponents.length > 0 ? (
@@ -141,6 +156,12 @@ export default async function BuyerLayout({ children, params }: Props) {
             {globalComponents.length > 0 ? (
                 <ErrorBoundary componentName="GlobalFooter">
                     <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('footer'))} />
+                    {/* Social/contact từ theme.social (Setup > Liên hệ) */}
+                    <div className="border-t border-slate-200/60 py-4">
+                        <div className="container mx-auto px-4 flex justify-center">
+                            <SocialLinks social={theme.social} />
+                        </div>
+                    </div>
                 </ErrorBoundary>
             ) : (
                 <footer className="border-t border-slate-200 py-12 mt-20">
@@ -149,6 +170,7 @@ export default async function BuyerLayout({ children, params }: Props) {
                             <div className="max-w-xs">
                                 <h3 className="font-bold text-slate-800 mb-4">{shopName}</h3>
                                 <p className="text-slate-500 text-sm">{t('footer.poweredBy')}</p>
+                                <SocialLinks social={theme.social} className="mt-4 text-slate-600" />
                             </div>
                             <div className="flex gap-12">
                                 {footerMenu?.items && (
