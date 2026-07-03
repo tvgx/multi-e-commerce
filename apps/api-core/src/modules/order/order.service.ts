@@ -387,6 +387,7 @@ export class OrderService {
             select: {
               id: true,
               quantity: true,
+              price: true, // rendered by the storefront "my orders" list (item.price * qty)
               variant: { select: { id: true, product: { select: { name: true } } } },
             },
           },

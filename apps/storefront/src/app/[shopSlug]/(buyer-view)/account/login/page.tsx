@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { loginCustomer, registerCustomer } from '@/app/actions/auth.actions';
 import { Button } from '@ecommerce/ui-registry/src/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@ecommerce/ui-registry/src/components/ui/card';
@@ -11,7 +11,15 @@ import { useTranslations } from '@ecommerce/i18n/src/react';
 export default function AccountLoginPage({ params }: { params: Promise<{ shopSlug: string }> }) {
     const { shopSlug } = use(params);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const t = useTranslations('auth');
+
+    // Where to land after auth — falls back to the profile page. Used by the
+    // guest-checkout flow to return the buyer to checkout after logging in.
+    const redirectParam = searchParams.get('redirect');
+    const destination = redirectParam && redirectParam.startsWith(`/${shopSlug}`)
+        ? redirectParam
+        : `/${shopSlug}/profile`;
     
     const [mode, setMode] = useState<'login' | 'register'>('login');
     const [loading, setLoading] = useState(false);
@@ -30,8 +38,7 @@ export default function AccountLoginPage({ params }: { params: Promise<{ shopSlu
                 if (res.error) {
                     setError(res.error);
                 } else {
-                    // Redirect to profile on success
-                    router.push(`/${shopSlug}/profile`);
+                    router.push(destination);
                     router.refresh();
                 }
             } else {
@@ -45,7 +52,7 @@ export default function AccountLoginPage({ params }: { params: Promise<{ shopSlu
                         setMode('login');
                         setError(t('login.accountCreated'));
                     } else {
-                        router.push(`/${shopSlug}/profile`);
+                        router.push(destination);
                         router.refresh();
                     }
                 }

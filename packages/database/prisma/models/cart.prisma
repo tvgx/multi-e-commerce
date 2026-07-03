@@ -1,22 +1,28 @@
 // ==========================================
 // Server-side Cart Models
 // ==========================================
-// Giỏ hàng lưu server cho khách đã đăng nhập — đồng bộ giữa thiết bị.
-// Checkout vẫn nhận lineItems trực tiếp (cart client/guest); nếu không
-// truyền lineItems thì OrderService đọc từ cart này và clear sau khi đặt.
+// Giỏ hàng lưu server. Khách đã đăng nhập gắn theo customerId (đồng bộ giữa
+// thiết bị); khách vãng lai (guest) gắn theo guestToken (cookie ẩn danh) và
+// được MERGE vào giỏ của khách khi họ đăng nhập/đăng ký.
+// Checkout vẫn nhận lineItems trực tiếp; nếu không truyền lineItems thì
+// OrderService đọc từ cart này và clear sau khi đặt.
 
 model Cart {
   id         String   @id @default(uuid())
   shopId     String
-  customerId String
+  // Đúng MỘT trong customerId / guestToken được set. Postgres cho phép nhiều
+  // NULL trong unique index nên giỏ customer và giỏ guest cùng tồn tại.
+  customerId String?
+  guestToken String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   shop     Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   items    CartItem[]
 
   @@unique([shopId, customerId]) // Mỗi khách một giỏ trên mỗi shop
+  @@unique([shopId, guestToken]) // Mỗi phiên guest một giỏ trên mỗi shop
   @@index([shopId])
   @@map("carts")
 }

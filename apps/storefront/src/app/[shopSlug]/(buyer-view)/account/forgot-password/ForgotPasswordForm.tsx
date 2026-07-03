@@ -16,9 +16,10 @@ export function ForgotPasswordForm({ shopSlug, shopId }: { shopSlug: string; sho
     setError('');
 
     try {
-      const res = await fetch(`/api/api-core/storefront-auth/forgot-password`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/storefront-auth/forgot-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-shop-id': shopId },
         body: JSON.stringify({ email, shopId, shopSlug }),
       });
       

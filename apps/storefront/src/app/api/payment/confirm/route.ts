@@ -8,14 +8,9 @@ export async function POST(request: Request) {
        return NextResponse.json({ message: 'Token and action are required' }, { status: 400 });
     }
 
-    // Forward the request to the api-core backend
-    // Assume NEXT_PUBLIC_API_URL is configured
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    
-    // We need to send it to the correct endpoint in api-core
-    // Wait, the api-core payment controller endpoint is not yet fully defined? Let's check.
-    // Assuming POST /payments/confirm
-    const res = await fetch(`${apiUrl}/payments/confirm`, {
+    // Forward the request to the api-core backend (global prefix is /api).
+    const apiUrl = process.env.API_CORE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const res = await fetch(`${apiUrl}/api/payments/confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

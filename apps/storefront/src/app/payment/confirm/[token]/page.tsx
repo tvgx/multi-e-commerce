@@ -21,8 +21,8 @@ export default function PaymentConfirmPage({ params }: { params: Promise<{ token
     // Fetch token info
     const fetchTokenInfo = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/payments/token-info/${token}`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const res = await fetch(`${apiUrl}/api/payments/token-info/${token}`);
         const data = await res.json();
         
         if (!res.ok) {

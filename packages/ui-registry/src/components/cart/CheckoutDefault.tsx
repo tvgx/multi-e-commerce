@@ -54,9 +54,11 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
         }
     }, [items, router, shopSlug, orderId]);
 
-    const getSessionToken = () => document.cookie.split(';')
-        .find(c => c.trim().startsWith(`shop_session_${shopSlug}=`))
-        ?.split('=')[1];
+    // Authenticated calls (wallet, order checkout) go through the storefront BFF
+    // at `/{shopSlug}/api/store/...`, which reads the httpOnly session cookie
+    // server-side and attaches the Bearer token. The client can't read that
+    // cookie, so it must not try to build the Authorization header itself.
+    const bff = (path: string) => `/${shopSlug}/api/store/${path}`;
 
     // Fetch payment + shipping methods
     useEffect(() => {
@@ -93,17 +95,11 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
         const fetchWalletBalance = async () => {
             try {
-                const token = getSessionToken();
-                if (!token) return;
-                const res = await fetch(`${API_BASE}/api/wallet/me`, {
-                    headers: {
-                        'x-shop-id': shopInfo.id,
-                        'Authorization': `Bearer ${token}`,
-                    }
-                });
-                if (!res.ok) return;
+                const res = await fetch(bff('wallet/me'), { cache: 'no-store' });
+                if (!res.ok) return; // guests / not logged in → no wallet
                 const data = await res.json();
-                if (typeof data.balance === 'number') setWalletBalance(data.balance);
+                const balance = data?.balance ?? data?.data?.balance;
+                if (typeof balance === 'number') setWalletBalance(balance);
             } catch (err) {
                 console.error('Failed to fetch wallet balance', err);
             }
@@ -158,9 +154,6 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
         setError(null);
 
         try {
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            const token = getSessionToken();
-
             // Format order payload
             const payload = {
                 paymentMethodId,
@@ -179,15 +172,19 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                 },
             };
 
-            const res = await fetch(`${API_BASE}/api/orders/checkout`, {
+            const res = await fetch(bff('orders/checkout'), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-shop-id': shopInfo.id,
-                    'Authorization': token ? `Bearer ${token}` : '',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            // Placing an order requires an account. Guests build a cart freely but
+            // must log in to check out — send them to login and back to checkout
+            // (the guest cart merges into their account on login).
+            if (res.status === 401) {
+                router.push(`/${shopSlug}/account/login?redirect=/${shopSlug}/payment`);
+                return;
+            }
 
             const data = await res.json();
 

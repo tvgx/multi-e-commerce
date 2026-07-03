@@ -3,6 +3,16 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantService } from '../../common/services/tenant.service';
 import { AddCartItemDto, UpdateCartItemDto } from './dto/cart.dto';
 
+/**
+ * Who owns a cart: a logged-in customer (customerId) OR an anonymous guest
+ * session (guestToken). Exactly one is set; the controller resolves it from the
+ * Bearer token or the `x-cart-token` header.
+ */
+export interface CartIdentity {
+  customerId?: string;
+  guestToken?: string;
+}
+
 @Injectable()
 export class CartService {
   constructor(
@@ -16,18 +26,29 @@ export class CartService {
     return shopId;
   }
 
-  /** Lấy (hoặc tạo) giỏ của khách trên shop hiện tại. */
-  private async getOrCreateCart(customerId: string) {
+  /** Lấy (hoặc tạo) giỏ của khách/guest trên shop hiện tại. */
+  private async getOrCreateCart(identity: CartIdentity) {
     const shopId = this.getShopId();
-    return this.prisma.cart.upsert({
-      where: { shopId_customerId: { shopId, customerId } },
-      create: { shopId, customerId },
-      update: {},
-    });
+
+    if (identity.customerId) {
+      return this.prisma.cart.upsert({
+        where: { shopId_customerId: { shopId, customerId: identity.customerId } },
+        create: { shopId, customerId: identity.customerId },
+        update: {},
+      });
+    }
+    if (identity.guestToken) {
+      return this.prisma.cart.upsert({
+        where: { shopId_guestToken: { shopId, guestToken: identity.guestToken } },
+        create: { shopId, guestToken: identity.guestToken },
+        update: {},
+      });
+    }
+    throw new BadRequestException('Cart identity is missing (login or guest token required)');
   }
 
-  async getCart(customerId: string) {
-    const cart = await this.getOrCreateCart(customerId);
+  async getCart(identity: CartIdentity) {
+    const cart = await this.getOrCreateCart(identity);
 
     const items = await this.prisma.cartItem.findMany({
       where: { cartId: cart.id },
@@ -59,7 +80,7 @@ export class CartService {
     };
   }
 
-  async addItem(customerId: string, dto: AddCartItemDto) {
+  async addItem(identity: CartIdentity, dto: AddCartItemDto) {
     const shopId = this.getShopId();
 
     // App không bật global ValidationPipe nên DTO decorators không chạy — check tay
@@ -74,7 +95,7 @@ export class CartService {
     });
     if (!variant) throw new BadRequestException('Variant not found or not available for purchase');
 
-    const cart = await this.getOrCreateCart(customerId);
+    const cart = await this.getOrCreateCart(identity);
 
     const item = await this.prisma.cartItem.upsert({
       where: { cartId_variantId: { cartId: cart.id, variantId: dto.variantId } },
@@ -85,12 +106,12 @@ export class CartService {
     return { status: 'added', item };
   }
 
-  async updateItem(customerId: string, itemId: string, dto: UpdateCartItemDto) {
+  async updateItem(identity: CartIdentity, itemId: string, dto: UpdateCartItemDto) {
     if (!Number.isInteger(dto.quantity) || dto.quantity < 0) {
       throw new BadRequestException('Quantity must be a non-negative integer');
     }
 
-    const cart = await this.getOrCreateCart(customerId);
+    const cart = await this.getOrCreateCart(identity);
 
     const existing = await this.prisma.cartItem.findFirst({
       where: { id: itemId, cartId: cart.id },
@@ -109,8 +130,8 @@ export class CartService {
     return { status: 'updated', item };
   }
 
-  async removeItem(customerId: string, itemId: string) {
-    const cart = await this.getOrCreateCart(customerId);
+  async removeItem(identity: CartIdentity, itemId: string) {
+    const cart = await this.getOrCreateCart(identity);
 
     const { count } = await this.prisma.cartItem.deleteMany({
       where: { id: itemId, cartId: cart.id },
@@ -119,11 +140,46 @@ export class CartService {
     return { status: 'removed', itemId };
   }
 
-  async clearCart(customerId: string) {
-    const cart = await this.getOrCreateCart(customerId);
+  async clearCart(identity: CartIdentity) {
+    const cart = await this.getOrCreateCart(identity);
     const { count } = await this.prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
     return { status: 'cleared', count };
+  }
+
+  /**
+   * Gộp giỏ guest vào giỏ của khách sau khi đăng nhập/đăng ký. Item trùng
+   * variant thì cộng dồn quantity; sau đó xoá giỏ guest. No-op nếu guest chưa
+   * có giỏ. Chạy trong transaction để không mất item giữa chừng.
+   */
+  async mergeGuestCart(customerId: string, guestToken: string) {
+    if (!guestToken) return { status: 'noop', merged: 0 };
+    const shopId = this.getShopId();
+
+    const guestCart = await this.prisma.cart.findUnique({
+      where: { shopId_guestToken: { shopId, guestToken } },
+      include: { items: true },
+    });
+    if (!guestCart || guestCart.items.length === 0) {
+      // Vẫn dọn giỏ guest rỗng nếu có, để token cũ không tồn đọng.
+      if (guestCart) await this.prisma.cart.delete({ where: { id: guestCart.id } });
+      return { status: 'noop', merged: 0 };
+    }
+
+    const customerCart = await this.getOrCreateCart({ customerId });
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of guestCart.items) {
+        await tx.cartItem.upsert({
+          where: { cartId_variantId: { cartId: customerCart.id, variantId: item.variantId } },
+          create: { cartId: customerCart.id, variantId: item.variantId, quantity: item.quantity },
+          update: { quantity: { increment: item.quantity } },
+        });
+      }
+      await tx.cart.delete({ where: { id: guestCart.id } });
+    });
+
+    return { status: 'merged', merged: guestCart.items.length };
   }
 }

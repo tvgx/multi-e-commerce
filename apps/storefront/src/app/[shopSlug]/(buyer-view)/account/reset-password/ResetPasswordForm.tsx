@@ -34,7 +34,8 @@ export function ResetPasswordForm({ shopSlug }: { shopSlug: string }) {
     }
 
     try {
-      const res = await fetch(`/api/api-core/storefront-auth/reset-password`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/storefront-auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),

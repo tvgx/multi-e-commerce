@@ -82,7 +82,7 @@ export default async function BuyerLayout({ children, params }: Props) {
                 className="flex flex-col min-h-screen storefront-layout-wrapper"
             style={themeStyle}
         >
-            {shopInfo?.id && <CartInitializer shopId={shopInfo.id} />}
+            <CartInitializer shopSlug={shopSlug} />
             {shopInfo?.id && <VisitTracker shopId={shopInfo.id} customerId={customerId} />}
             <CartSidebar />
             <NotificationToast token={token ?? undefined} />

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { getMyOrders, getShopInfo, getMyProfile } from '@/lib/api/storefront.api';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
 import { getT, getLocale } from '@/lib/i18n';
+import { OrderActions } from '@/components/OrderActions';
 
 export default async function ProfilePage({ params }: { params: Promise<{ shopSlug: string }> }) {
     const { shopSlug } = await params;
@@ -142,6 +143,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ shopSl
                                     ))}
                                 </div>
                             )}
+
+                            <OrderActions shopSlug={shopSlug} order={order} />
                         </div>
                     ))}
                 </div>

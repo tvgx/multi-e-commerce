@@ -32,7 +32,7 @@ export async function loginCustomer(shopSlug: string, formData: FormData) {
         }
 
         const token = data.data?.token || data.data?.accessToken;
-        
+
         if (token) {
             // Set cookie for the specific shop slug path
             const cookieStore = await cookies();
@@ -43,6 +43,27 @@ export async function loginCustomer(shopSlug: string, formData: FormData) {
                 path: `/${shopSlug}`,
                 maxAge: 60 * 60 * 24 * 7, // 1 week
             });
+
+            // Merge any anonymous (guest) cart into this customer's cart, then
+            // drop the guest token so it isn't reused. Non-fatal on failure.
+            const guestToken = cookieStore.get(`cart_token_${shopSlug}`)?.value;
+            if (guestToken) {
+                try {
+                    await fetch(`${API_BASE_URL}/api/cart/merge`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-shop-id': shopId,
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ guestToken }),
+                    });
+                } catch (mergeErr) {
+                    console.error('Guest cart merge failed:', mergeErr);
+                }
+                cookieStore.delete(`cart_token_${shopSlug}`);
+            }
+
             return { success: true };
         }
 

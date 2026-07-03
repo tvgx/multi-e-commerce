@@ -2,7 +2,7 @@
 
 import React from "react";
 import { StandardCart } from "@ecommerce/ui-registry/src/components/pages/StandardCart";
-import { useCartStore } from "@/store/cart-store";
+import { useCartStore } from "@ecommerce/ui-registry/src/store/cart-store";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 
 /**
