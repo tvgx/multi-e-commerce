@@ -5,6 +5,10 @@
    utilities resolve in the preview regardless of cwd. */
 @source "../../../../packages/ui-registry/src";
 
+/* Light/dark theme: `dark:` utilities key off the `.dark` class on <html>
+   (đặt bởi script anti-flicker trong layout.tsx + ThemeToggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: 45 20% 96%;
   --foreground: 0 0% 7%;
@@ -26,6 +30,31 @@
   --input: 0 0% 92%;
   --ring: 0 0% 7%;
   --radius: 0.5rem;
+}
+
+/* Dark theme — giá trị zinc khớp look hiện tại của dashboard (zinc-950 nền,
+   zinc-900 card, zinc-800 viền) để các màn đã token hoá đổi theo toggle mà
+   không lệch tông với các trang còn hardcode dark. */
+.dark {
+  --background: 240 6% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 5% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 5% 8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 6% 6%;
+  --secondary: 240 4% 14%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 14%;
+  --muted-foreground: 240 4% 64%;
+  --accent: 240 4% 14%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 4% 16%;
+  --input: 240 4% 16%;
+  --ring: 240 5% 84%;
 }
 
 @theme inline {

@@ -26,6 +26,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserAvatar } from "@/components/UserAvatar";
 import { storefrontHost } from "@/lib/urls";
 import { ShoppingBag, Box, Tag } from "lucide-react";
@@ -76,19 +77,19 @@ export default function DashboardLayout({
 
 
   return (
-    <div className="flex min-h-screen bg-[#030014] text-slate-200">
+    <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 border-r border-white/5 bg-black/40 backdrop-blur-xl ${
+        className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 border-r border-border bg-card/60 backdrop-blur-xl ${
           isCollapsed ? "w-20" : "w-64"
         }`}
       >
-        <div className="flex h-20 items-center px-6 border-b border-white/5">
+        <div className="flex h-20 items-center px-6 border-b border-border">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.4)]">
               <Zap className="text-white w-5 h-5 fill-current" />
             </div>
-            {!isCollapsed && <span className="font-bold tracking-tight text-white">OmniAdmin</span>}
+            {!isCollapsed && <span className="font-bold tracking-tight text-foreground">OmniAdmin</span>}
           </Link>
         </div>
 
@@ -106,10 +107,10 @@ export default function DashboardLayout({
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                   isActive 
                     ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50" 
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`}
               >
-                <div className={isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-white"}>
+                <div className={isActive ? "text-indigo-400" : "text-muted-foreground/70 group-hover:text-foreground"}>
                   {item.icon}
                 </div>
                 {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
@@ -121,7 +122,7 @@ export default function DashboardLayout({
         <div className="absolute bottom-4 left-0 w-full px-4 space-y-2">
            <button 
              onClick={() => setIsCollapsed(!isCollapsed)}
-             className="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-white transition-colors"
+             className="w-full flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
            >
              {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
              {!isCollapsed && <span className="text-xs uppercase tracking-widest font-bold">{t("shopNav.collapse")}</span>}
@@ -142,16 +143,17 @@ export default function DashboardLayout({
           isCollapsed ? "pl-20" : "pl-64"
         }`}
       >
-        <header className="h-20 border-b border-white/5 bg-black/20 backdrop-blur-xl px-8 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-20 border-b border-border bg-card/40 backdrop-blur-xl px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold text-white">{t("shopNav.shopOverview")}</h2>
-            <div className="h-4 w-px bg-white/10 hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-500 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+            <h2 className="text-lg font-bold text-foreground">{t("shopNav.shopOverview")}</h2>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted-foreground bg-accent/60 px-3 py-1 rounded-full border border-border">
               <Globe size={12} /> {storefrontHost(shopId)}
             </div>
           </div>
           
           <div className="flex items-center gap-4 relative">
+             <ThemeToggle />
              <NotificationBell shopId={shopId} />
              <button
                onClick={() => setIsMenuOpen(!isMenuOpen)}

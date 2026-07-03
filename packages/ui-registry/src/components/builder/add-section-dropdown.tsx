@@ -167,7 +167,7 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
                 className={`w-full py-2 flex items-center justify-center gap-2 text-sm font-medium rounded-lg transition-all border
                     ${isOpen
                         ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'
-                        : 'text-indigo-400 hover:bg-white/5 border-dashed border-white/10 hover:border-indigo-500/50'
+                        : 'text-indigo-400 hover:bg-accent border-dashed border-border hover:border-indigo-500/50'
                     }`}
             >
                 <Plus className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`} />
@@ -175,21 +175,21 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
             </button>
 
             {isOpen && (
-                <div className="mt-1.5 rounded-xl border border-white/10 bg-[#0c0c14] overflow-hidden shadow-xl">
+                <div className="mt-1.5 rounded-xl border border-border bg-popover overflow-hidden shadow-xl">
                     {/* Search */}
-                    <div className="p-2 border-b border-white/5 flex items-center gap-2">
+                    <div className="p-2 border-b border-border flex items-center gap-2">
                         <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/60" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Tìm section..."
                                 autoFocus
-                                className="w-full bg-white/5 border border-white/8 rounded-md pl-7 pr-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/40 transition-colors"
+                                className="w-full bg-secondary/60 border border-border rounded-md pl-7 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-500/40 transition-colors"
                             />
                         </div>
-                        <button onClick={close} className="p-1 text-slate-600 hover:text-white transition-colors rounded">
+                        <button onClick={close} className="p-1 text-muted-foreground/60 hover:text-foreground transition-colors rounded">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -197,7 +197,7 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
                     {/* Section list */}
                     <div className="max-h-[300px] overflow-y-auto">
                         {Object.entries(grouped).length === 0 && (
-                            <p className="text-center text-slate-600 text-xs py-8">Không tìm thấy section</p>
+                            <p className="text-center text-muted-foreground/60 text-xs py-8">Không tìm thấy section</p>
                         )}
                         {Object.entries(grouped).map(([cat, items]) => {
                             const CatIcon = CATEGORY_ICON[cat] || LayoutTemplate;
@@ -206,14 +206,14 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
                                 <div key={cat}>
                                     <button
                                         onClick={() => toggleCat(cat)}
-                                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group"
+                                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent transition-colors group"
                                     >
                                         <CatIcon className="w-3 h-3 text-indigo-400/70 shrink-0" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex-1 text-left group-hover:text-slate-400">{cat}</span>
-                                        <span className="text-[9px] text-slate-700 mr-1">{items.length}</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex-1 text-left group-hover:text-foreground/70">{cat}</span>
+                                        <span className="text-[9px] text-muted-foreground/50 mr-1">{items.length}</span>
                                         {expanded
-                                            ? <ChevronDown className="w-2.5 h-2.5 text-slate-700" />
-                                            : <ChevronRight className="w-2.5 h-2.5 text-slate-700" />
+                                            ? <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/50" />
+                                            : <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/50" />
                                         }
                                     </button>
                                     {expanded && items.map(item => (
@@ -224,9 +224,9 @@ export function AddSectionDropdown({ insertIndex }: AddSectionDropdownProps) {
                                             onMouseLeave={() => setHoveredItem(null)}
                                             className="w-full flex items-center gap-2 px-4 py-2 hover:bg-indigo-500/10 transition-colors text-left group/item border-l-2 border-transparent hover:border-indigo-500/40"
                                         >
-                                            <CatIcon className="w-3 h-3 text-slate-600 group-hover/item:text-indigo-400 shrink-0 transition-colors" />
-                                            <span className="text-xs text-slate-400 group-hover/item:text-white transition-colors flex-1 truncate">{item.label}</span>
-                                            <Plus className="w-3 h-3 text-slate-700 opacity-0 group-hover/item:opacity-100 group-hover/item:text-indigo-400 transition-all shrink-0" />
+                                            <CatIcon className="w-3 h-3 text-muted-foreground/60 group-hover/item:text-indigo-400 shrink-0 transition-colors" />
+                                            <span className="text-xs text-muted-foreground group-hover/item:text-foreground transition-colors flex-1 truncate">{item.label}</span>
+                                            <Plus className="w-3 h-3 text-muted-foreground/50 opacity-0 group-hover/item:opacity-100 group-hover/item:text-indigo-400 transition-all shrink-0" />
                                         </button>
                                     ))}
                                 </div>

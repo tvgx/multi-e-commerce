@@ -15,14 +15,14 @@ import { apiClient } from "@/lib/api-client";
 export default function DesignPage() {
   return (
     <BuilderProvider>
-      <div className="h-screen flex flex-col bg-[#050510] text-white overflow-hidden">
+      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
         {/* Tiến trình wizard tổng — đồng bộ ở mọi bước (Thiết kế → Điều hướng → Billing) */}
-        <div className="h-10 shrink-0 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-center">
+        <div className="h-10 shrink-0 border-b border-border bg-card flex items-center justify-center">
           <WizardProgress current="design" />
         </div>
 
         <Suspense
-          fallback={<div className="h-14 border-b border-white/5 bg-[#0a0a0f] animate-pulse" />}
+          fallback={<div className="h-14 border-b border-border bg-card animate-pulse" />}
         >
           <GuidedTopbar />
         </Suspense>
@@ -84,14 +84,14 @@ function DesignWorkspace() {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Left: section tree */}
-      <div className="w-72 border-r border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0 flex flex-col">
+      <div className="w-72 border-r border-border bg-card overflow-y-auto shrink-0 flex flex-col">
         <SectionList />
       </div>
 
       {/* Center: canvas (navigation is neutralized inside CanvasRenderer) */}
-      <div className="flex-1 bg-[#050510] overflow-auto flex items-start justify-center p-8">
+      <div className="flex-1 bg-background overflow-auto flex items-start justify-center p-8">
         <div
-          className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-white/5 ${
+          className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-border ${
             deviceMode === "mobile"
               ? "w-[390px] rounded-[2rem]"
               : "w-full max-w-[1280px] rounded-xl"
@@ -102,7 +102,7 @@ function DesignWorkspace() {
       </div>
 
       {/* Right: properties */}
-      <div className="w-72 border-l border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0">
+      <div className="w-72 border-l border-border bg-card overflow-y-auto shrink-0">
         <PropEditor />
       </div>
     </div>

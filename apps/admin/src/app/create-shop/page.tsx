@@ -23,9 +23,9 @@ export default function CreateShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030014] text-slate-200 font-sans selection:bg-indigo-500/30 flex flex-col">
-      <nav className="h-20 border-b border-white/5 bg-black/20 px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-indigo-500/30 flex flex-col">
+      <nav className="h-20 border-b border-border bg-card/40 px-6 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Trở lại trang chủ</span>
         </Link>
@@ -38,13 +38,13 @@ export default function CreateShopPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-2xl h-[50%] bg-indigo-600/20 blur-[120px] rounded-full -z-10 mix-blend-screen" />
 
         <div className="w-full max-w-2xl">
-          <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-8 sm:p-12 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          <div className="rounded-3xl bg-card/60 border border-border p-8 sm:p-12 shadow-2xl backdrop-blur-xl relative overflow-hidden">
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-2">
                   Chọn địa chỉ cửa hàng
                 </h2>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   Khách hàng sẽ truy cập qua địa chỉ này. Tên, logo và màu sắc sẽ được thiết lập ngay sau đó trong
                   trình thiết kế.
                 </p>
@@ -52,20 +52,20 @@ export default function CreateShopPage() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                  <label className="text-sm font-medium text-foreground/90 mb-2 flex items-center gap-2">
                     <LinkIcon className="w-4 h-4 text-indigo-400" /> Domain tùy chỉnh
                   </label>
-                  <div className="flex bg-black/50 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                  <div className="flex bg-secondary/60 rounded-xl border border-border group focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
                     <input
                       type="text"
                       autoFocus
-                      className="flex-1 bg-transparent px-5 py-3 text-white placeholder:text-slate-600 focus:outline-none"
+                      className="flex-1 bg-transparent px-5 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
                       placeholder="my-shop"
                       value={domain}
                       onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                       onKeyDown={(e) => { if (e.key === "Enter" && domain.trim() && !loading) handleSubmit(); }}
                     />
-                    <div className="flex items-center px-4 border-l border-white/10 text-slate-500 font-mono text-sm bg-black/30 rounded-r-xl">
+                    <div className="flex items-center px-4 border-l border-border text-muted-foreground font-mono text-sm bg-secondary/40 rounded-r-xl">
                       .omnicommerce.com
                     </div>
                   </div>
@@ -76,7 +76,7 @@ export default function CreateShopPage() {
 
                 <div className="flex items-start gap-3 rounded-xl bg-indigo-500/5 border border-indigo-500/15 px-4 py-3">
                   <Sparkles className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Bước tiếp theo: <span className="text-slate-200 font-medium">Thiết lập chung</span> — đặt tên cửa
                     hàng, chọn màu sắc, tải logo &amp; favicon, thêm liên kết mạng xã hội trước khi thiết kế giao diện.
                   </p>

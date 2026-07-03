@@ -30,7 +30,17 @@ export default async function RootLayout({
     (await cookies()).get("NEXT_LOCALE")?.value === "en" ? "en" : "vi";
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/* Anti-flicker: áp class dark trước khi paint. Mặc định DARK (giữ
+            nguyên look hiện tại của dashboard); user đổi qua ThemeToggle
+            (localStorage 'admin-theme'). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(localStorage.getItem('admin-theme')!=='light'){document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

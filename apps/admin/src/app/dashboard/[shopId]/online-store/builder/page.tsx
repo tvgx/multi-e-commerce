@@ -112,7 +112,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
         return (
             <div className="h-screen flex flex-col items-center justify-center gap-4">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-                {isNavigating && <p className="text-slate-400 text-sm">Đang tải cấu hình Navigation...</p>}
+                {isNavigating && <p className="text-muted-foreground text-sm">Đang tải cấu hình Navigation...</p>}
             </div>
         );
     }
@@ -128,21 +128,21 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     return (
         <div className="h-[calc(100vh-80px)] flex flex-col -m-8">
             {/* Toolbar */}
-            <div className="h-12 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-between px-3 shrink-0 gap-2">
+            <div className="h-12 border-b border-border bg-card flex items-center justify-between px-3 shrink-0 gap-2">
                 {/* Left: back + title */}
                 <div className="flex items-center gap-3 min-w-0">
                     <Link
                         href={`/dashboard/${shopId}/online-store/themes`}
-                        className="text-slate-500 hover:text-white transition-colors shrink-0"
+                        className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
                     >
                         <ArrowLeft size={18} />
                     </Link>
-                    <span className="hidden lg:inline text-sm font-semibold text-white truncate">Trình thiết kế</span>
+                    <span className="hidden lg:inline text-sm font-semibold text-foreground truncate">Trình thiết kế</span>
                     <PageSwitcher variant="dark" />
                     <button
                         onClick={() => setShowSetup(true)}
                         title="Thiết lập chung (màu, logo, thông tin shop)"
-                        className="flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors text-xs font-medium px-2 py-1.5 rounded-md shrink-0"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-medium px-2 py-1.5 rounded-md shrink-0"
                     >
                         <SlidersHorizontal size={14} />
                         <span className="hidden xl:inline">Thiết lập chung</span>
@@ -156,7 +156,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                         onClick={undo}
                         disabled={!canUndo}
                         title="Undo (Ctrl+Z)"
-                        className={`p-1.5 rounded-md transition-colors ${canUndo ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-700 cursor-not-allowed'}`}
+                        className={`p-1.5 rounded-md transition-colors ${canUndo ? 'text-muted-foreground hover:bg-accent hover:text-foreground' : 'text-muted-foreground/40 cursor-not-allowed'}`}
                     >
                         <RotateCcw size={15} />
                     </button>
@@ -164,26 +164,26 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                         onClick={redo}
                         disabled={!canRedo}
                         title="Redo (Ctrl+Y)"
-                        className={`p-1.5 rounded-md transition-colors ${canRedo ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-700 cursor-not-allowed'}`}
+                        className={`p-1.5 rounded-md transition-colors ${canRedo ? 'text-muted-foreground hover:bg-accent hover:text-foreground' : 'text-muted-foreground/40 cursor-not-allowed'}`}
                     >
                         <RotateCw size={15} />
                     </button>
 
-                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    <div className="w-px h-4 bg-border mx-1" />
 
                     {/* Device mode */}
                     <div className="flex bg-slate-800 rounded-md p-0.5">
                         <button
                             onClick={() => setDeviceMode('desktop')}
                             title="Desktop"
-                            className={`p-1.5 rounded transition-colors ${deviceMode === 'desktop' ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-1.5 rounded transition-colors ${deviceMode === 'desktop' ? 'bg-indigo-500 text-white' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             <Monitor size={14} />
                         </button>
                         <button
                             onClick={() => setDeviceMode('mobile')}
                             title="Mobile"
-                            className={`p-1.5 rounded transition-colors ${deviceMode === 'mobile' ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-1.5 rounded transition-colors ${deviceMode === 'mobile' ? 'bg-indigo-500 text-white' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             <Smartphone size={14} />
                         </button>
@@ -196,7 +196,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                         onClick={handleSave}
                         disabled={saving}
                         title="Save (Ctrl+S)"
-                        className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
+                        className="flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
                     >
                         {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                         Lưu
@@ -226,20 +226,20 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                 {/* Left Panel: Section tree */}
                 <div
                     data-builder-panel="left"
-                    className="w-72 border-r border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0 flex flex-col"
+                    className="w-72 border-r border-border bg-card overflow-y-auto shrink-0 flex flex-col"
                 >
                     <SectionList />
                 </div>
 
                 {/* Center: Canvas */}
-                <div className="flex-1 bg-[#050510] overflow-auto flex items-start justify-center p-8 relative">
-                    <div className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-white/5 ${deviceMode === 'mobile' ? 'w-[390px] rounded-[2rem]' : 'w-full max-w-[1280px] rounded-xl'}`}>
+                <div className="flex-1 bg-background overflow-auto flex items-start justify-center p-8 relative">
+                    <div className={`transition-all duration-300 bg-white shadow-2xl overflow-hidden border border-border ${deviceMode === 'mobile' ? 'w-[390px] rounded-[2rem]' : 'w-full max-w-[1280px] rounded-xl'}`}>
                         <CanvasRenderer previewProducts={previewProducts} />
                     </div>
                 </div>
 
                 {/* Right Panel: Properties */}
-                <div className="w-72 border-l border-white/5 bg-[#0a0a0f] overflow-y-auto shrink-0">
+                <div className="w-72 border-l border-border bg-card overflow-y-auto shrink-0">
                     <PropEditor />
                 </div>
             </div>

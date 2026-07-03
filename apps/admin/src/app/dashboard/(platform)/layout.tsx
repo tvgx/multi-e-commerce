@@ -9,7 +9,7 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 font-sans">
+    <div className="flex flex-col h-screen bg-background font-sans">
       <GlobalHeader />
       <div className="flex flex-1 overflow-hidden">
         <GlobalSidebar />

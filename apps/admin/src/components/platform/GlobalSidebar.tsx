@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { UserAvatar } from "@/components/UserAvatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 import {
   LayoutDashboard,
@@ -45,23 +46,23 @@ export function GlobalSidebar() {
   ];
 
   return (
-    <aside className="w-[240px] bg-black border-r border-zinc-800 flex flex-col overflow-y-auto">
+    <aside className="w-[240px] bg-card border-r border-border flex flex-col overflow-y-auto">
       <div className="p-4">
         <Link
           href="/dashboard"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
             pathname === "/dashboard" 
               ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50" 
-              : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
           }`}
         >
-          <LayoutDashboard size={20} className={pathname === "/dashboard" ? "text-indigo-400" : "text-zinc-500"} />
+          <LayoutDashboard size={20} className={pathname === "/dashboard" ? "text-indigo-400" : "text-muted-foreground/70"} />
           <span className="text-sm font-medium">{t("nav.overview")}</span>
         </Link>
       </div>
 
       <div className="px-4 py-2">
-        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2 uppercase">{t("nav.platform")}</h3>
+        <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.platform")}</h3>
         <div className="space-y-1">
           {PLATFORM_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -72,11 +73,11 @@ export function GlobalSidebar() {
                 className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all group ${
                   isActive 
                     ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50" 
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 border border-transparent"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground border border-transparent"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={isActive ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-400 transition-colors"}>
+                  <div className={isActive ? "text-indigo-400" : "text-muted-foreground/70 group-hover:text-muted-foreground transition-colors"}>
                     {item.icon}
                   </div>
                   <span className="text-sm font-medium">{item.label}</span>
@@ -93,7 +94,7 @@ export function GlobalSidebar() {
       </div>
 
       <div className="px-4 py-4">
-        <h3 className="px-3 text-xs font-semibold text-zinc-500 tracking-wider mb-2 uppercase">{t("nav.account")}</h3>
+        <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.account")}</h3>
         <div className="space-y-1">
           {ACCOUNT_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -104,11 +105,11 @@ export function GlobalSidebar() {
                 className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all group ${
                   isActive 
                     ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50" 
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 border border-transparent"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground border border-transparent"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={isActive ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-400 transition-colors"}>
+                  <div className={isActive ? "text-indigo-400" : "text-muted-foreground/70 group-hover:text-muted-foreground transition-colors"}>
                     {item.icon}
                   </div>
                   <span className="text-sm font-medium">{item.label}</span>
@@ -124,15 +125,16 @@ export function GlobalSidebar() {
         </div>
       </div>
       
-      <div className="mt-auto p-4 border-t border-zinc-800 bg-zinc-950/50">
+      <div className="mt-auto p-4 border-t border-border bg-background/50">
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
             <UserAvatar name={user?.name} email={user?.email} image={user?.image} />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-zinc-200 truncate">{displayName}</p>
-            <p className="text-xs text-zinc-500 truncate">{user?.email || t("nav.freePlan")}</p>
+            <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || t("nav.freePlan")}</p>
           </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>

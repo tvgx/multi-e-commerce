@@ -40,24 +40,24 @@ function AddBlockInline({ parentId, parentComponentId }: { parentId: string; par
                 className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors border
                     ${isOpen
                         ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                        : 'text-indigo-400/70 border-dashed border-white/8 hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                        : 'text-indigo-400/70 border-dashed border-border hover:border-indigo-500/30 hover:bg-indigo-500/5'
                     }`}
             >
                 <Plus size={11} className={`transition-transform ${isOpen ? 'rotate-45' : ''}`} />
                 Thêm khối
             </button>
             {isOpen && (
-                <div className="mt-1 rounded-lg border border-white/10 bg-slate-950 overflow-hidden shadow-lg">
+                <div className="mt-1 rounded-lg border border-border bg-popover overflow-hidden shadow-lg">
                     {allowedBlocks.map((blockId: string) => {
                         const bs = schemaRegistry[blockId];
                         return (
                             <button
                                 key={blockId}
                                 onClick={() => { addBlock(parentId, blockId); setIsOpen(false); }}
-                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-500/10 transition-colors text-left border-b border-white/5 last:border-b-0 group"
+                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-500/10 transition-colors text-left border-b border-border last:border-b-0 group"
                             >
-                                <Box size={11} className="text-slate-600 group-hover:text-indigo-400 shrink-0 transition-colors" />
-                                <span className="text-xs text-slate-400 group-hover:text-white transition-colors">{bs?.title || blockId}</span>
+                                <Box size={11} className="text-muted-foreground/60 group-hover:text-indigo-400 shrink-0 transition-colors" />
+                                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">{bs?.title || blockId}</span>
                             </button>
                         );
                     })}
@@ -95,15 +95,15 @@ function BlockItem({ block, level }: { block: any, level: number }) {
                 onClick={(e) => { e.stopPropagation(); setActiveBlock(block.id); }}
                 className={`flex items-center gap-2 py-1.5 pr-2 rounded-lg cursor-pointer transition-colors ${isActive
                     ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
-                    : 'hover:bg-white/5 text-slate-500 border border-transparent hover:text-slate-300'
+                    : 'hover:bg-accent text-muted-foreground border border-transparent hover:text-foreground'
                     }`}
                 style={{ paddingLeft: `${(level + 1) * 14}px` }}
             >
-                <Box size={11} className={isActive ? 'text-indigo-400 shrink-0' : 'text-slate-700 shrink-0'} />
+                <Box size={11} className={isActive ? 'text-indigo-400 shrink-0' : 'text-muted-foreground/50 shrink-0'} />
                 <span className="flex-1 text-xs truncate">{title}</span>
                 <button
                     onClick={(e) => { e.stopPropagation(); removeBlock(block.id); }}
-                    className="p-0.5 hover:text-red-400 opacity-0 group-hover/block:opacity-100 transition-opacity text-slate-600 rounded"
+                    className="p-0.5 hover:text-red-400 opacity-0 group-hover/block:opacity-100 transition-opacity text-muted-foreground/60 rounded"
                 >
                     <Trash2 size={11} />
                 </button>
@@ -133,22 +133,22 @@ function GlobalSectionItem({ componentId }: { componentId: string }) {
     return (
         <div className="flex flex-col mb-4">
             {/* Zone label */}
-            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1 px-1 flex items-center justify-between">
+            <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-1 px-1 flex items-center justify-between">
                 {zoneLabel}
-                <Lock size={9} className="text-slate-700" />
+                <Lock size={9} className="text-muted-foreground/50" />
             </div>
 
             {/* Section header row */}
             <div
                 className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-colors ${isActive
                     ? 'bg-indigo-500/10 border-indigo-500/60 text-indigo-400'
-                    : 'bg-slate-900 border-white/5 text-slate-300 hover:bg-white/5 hover:border-white/10'
+                    : 'bg-card border-border text-muted-foreground hover:bg-accent hover:border-border'
                     }`}
             >
                 {/* Expand/collapse */}
                 <button
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); }}
-                    className="p-0.5 text-slate-600 hover:text-white transition-colors shrink-0 rounded"
+                    className="p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors shrink-0 rounded"
                 >
                     {isExpanded
                         ? <ChevronDown size={12} />
@@ -158,14 +158,14 @@ function GlobalSectionItem({ componentId }: { componentId: string }) {
 
                 {/* Click to select section */}
                 <div className="flex-1 flex items-center gap-2 min-w-0" onClick={() => setActiveComponent(section.id)}>
-                    <Layers size={13} className="text-slate-600 shrink-0" />
+                    <Layers size={13} className="text-muted-foreground/60 shrink-0" />
                     <span className="font-medium text-sm truncate">{title}</span>
                 </div>
             </div>
 
             {/* Expanded: block tree + add block */}
             {isExpanded && (
-                <div className="pl-3 mt-0.5 border-l border-white/8 ml-4">
+                <div className="pl-3 mt-0.5 border-l border-border ml-4">
                     {section.blocks && section.blocks.length > 0 && (
                         <BlockTree blocks={section.blocks} level={0} />
                     )}
@@ -206,14 +206,14 @@ function SortableItem({ id, section }: { id: string, section: any }) {
             <div
                 className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${isActive
                     ? 'bg-indigo-500/10 border-indigo-500/60 text-indigo-400 shadow-lg shadow-indigo-500/5'
-                    : 'bg-white/3 border-white/5 text-slate-300 hover:bg-white/7 hover:border-white/10'
+                    : 'bg-accent/40 border-border text-muted-foreground hover:bg-accent/70 hover:border-border'
                     }`}
             >
                 {/* Expand toggle (if has blocks) */}
                 {hasBlocks && (
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); }}
-                        className="text-slate-600 hover:text-white transition-colors p-0.5 shrink-0"
+                        className="text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 shrink-0"
                     >
                         {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                     </button>
@@ -224,7 +224,7 @@ function SortableItem({ id, section }: { id: string, section: any }) {
                 <button
                     {...attributes}
                     {...listeners}
-                    className="text-slate-700 hover:text-slate-400 cursor-grab active:cursor-grabbing p-0.5 transition-colors shrink-0"
+                    className="text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing p-0.5 transition-colors shrink-0"
                     onClick={e => e.stopPropagation()}
                 >
                     <GripVertical size={14} />
@@ -239,7 +239,7 @@ function SortableItem({ id, section }: { id: string, section: any }) {
 
                 <button
                     onClick={(e) => { e.stopPropagation(); removePageSection(activePage, id); }}
-                    className="p-1 text-slate-700 hover:text-red-400 rounded opacity-0 group-hover/section:opacity-100 transition-all shrink-0"
+                    className="p-1 text-muted-foreground/50 hover:text-red-400 rounded opacity-0 group-hover/section:opacity-100 transition-all shrink-0"
                 >
                     <Trash2 size={13} />
                 </button>
@@ -247,7 +247,7 @@ function SortableItem({ id, section }: { id: string, section: any }) {
 
             {/* Expanded: block tree + add block */}
             {isExpanded && hasBlocks && (
-                <div className="pl-3 mt-0.5 border-l border-white/8 ml-4">
+                <div className="pl-3 mt-0.5 border-l border-border ml-4">
                     <BlockTree blocks={section.blocks} level={0} />
                     <AddBlockInline parentId={id} parentComponentId={section.componentId} />
                 </div>
@@ -287,9 +287,9 @@ export function SectionList() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0a0f]">
+        <div className="flex flex-col h-full bg-card">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 text-white font-bold shrink-0">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2 text-foreground font-bold shrink-0">
                 <Layers size={16} className="text-indigo-500" />
                 <span className="text-sm">Structure</span>
             </div>
@@ -300,13 +300,13 @@ export function SectionList() {
 
                 {/* TEMPLATE ZONE */}
                 <div className="flex flex-col">
-                    <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2 px-1 flex items-center justify-between">
+                    <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-2 px-1 flex items-center justify-between">
                         Template Zone
                         <span className="text-[9px] bg-indigo-500/20 text-indigo-500 px-1.5 py-0.5 rounded-full font-bold">{sections.length}</span>
                     </div>
 
                     {sections.length === 0 ? (
-                        <div className="text-center text-slate-700 text-xs py-6 border border-dashed border-white/5 rounded-xl mb-2">
+                        <div className="text-center text-muted-foreground/50 text-xs py-6 border border-dashed border-border rounded-xl mb-2">
                             Chưa có section nào.
                         </div>
                     ) : (

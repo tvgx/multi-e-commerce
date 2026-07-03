@@ -29,9 +29,9 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
     const id = React.useId();
     return (
         <div className="flex items-center justify-between py-2">
-            <label htmlFor={id} className="text-xs text-slate-400">{label}</label>
+            <label htmlFor={id} className="text-xs text-muted-foreground">{label}</label>
             <div className="flex items-center gap-2">
-                <div className="relative w-7 h-7 rounded-md overflow-hidden border border-slate-700 shrink-0">
+                <div className="relative w-7 h-7 rounded-md overflow-hidden border border-border shrink-0">
                     <input
                         id={id}
                         type="color"
@@ -44,7 +44,7 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
                     type="text"
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
-                    className="w-24 bg-slate-800 border border-slate-700 text-xs rounded px-2 py-1 text-white focus:outline-none focus:border-indigo-500 font-mono uppercase"
+                    className="w-24 bg-secondary border border-border text-xs rounded px-2 py-1 text-foreground focus:outline-none focus:border-indigo-500 font-mono uppercase"
                     placeholder="#000000"
                 />
             </div>
@@ -55,11 +55,11 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
 function FontRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
     return (
         <div className="space-y-1.5">
-            <label className="text-xs text-slate-400">{label}</label>
+            <label className="text-xs text-muted-foreground">{label}</label>
             <select
                 value={value || 'Inter'}
                 onChange={e => onChange(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-xs rounded px-2 py-1.5 text-white focus:outline-none focus:border-indigo-500 appearance-none"
+                className="w-full bg-secondary border border-border text-xs rounded px-2 py-1.5 text-foreground focus:outline-none focus:border-indigo-500 appearance-none"
             >
                 {GOOGLE_FONTS.map(f => (
                     <option key={f.value} value={f.value}>{f.label}</option>
@@ -78,17 +78,17 @@ function ThemeSettingsPanel() {
     const openSetup = () => window.dispatchEvent(new CustomEvent('builder:open-setup'));
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0a0f]">
-            <div className="p-4 border-b border-white/5 sticky top-0 bg-[#0a0a0f] z-10 shrink-0">
-                <h3 className="font-bold text-white flex items-center gap-2">
+        <div className="flex flex-col h-full bg-card">
+            <div className="p-4 border-b border-border sticky top-0 bg-card z-10 shrink-0">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                     <Paintbrush size={16} className="text-indigo-400" />
                     Thiết lập chung
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Màu sắc, logo, thông tin cửa hàng</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Màu sắc, logo, thông tin cửa hàng</p>
             </div>
 
             <div className="p-5 space-y-5 overflow-y-auto flex-1">
-                <p className="text-sm text-slate-400 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                     Chọn một section ở khu vực giữa để chỉnh sửa nội dung của nó, hoặc mở
                     <span className="text-slate-200 font-medium"> Thiết lập chung</span> để đổi màu sắc, font, logo,
                     favicon và thông tin cửa hàng.
@@ -102,16 +102,16 @@ function ThemeSettingsPanel() {
                     Mở Thiết lập chung
                 </button>
 
-                <div className="rounded-xl border border-white/5 bg-slate-900/50 p-3 space-y-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Đang áp dụng</p>
+                <div className="rounded-xl border border-border bg-card/50 p-3 space-y-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Đang áp dụng</p>
                     <div className="flex items-center gap-2 text-xs text-slate-300">
-                        <span className="h-5 w-5 rounded border border-white/10 shrink-0" style={{ background: theme.primaryColor || '#059669' }} />
+                        <span className="h-5 w-5 rounded border border-border shrink-0" style={{ background: theme.primaryColor || '#059669' }} />
                         Màu chủ đạo
-                        <span className="ml-auto font-mono text-slate-500 uppercase">{theme.primaryColor || '#059669'}</span>
+                        <span className="ml-auto font-mono text-muted-foreground uppercase">{theme.primaryColor || '#059669'}</span>
                     </div>
                     {theme.shopName && (
                         <div className="flex items-center gap-2 text-xs text-slate-300">
-                            <span className="text-slate-500">Tên:</span> {theme.shopName}
+                            <span className="text-muted-foreground">Tên:</span> {theme.shopName}
                         </div>
                     )}
                 </div>
@@ -148,7 +148,7 @@ export function PropEditor() {
 
     if (!targetNode) {
         return (
-            <div className="flex flex-col h-full items-center justify-center p-6 text-center text-slate-500">
+            <div className="flex flex-col h-full items-center justify-center p-6 text-center text-muted-foreground">
                 <Settings2 className="w-12 h-12 mb-4 opacity-50" />
                 <p className="text-sm">Node not found</p>
             </div>
@@ -207,7 +207,7 @@ export function PropEditor() {
             case 'text':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                             <Type size={12} /> {label}
                         </label>
                         <input
@@ -215,14 +215,14 @@ export function PropEditor() {
                             type="text"
                             value={currentValue ?? field.default ?? ''}
                             onChange={e => handlePropChange(fieldId, e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
                         />
                     </div>
                 );
             case 'textarea':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                             <AlignLeft size={12} /> {label}
                         </label>
                         <textarea
@@ -230,18 +230,18 @@ export function PropEditor() {
                             rows={4}
                             value={currentValue ?? field.default ?? ''}
                             onChange={e => handlePropChange(fieldId, e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors resize-y"
+                            className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors resize-y"
                         />
                     </div>
                 );
             case 'image':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                             <ImageIcon size={12} /> {label}
                         </label>
                         {currentValue && (
-                            <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900 aspect-video">
+                            <div className="rounded-lg overflow-hidden border border-border bg-muted aspect-video">
                                 <img src={currentValue} alt="" className="w-full h-full object-cover" />
                             </div>
                         )}
@@ -251,7 +251,7 @@ export function PropEditor() {
                                 type="text"
                                 value={currentValue ?? field.default ?? ''}
                                 onChange={e => handlePropChange(fieldId, e.target.value)}
-                                className="flex-1 bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                                className="flex-1 bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
                                 placeholder="https://"
                             />
                             <label className={`flex items-center justify-center p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 cursor-pointer transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -269,11 +269,11 @@ export function PropEditor() {
             case 'color':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                             <Palette size={12} /> {label}
                         </label>
                         <div className="flex items-center gap-3">
-                            <div className="relative w-8 h-8 rounded overflow-hidden border border-slate-700 shrink-0">
+                            <div className="relative w-8 h-8 rounded overflow-hidden border border-border shrink-0">
                                 <input
                                     id={elemId}
                                     type="color"
@@ -286,7 +286,7 @@ export function PropEditor() {
                                 type="text"
                                 value={currentValue ?? field.default ?? ''}
                                 onChange={e => handlePropChange(fieldId, e.target.value)}
-                                className="flex-1 bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors font-mono uppercase"
+                                className="flex-1 bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors font-mono uppercase"
                             />
                         </div>
                     </div>
@@ -294,7 +294,7 @@ export function PropEditor() {
             case 'boolean':
                 return (
                     <div className="flex items-center justify-between py-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</label>
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
                         <button
                             id={elemId}
                             onClick={() => handlePropChange(fieldId, !(currentValue ?? field.default ?? false))}
@@ -310,12 +310,12 @@ export function PropEditor() {
             case 'select':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</label>
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
                         <select
                             id={elemId}
                             value={currentValue ?? field.default ?? ''}
                             onChange={e => handlePropChange(fieldId, e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+                            className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
                         >
                             {field.options?.map((opt: any) => (
                                 <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt}</option>
@@ -326,8 +326,8 @@ export function PropEditor() {
             case 'segmented':
                 return (
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</label>
-                        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
+                        <div className="flex bg-secondary p-1 rounded-lg border border-border">
                             {field.options?.map((opt: any) => {
                                 const val = opt.value || opt;
                                 const isSelected = (currentValue ?? field.default) === val;
@@ -336,7 +336,7 @@ export function PropEditor() {
                                         key={val}
                                         type="button"
                                         onClick={() => handlePropChange(fieldId, val)}
-                                        className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                                        className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:text-foreground'}`}
                                     >
                                         {opt.label || opt}
                                     </button>
@@ -348,7 +348,7 @@ export function PropEditor() {
             case 'number':
                 return (
                     <div className="space-y-2">
-                        <label htmlFor={elemId} className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</label>
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
                         <input
                             id={elemId}
                             type="number"
@@ -357,14 +357,14 @@ export function PropEditor() {
                             step={field.step || 0.1}
                             min={field.min}
                             max={field.max}
-                            className="w-full bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
                         />
                     </div>
                 );
             default:
                 return (
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label} ({field.type})</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label} ({field.type})</label>
                         <textarea
                             rows={3}
                             value={typeof currentValue === 'object' ? JSON.stringify(currentValue, null, 2) : currentValue ?? ''}
@@ -372,7 +372,7 @@ export function PropEditor() {
                                 try { handlePropChange(fieldId, JSON.parse(e.target.value)); }
                                 catch { handlePropChange(fieldId, e.target.value); }
                             }}
-                            className="w-full bg-slate-800 border border-slate-700 text-xs font-mono rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full bg-secondary border border-border text-xs font-mono rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
                         />
                     </div>
                 );
@@ -380,21 +380,21 @@ export function PropEditor() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0a0f]">
-            <div className="p-4 border-b border-white/5 bg-slate-900/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
-                <h3 className="font-bold text-white flex items-center gap-2">
+        <div className="flex flex-col h-full bg-card">
+            <div className="p-4 border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                     <Settings2 size={16} className="text-indigo-400" />
                     {schema.title || targetNode.componentId}
                 </h3>
-                {schema.description && <p className="text-xs text-slate-400 mt-1">{schema.description}</p>}
+                {schema.description && <p className="text-xs text-muted-foreground mt-1">{schema.description}</p>}
                 {activeBlockId && (
-                    <p className="text-[10px] text-slate-600 mt-0.5 uppercase tracking-wider">Block</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5 uppercase tracking-wider">Block</p>
                 )}
             </div>
 
             <div className="p-5 space-y-6 flex-1 overflow-y-auto">
                 {(!fields || fields.length === 0) ? (
-                    <p className="text-slate-500 text-sm">Không có thuộc tính nào để tùy chỉnh.</p>
+                    <p className="text-muted-foreground text-sm">Không có thuộc tính nào để tùy chỉnh.</p>
                 ) : (
                     fields.map((field: any) => {
                         const fieldId = field.id || field.name;
@@ -408,7 +408,7 @@ export function PropEditor() {
 
                 {/* Delete section button (only for page sections, not global) */}
                 {!activeBlockId && !globalComponents.some(c => c.id === targetId) && (
-                    <div className="pt-4 border-t border-white/5">
+                    <div className="pt-4 border-t border-border">
                         <button
                             onClick={() => {
                                 const { removePageSection, activePage, setActiveComponent } = useBuilderStore.getState();
