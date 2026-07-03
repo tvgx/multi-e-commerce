@@ -4,8 +4,11 @@ import {
   Post,
   Body,
   Headers,
+  Query,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { StorefrontAuthService } from './storefront-auth.service';
 import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { verifyJwt } from './jwt.utils';
@@ -57,5 +60,42 @@ export class StorefrontAuthController {
   @Post('reset-password')
   async resetPassword(@Body() body: { token: string, password: string }): Promise<BaseResponseDto<any>> {
     return this.authService.resetPassword(body.token, body.password);
+  }
+
+  // Sign in with Google (buyer). These are browser redirects, so they use
+  // @Res() to 302 rather than returning a JSON envelope.
+
+  @Get('google/start')
+  async googleStart(
+    @Query('shopSlug') shopSlug: string,
+    @Query('redirect') redirect: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const storefront = process.env.STOREFRONT_URL || 'http://localhost:3002';
+    try {
+      const url = await this.authService.getGoogleAuthUrl(shopSlug, redirect);
+      res.redirect(url);
+    } catch {
+      res.redirect(`${storefront}/${shopSlug || ''}/account/login?error=google`);
+    }
+  }
+
+  @Get('google/callback')
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const storefront = process.env.STOREFRONT_URL || 'http://localhost:3002';
+    try {
+      const { token, shopSlug, redirect } = await this.authService.handleGoogleCallback(code, state);
+      // The storefront sets the httpOnly session cookie (correct origin/path).
+      const cb = new URL(`${storefront}/${shopSlug}/account/oauth-callback`);
+      cb.searchParams.set('token', token);
+      if (redirect) cb.searchParams.set('redirect', redirect);
+      res.redirect(cb.toString());
+    } catch {
+      res.redirect(`${storefront}/?error=google`);
+    }
   }
 }

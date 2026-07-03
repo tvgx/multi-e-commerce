@@ -11,6 +11,11 @@ import { EmailService } from '../email/email.service';
  * Được mount tại: /api/auth/owner/*
  */
 export function createOwnerAuth(prisma: PrismaService, emailService: EmailService) {
+  // Only wire Google when both credentials are present, so a missing/empty env
+  // (dev without OAuth set up) doesn't break better-auth at startup. Fill
+  // GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env to enable the button.
+  const googleEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
   return betterAuth({
     database: prismaAdapter(prisma, {
       provider: 'postgresql',
@@ -40,13 +45,18 @@ export function createOwnerAuth(prisma: PrismaService, emailService: EmailServic
         maxAge: 300,
       },
     },
-    // Thêm social providers tại đây nếu cần:
-    // socialProviders: {
-    //   google: {
-    //     clientId: process.env.GOOGLE_CLIENT_ID!,
-    //     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    //   },
-    // },
+    // Sign in with Google (owner/admin). Callback URL registered in Google
+    // Cloud: {BETTER_AUTH_URL}/api/auth/owner/callback/google.
+    ...(googleEnabled
+      ? {
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID as string,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            },
+          },
+        }
+      : {}),
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     basePath: '/api/auth/owner',

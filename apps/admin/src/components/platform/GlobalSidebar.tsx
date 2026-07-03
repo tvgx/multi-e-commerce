@@ -25,14 +25,20 @@ export function GlobalSidebar() {
   const displayName = user?.name || user?.email || t("header.accountFallback");
 
   const soon = t("nav.soon");
-  const PLATFORM_ITEMS = [
+  interface NavItem {
+    icon: React.ReactNode;
+    label: string;
+    href: string;
+    badge?: string;
+  }
+  const PLATFORM_ITEMS: NavItem[] = [
     { icon: <Store size={20} />, label: t("nav.myShops"), href: "/dashboard/shops" },
     { icon: <BarChart3 size={20} />, label: t("nav.analytics"), href: "/dashboard/analytics" },
     { icon: <Package size={20} />, label: t("nav.catalog"), href: "/dashboard/catalog" },
     { icon: <Palette size={20} />, label: t("nav.themes"), href: "/dashboard/themes" },
   ];
 
-  const ACCOUNT_ITEMS = [
+  const ACCOUNT_ITEMS: NavItem[] = [
     { icon: <CreditCard size={20} />, label: t("nav.billing"), href: "/dashboard/billing", badge: soon },
     { icon: <Code2 size={20} />, label: t("nav.developer"), href: "/dashboard/developer", badge: soon },
     { icon: <Settings size={20} />, label: t("nav.settings"), href: "/dashboard/settings" },

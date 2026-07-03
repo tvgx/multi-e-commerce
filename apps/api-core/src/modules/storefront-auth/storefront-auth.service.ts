@@ -6,7 +6,7 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 import { randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcryptjs';
-import { signJwt } from './jwt.utils';
+import { signJwt, verifyJwt } from './jwt.utils';
 import { TenantService } from '../../common/services/tenant.service';
 
 /**
@@ -166,6 +166,160 @@ export class StorefrontAuthService {
       'Password changes are handled by Better Auth — call /api/auth/customer/change-password instead.',
       HttpStatus.BAD_REQUEST,
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Sign in with Google (buyer / storefront)
+  //
+  // Buyers are multi-tenant (unique per shopId+email) and use the custom JWT,
+  // not better-auth. We therefore run our own OAuth flow and carry the shop
+  // through Google via a short-lived signed `state`. One backend callback URI
+  // serves every shop. Implemented with fetch — no extra dependency.
+  // ─────────────────────────────────────────────────────────────
+
+  private readonly GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+  private readonly GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+  private readonly GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
+
+  private googleRedirectUri(): string {
+    const base =
+      process.env.BETTER_AUTH_URL || process.env.API_CORE_URL || 'http://localhost:3000';
+    return `${base}/api/storefront-auth/google/callback`;
+  }
+
+  /** Build the Google consent URL for a shop's storefront login. */
+  async getGoogleAuthUrl(shopSlug: string, redirect?: string): Promise<string> {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new CustomException(
+        ResponseCodes.EXCEPTION_ERROR,
+        'Google login is not configured',
+        HttpStatus.NOT_IMPLEMENTED,
+      );
+    }
+    if (!shopSlug) {
+      throw new CustomException(
+        ResponseCodes.PARAM_VALUE_INVALID,
+        'shopSlug is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const shop = await this.prisma.shop.findFirst({
+      where: { OR: [{ id: shopSlug }, { domain: shopSlug }] },
+      select: { id: true },
+    });
+    if (!shop) {
+      throw new CustomException(ResponseCodes.NO_DATA_END_OF_LIST, 'Shop not found', HttpStatus.NOT_FOUND);
+    }
+
+    // ~10 min signed state carrying the shop so the callback stays shop-scoped.
+    const state = signJwt(
+      { shopId: shop.id, shopSlug, redirect: redirect || '', purpose: 'sf-google' },
+      10 / (24 * 60),
+    );
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: this.googleRedirectUri(),
+      response_type: 'code',
+      scope: 'openid email profile',
+      state,
+      access_type: 'online',
+      prompt: 'select_account',
+    });
+    return `${this.GOOGLE_AUTH_URL}?${params.toString()}`;
+  }
+
+  /** Exchange the Google code, upsert the (shop-scoped) customer, issue a JWT. */
+  async handleGoogleCallback(
+    code: string,
+    state: string,
+  ): Promise<{ token: string; shopSlug: string; redirect: string }> {
+    if (!code || !state) {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Missing code or state', HttpStatus.BAD_REQUEST);
+    }
+
+    let decoded: any;
+    try {
+      decoded = verifyJwt(state);
+    } catch {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid or expired state', HttpStatus.BAD_REQUEST);
+    }
+    if (decoded.purpose !== 'sf-google' || !decoded.shopId || !decoded.shopSlug) {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Invalid state', HttpStatus.BAD_REQUEST);
+    }
+    const { shopId, shopSlug, redirect } = decoded;
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Google login is not configured', HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    const tokenRes = await fetch(this.GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: this.googleRedirectUri(),
+        grant_type: 'authorization_code',
+      }).toString(),
+    });
+    if (!tokenRes.ok) {
+      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Google token exchange failed', HttpStatus.UNAUTHORIZED);
+    }
+    const tokenData: any = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'No access token from Google', HttpStatus.UNAUTHORIZED);
+    }
+
+    const infoRes = await fetch(this.GOOGLE_USERINFO_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!infoRes.ok) {
+      throw new CustomException(ResponseCodes.EXCEPTION_ERROR, 'Failed to load Google profile', HttpStatus.UNAUTHORIZED);
+    }
+    const info: any = await infoRes.json();
+    const email: string | undefined = info.email;
+    if (!email) {
+      throw new CustomException(ResponseCodes.PARAM_VALUE_INVALID, 'Google account has no email', HttpStatus.BAD_REQUEST);
+    }
+    const name = info.name || email;
+    const now = new Date();
+
+    // Upsert the shop-scoped customer + a 'google' account link.
+    const customer = await this.prisma.$transaction(async (tx) => {
+      let c = await tx.customer.findUnique({ where: { shopId_email: { shopId, email } } });
+      if (!c) {
+        c = await tx.customer.create({
+          data: { email, name, shopId, emailVerified: !!info.email_verified },
+        });
+      }
+      const acct = await tx.customerAccount.findFirst({
+        where: { customerId: c.id, providerId: 'google' },
+      });
+      if (!acct) {
+        await tx.customerAccount.create({
+          data: {
+            id: randomUUID(),
+            accountId: info.sub || email,
+            providerId: 'google',
+            customerId: c.id,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+      return c;
+    });
+
+    return {
+      token: this.issueToken({ id: customer.id, email: customer.email, shopId: customer.shopId }),
+      shopSlug,
+      redirect: redirect || '',
+    };
   }
 
   async getMe(customerId: string): Promise<BaseResponseDto<any>> {
