@@ -19,6 +19,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@ecommerce/i18n": "*",
     "@ecommerce/ui-registry": "*",
+    "@monaco-editor/react": "^4.7.0",
     "lucide-react": "^0.575.0",
     "next": "^16.2.6",
     "react": "^19.2.3",

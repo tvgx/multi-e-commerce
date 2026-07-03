@@ -36,6 +36,12 @@ import { CartModule } from './modules/cart/cart.module';
 import { CustomerAddressModule } from './modules/customer-address/customer-address.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { BuildModule } from './modules/build/build.module';
+import { TestingModule } from './modules/testing/testing.module';
+
+// Dev-only in-app test runner. It can write source files and spawn `jest`
+// (arbitrary code execution), so it is only mounted outside production.
+const DEV_ONLY_MODULES =
+  process.env.NODE_ENV !== 'production' ? [TestingModule] : [];
 
 @Module({
   imports: [
@@ -103,6 +109,7 @@ import { BuildModule } from './modules/build/build.module';
     CustomerAddressModule,
     GeoModule,
     BuildModule,
+    ...DEV_ONLY_MODULES,
   ],
   controllers: [AppController],
   providers: [AppService],
