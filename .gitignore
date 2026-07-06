@@ -49,4 +49,4 @@ tunnel-credentials.json
 master-template-example/
 
 
-.early.coverage
+.early.coverage*:Zone.Identifier
