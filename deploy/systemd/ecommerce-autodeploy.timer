@@ -1,0 +1,11 @@
+[Unit]
+Description=Run e-commerce auto-deploy every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+# Nếu một lần chạy kéo dài (pull image lớn), lần kế tiếp chỉ bắt đầu sau khi
+# service kết thúc — systemd không cho oneshot chạy chồng nhau.
+
+[Install]
+WantedBy=timers.target

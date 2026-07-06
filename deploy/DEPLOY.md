@@ -126,7 +126,24 @@ curl -I https://api.tvgx1.id.vn/api/docs            # 200 + cert hợp lệ
 
 ## Vận hành
 
-**Deploy phiên bản mới** (sau khi CI build xong image `:latest`):
+**Auto-deploy (mặc định):** box chạy systemd timer `ecommerce-autodeploy.timer`
+(2 phút/lần) gọi [auto-deploy.sh](auto-deploy.sh): `git reset --hard origin/main`
+→ `docker compose pull` → `up -d`. Push lên `main` → CI build image (~15–25')
+→ box tự nhận image mới ở tick kế tiếp, không cần SSH.
+
+```bash
+# Cài (một lần, đã làm 2026-07-06):
+sudo cp deploy/systemd/ecommerce-autodeploy.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now ecommerce-autodeploy.timer
+# Theo dõi:
+journalctl -u ecommerce-autodeploy.service -f
+systemctl list-timers ecommerce-autodeploy.timer
+```
+
+> Lưu ý: box coi checkout là read-only — auto-deploy `reset --hard` theo
+> origin/main, mọi sửa tay trên box sẽ bị ghi đè (deploy/.env untracked nên an toàn).
+
+**Deploy tay** (khi cần ngay, không chờ tick):
 ```bash
 docker compose -f docker-compose.prod.yaml pull
 docker compose -f docker-compose.prod.yaml up -d

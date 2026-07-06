@@ -1,0 +1,11 @@
+[Unit]
+Description=E-commerce auto-deploy (git pull + docker compose pull/up)
+Wants=docker.service network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+ExecStart=/home/ubuntu/multi-e-commerce/deploy/auto-deploy.sh
+# Kéo 6 image lần đầu có thể lâu; đừng để systemd giết giữa chừng.
+TimeoutStartSec=15min
