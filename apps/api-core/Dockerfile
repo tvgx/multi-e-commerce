@@ -51,6 +51,9 @@ USER nestjs
 COPY --from=builder /app/apps/api-core/dist ./apps/api-core/dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+# node_modules/@ecommerce/* are symlinks into /app/packages — without the real
+# packages (their dist + package.json) every workspace import fails at runtime.
+COPY --from=builder /app/packages ./packages
 
 # Environment variables
 ENV NODE_ENV=production
@@ -58,4 +61,6 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "apps/api-core/dist/main"]
+# tsc emits src/ + scripts/ under dist (both are in tsconfig include), so the
+# entrypoint lives at dist/src/main.js, not dist/main.js.
+CMD ["node", "apps/api-core/dist/src/main"]

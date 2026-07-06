@@ -51,4 +51,5 @@ ENV DESIGN_AGENT_PORT=3100
 EXPOSE 3100
 
 # `serve` boots the HTTP server (POST /design-agent/chat).
-CMD ["node", "apps/design-agent/dist/main.js", "serve"]
+# tsc emits src/ + scripts/ under dist, so the entrypoint is dist/src/main.js.
+CMD ["node", "apps/design-agent/dist/src/main.js", "serve"]

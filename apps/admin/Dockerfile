@@ -59,4 +59,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["npx", "next", "start", "--dir", "apps/admin", "-p", "3000"]
+# `next start` has no --dir flag; the app directory is a positional argument.
+CMD ["npx", "next", "start", "apps/admin", "-p", "3000"]
