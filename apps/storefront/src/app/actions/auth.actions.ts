@@ -27,7 +27,8 @@ export async function loginCustomer(shopSlug: string, formData: FormData) {
 
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
+        // BaseResponseDto: `success` là getter nên không có trong JSON — check code '1000'.
+        if (!res.ok || data.code !== '1000') {
             return { error: data.message || 'Login failed' };
         }
 
@@ -98,7 +99,8 @@ export async function registerCustomer(shopSlug: string, formData: FormData) {
 
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
+        // BaseResponseDto: `success` là getter nên không có trong JSON — check code '1000'.
+        if (!res.ok || data.code !== '1000') {
             return { error: data.message || 'Registration failed' };
         }
 

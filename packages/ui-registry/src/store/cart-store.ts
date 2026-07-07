@@ -26,6 +26,8 @@ interface CartState {
   totalAmount: number;
   isOpen: boolean;
   isLoading: boolean;
+  /** true sau lần fetch giỏ đầu tiên — trước đó items=[] chỉ là trạng thái chưa nạp */
+  hasLoaded: boolean;
   shopSlug: string | null;
 
   initialize: (shopSlug: string) => Promise<void>;
@@ -67,11 +69,13 @@ export const useCartStore = create<CartState>((set, get) => ({
   totalAmount: 0,
   isOpen: false,
   isLoading: false,
+  hasLoaded: false,
   shopSlug: null,
 
   initialize: async (shopSlug: string) => {
     set({ shopSlug });
     await get().refresh();
+    set({ hasLoaded: true });
   },
 
   // internal: re-fetch the authoritative cart from the backend

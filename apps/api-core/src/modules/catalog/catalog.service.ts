@@ -348,6 +348,41 @@ export class CatalogService {
     }
   }
 
+  // Ghi StockItem ban đầu ở kho mặc định cho các variant chưa có dòng tồn kho.
+  // Shop mới có thể chưa có kho (warehouse chỉ được tạo ở bước Billing &
+  // Shipping của wizard) — tạo trước một kho mặc định rỗng; upsertWarehouse về
+  // sau update đúng kho này. KHÔNG đụng tồn kho hiện có — số lượng thực quản
+  // lý qua trang Inventory (adjust/restock).
+  private async seedDefaultStock(
+    tx: any,
+    shopId: string,
+    variants: { id: string; sku: string }[],
+    dtoVariants: { sku: string; inStock?: number }[],
+  ) {
+    if (!variants.length) return;
+    let location = await tx.stockLocation.findFirst({
+      where: { shopId, isDefault: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!location) {
+      location = await tx.stockLocation.create({
+        data: { shopId, name: 'Kho mặc định', isDefault: true, active: true },
+      });
+    }
+    // Không có global ValidationPipe nên inStock phải tự ép kiểu ở đây.
+    const stockBySku = new Map(dtoVariants.map((v) => [v.sku, Number(v.inStock)]));
+    await tx.stockItem.createMany({
+      data: variants.map((v) => {
+        const n = stockBySku.get(v.sku);
+        return {
+          stockLocationId: location.id,
+          variantId: v.id,
+          countOnHand: Number.isFinite(n) ? Math.max(0, Math.floor(n as number)) : 0,
+        };
+      }),
+    });
+  }
+
   async createProduct(dto: CreateProductDto) {
     const shopId = this.getShopId();
 
@@ -380,6 +415,10 @@ export class CatalogService {
 
       if (dto.collectionIds) {
         await this.syncCollections(tx, shopId, product.id, dto.collectionIds);
+      }
+
+      if (dto.variants?.length) {
+        await this.seedDefaultStock(tx, shopId, product.variants, dto.variants);
       }
 
       return product;
@@ -440,6 +479,14 @@ export class CatalogService {
             },
           });
         }
+
+        // Variant thiếu StockItem (mới thêm, hoặc tạo trước khi shop có kho) →
+        // seed ở kho mặc định với inStock từ form.
+        const orphanVariants = await tx.variant.findMany({
+          where: { productId: id, shopId, stockItems: { none: {} } },
+          select: { id: true, sku: true },
+        });
+        await this.seedDefaultStock(tx, shopId, orphanVariants, dto.variants);
       }
 
       // CAT-3: sync collection membership when the form sends it (it always

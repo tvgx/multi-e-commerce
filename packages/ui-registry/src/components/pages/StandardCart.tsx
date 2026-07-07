@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { Minus, Plus, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 import { SmartImage } from '../blocks/SmartImage';
 import { formatPrice } from '../../lib/format';
@@ -18,7 +21,9 @@ interface StandardCartProps {
 }
 
 export function StandardCart({ items = [] }: StandardCartProps) {
-    
+    const params = useParams();
+    const shopSlug = (params?.shopSlug as string) || '';
+
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shipping = subtotal > 0 ? 10 : 0;
     const taxes = subtotal * 0.05;
@@ -37,7 +42,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                         </div>
                         <h2 className="text-2xl font-bold text-slate-900 mb-2">Your cart is empty</h2>
                         <p className="text-slate-500 mb-8 max-w-md">Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.</p>
-                        <a href="/collections/all" className="bg-primary text-white px-8 py-4 rounded-xl font-medium hover:bg-primary/90 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                        <a href={`/${shopSlug}/all-products`} className="bg-brand text-white px-8 py-4 rounded-xl font-medium hover:bg-brand/90 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                             Start Shopping <ArrowRight className="w-5 h-5" />
                         </a>
                     </div>
@@ -125,7 +130,7 @@ export function StandardCart({ items = [] }: StandardCartProps) {
                                     <span className="text-3xl font-black text-slate-900">{formatPrice(total)}</span>
                                 </div>
 
-                                <a href="/payment" className="w-full block text-center bg-primary text-white py-4 rounded-xl font-bold text-lg shadow-md hover:shadow-lg hover:bg-primary/90 transition-all flex justify-center items-center gap-2 mb-6">
+                                <a href={`/${shopSlug}/payment`} className="w-full block text-center bg-brand text-white py-4 rounded-xl font-bold text-lg shadow-md hover:shadow-lg hover:bg-brand/90 transition-all flex justify-center items-center gap-2 mb-6">
                                     Proceed to Checkout <ArrowRight className="w-5 h-5" />
                                 </a>
 

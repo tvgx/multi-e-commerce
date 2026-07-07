@@ -50,3 +50,10 @@ master-template-example/
 
 
 .early.coverage*:Zone.Identifier
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Env backups
+.env.prod-backup*

@@ -9,7 +9,7 @@ import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlug: string }) {
     const t = useTranslations('order');
-    const { items, totalAmount, clearCart } = useCartStore();
+    const { items, totalAmount, clearCart, hasLoaded } = useCartStore();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,12 +47,13 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
     } | null>(null);
     const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-    // Protect against empty cart
+    // Protect against empty cart — chỉ sau khi giỏ đã nạp xong từ server,
+    // tránh redirect nhầm lúc hard-load khi store còn trống chưa hydrate.
     useEffect(() => {
-        if (items.length === 0 && !orderId) {
+        if (hasLoaded && items.length === 0 && !orderId) {
             router.push(`/${shopSlug}/all-products`);
         }
-    }, [items, router, shopSlug, orderId]);
+    }, [hasLoaded, items, router, shopSlug, orderId]);
 
     // Authenticated calls (wallet, order checkout) go through the storefront BFF
     // at `/{shopSlug}/api/store/...`, which reads the httpOnly session cookie

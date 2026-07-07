@@ -23,6 +23,11 @@ class VariantDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  // Tồn kho ban đầu — ghi vào StockItem của kho mặc định (tạo kho nếu shop chưa có).
+  @IsOptional()
+  @IsNumber()
+  inStock?: number;
 }
 
 export class CreateProductDto {

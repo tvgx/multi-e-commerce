@@ -126,11 +126,18 @@ export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | nu
         if (!res.ok) return null;
 
         const data = await res.json();
-        const metadata = data?.data?.metadata;
-        if (metadata) {
-            metadata.paymentMethods = data?.data?.paymentMethods || [];
-        }
-        return metadata ?? null;
+        // GET /api/shops/:id trả thẳng row Shop (BaseResponseDto.success(shop)),
+        // không có field `metadata` lồng bên trong — map trực tiếp sang ShopInfo.
+        const shop = data?.data;
+        if (!shop?.id) return null;
+        return {
+            id: shop.id,
+            name: shop.name,
+            slug: shop.domain ?? shop.id,
+            templateType: shop.templateType,
+            productsPerPage: shop.productsPerPage,
+            paymentMethods: shop.paymentMethods || [],
+        };
     } catch (err) {
         console.error(`[storefront.api] getShopInfo failed for shopIdentifier=${shopIdentifier}`, err);
         return null;
@@ -162,7 +169,7 @@ export async function getShopGlobalLayout(shopIdentifier: string) {
         if (!res.ok) return null;
 
         const body = await res.json();
-        if (!body.success) return null;
+        if (body.code !== '1000') return null;
 
         return body.data ?? null;
     } catch (err) {
@@ -197,7 +204,7 @@ export async function getShopPageLayout(shopIdentifier: string, pageType: string
         if (!res.ok) return null;
 
         const body = await res.json();
-        if (!body.success) return null;
+        if (body.code !== '1000') return null;
 
         return body.data ?? null;
     } catch (err) {
@@ -342,7 +349,7 @@ export async function getShopProductDetails(shopIdentifier: string, productId: s
         if (!res.ok) return null;
 
         const body = await res.json();
-        if (!body.success) return { product: null };
+        if (body.code !== '1000') return { product: null };
 
         return { product: body.data };
     } catch (err) {

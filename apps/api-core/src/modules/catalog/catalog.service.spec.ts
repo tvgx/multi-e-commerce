@@ -133,6 +133,39 @@ describe('CatalogService', () => {
       expect(data.variants.create[1]).toMatchObject({ sku: 'B', isMaster: false });
     });
 
+    it('ghi tồn kho ban đầu vào kho mặc định, tự tạo kho khi shop chưa có', async () => {
+      prisma.product.create.mockResolvedValue({
+        id: 'p1',
+        variants: [
+          { id: 'v1', sku: 'A' },
+          { id: 'v2', sku: 'B' },
+        ],
+      });
+      prisma.stockLocation.findFirst.mockResolvedValue(null); // shop mới chưa có kho
+      prisma.stockLocation.create.mockResolvedValue({ id: 'loc1' });
+
+      await service.createProduct({
+        name: 'Tee',
+        slug: 'tee',
+        variants: [
+          { sku: 'A', price: 100, inStock: 5 },
+          { sku: 'B', price: 200 },
+        ],
+      } as any);
+
+      expect(prisma.stockLocation.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ shopId: SHOP, isDefault: true }),
+        }),
+      );
+      expect(prisma.stockItem.createMany).toHaveBeenCalledWith({
+        data: [
+          { stockLocationId: 'loc1', variantId: 'v1', countOnHand: 5 },
+          { stockLocationId: 'loc1', variantId: 'v2', countOnHand: 0 },
+        ],
+      });
+    });
+
     it('links collections when collectionIds are supplied (CAT-3)', async () => {
       prisma.product.create.mockResolvedValue({ id: 'p1', variants: [] });
       prisma.collection.findMany.mockResolvedValue([{ id: 'c1' }]);
@@ -163,6 +196,7 @@ describe('CatalogService', () => {
       prisma.product.findFirst.mockResolvedValue({ id: 'p1' }); // ownership ok
       prisma.product.update.mockResolvedValue({ id: 'p1' });
       prisma.product.findUnique.mockResolvedValue({ id: 'p1', variants: [] });
+      prisma.variant.findMany.mockResolvedValue([]); // không có variant thiếu StockItem
 
       await service.updateProduct('p1', {
         name: 'Tee2',
