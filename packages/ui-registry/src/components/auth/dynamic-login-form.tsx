@@ -17,7 +17,8 @@ export function DynamicLoginForm({ shopId, redirectUrl = '/' }: Props) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3000/api/storefront-auth/login', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${API_BASE}/api/storefront-auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, shopId }),

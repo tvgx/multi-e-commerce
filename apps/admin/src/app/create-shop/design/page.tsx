@@ -36,6 +36,7 @@ export default function DesignPage() {
 function DesignWorkspace() {
   const deviceMode = useBuilderStore((s) => s.deviceMode);
   const isLoading = useBuilderStore((s) => s.isLoading);
+  const storeShopId = useBuilderStore((s) => s.shopId);
   const theme = useBuilderStore((s) => s.theme) as Record<string, any>;
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
@@ -44,12 +45,15 @@ function DesignWorkspace() {
   const setupCheckedRef = React.useRef(false);
 
   // Same gateway as the dashboard builder: a brand-new shop lands on Setup first.
+  // Chỉ check sau khi loadTemplate của ĐÚNG shop này chạy xong (storeShopId khớp)
+  // — effect con chạy trước effect cha nên lúc mount isLoading=false nhưng store
+  // còn rỗng, check sớm sẽ mở Setup với theme trống (mất prefill).
   React.useEffect(() => {
-    if (!isLoading && shopId && !setupCheckedRef.current) {
+    if (!isLoading && shopId && storeShopId === shopId && !setupCheckedRef.current) {
       setupCheckedRef.current = true;
       if (!theme?.setupCompleted) setShowSetup(true);
     }
-  }, [isLoading, theme, shopId]);
+  }, [isLoading, theme, shopId, storeShopId]);
 
   // PropEditor's default panel reopens Setup via this event.
   React.useEffect(() => {

@@ -19,6 +19,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     const saveTemplate = useBuilderStore(s => s.saveTemplate);
     const publishTemplate = useBuilderStore(s => s.publishTemplate);
     const isLoading = useBuilderStore(s => s.isLoading);
+    const storeShopId = useBuilderStore(s => s.shopId);
     const deviceMode = useBuilderStore(s => s.deviceMode);
     const setDeviceMode = useBuilderStore(s => s.setDeviceMode);
     const undo = useBuilderStore(s => s.undo);
@@ -44,12 +45,14 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
     // First time into the builder for a shop that hasn't finished Setup → open the
     // Setup gateway. After it's done once (theme.setupCompleted) we go straight to
     // the canvas; the owner can reopen Setup from the toolbar any time.
+    // Chỉ check sau khi loadTemplate của ĐÚNG shop này xong (storeShopId khớp) —
+    // check với store rỗng lúc mount sẽ mở Setup nhầm với theme trống.
     useEffect(() => {
-        if (!isLoading && !setupCheckedRef.current) {
+        if (!isLoading && storeShopId === shopId && !setupCheckedRef.current) {
             setupCheckedRef.current = true;
             if (!theme?.setupCompleted) setShowSetup(true);
         }
-    }, [isLoading, theme]);
+    }, [isLoading, theme, storeShopId, shopId]);
 
     // The "nothing selected" panel (PropEditor) reopens Setup via this event.
     useEffect(() => {

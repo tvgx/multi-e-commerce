@@ -5,6 +5,11 @@ import { ComponentSchemas } from '../component-schemas';
 
 export type DeviceMode = 'desktop' | 'mobile';
 
+// Base URL api-core. NEXT_PUBLIC_* được Next inline tại build-time (admin build
+// với --build-arg NEXT_PUBLIC_API_URL) — hardcode localhost ở đây từng làm toàn
+// bộ save/load builder chết trên production.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 // Pages a shop owner can customise in the builder. Order here drives the page
 // switcher. Labels are intentionally plain-language for non-technical owners.
 export const EDITABLE_PAGES: { key: string; label: string; description: string }[] = [
@@ -533,9 +538,9 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             const fetchOpts: RequestInit = { headers, credentials: 'include' };
 
             const [globalRes, ...pageResults] = await Promise.all([
-                fetch(`http://localhost:3000/api/layouts/${shopId}/draft/global`, fetchOpts),
+                fetch(`${API_BASE}/api/layouts/${shopId}/draft/global`, fetchOpts),
                 ...EDITABLE_PAGE_KEYS.map(pageType =>
-                    fetch(`http://localhost:3000/api/layouts/${shopId}/draft/page/${pageType}`, fetchOpts)
+                    fetch(`${API_BASE}/api/layouts/${shopId}/draft/page/${pageType}`, fetchOpts)
                 ),
             ]);
 
@@ -556,14 +561,14 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             let shopData: any = null;
             if (!globalData?.theme?.shopName) {
                 try {
-                    const r = await fetch(`http://localhost:3000/api/shops/${shopId}`, fetchOpts);
+                    const r = await fetch(`${API_BASE}/api/shops/${shopId}`, fetchOpts);
                     if (r.ok) shopData = (await r.json()).data;
                 } catch { /* ignore */ }
             }
 
             let availableSchemas: any[] = [];
             try {
-                const r = await fetch(`http://localhost:3000/api/layouts/builder/schemas`, fetchOpts);
+                const r = await fetch(`${API_BASE}/api/layouts/builder/schemas`, fetchOpts);
                 if (r.ok) availableSchemas = (await r.json()).data || [];
             } catch { /* ignore */ }
 
@@ -592,9 +597,16 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
                 },
             ];
 
+            // Theme chưa có shopName (shop mới tạo từ wizard) → lấy Shop.name đã
+            // khai ở bước 1 làm mặc định, để SetupWizard không bắt nhập lại.
+            const loadedTheme: Record<string, any> = { ...(globalData?.theme || {}) };
+            if (!loadedTheme.shopName && shopData?.name) {
+                loadedTheme.shopName = shopData.name;
+            }
+
             set({
                 globalComponents: globalData?.globalComponents?.length ? globalData.globalComponents : defaultGlobalComponents,
-                theme: globalData?.theme || (shopData ? { shopName: shopData.name } : {}),
+                theme: loadedTheme,
                 pages,
                 availableSchemas,
                 isLoading: false,
@@ -616,13 +628,13 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
         // surface it instead of advancing/“publishing” while nothing was saved.
         try {
             const responses = await Promise.all([
-                fetch('http://localhost:3000/api/layouts/builder/save/global', {
+                fetch(`${API_BASE}/api/layouts/builder/save/global`, {
                     ...fetchOpts,
                     method: 'POST',
                     body: JSON.stringify({ shopId, theme: state.theme, globalComponents: state.globalComponents }),
                 }),
                 ...EDITABLE_PAGE_KEYS.map(pageType =>
-                    fetch('http://localhost:3000/api/layouts/builder/save/page', {
+                    fetch(`${API_BASE}/api/layouts/builder/save/page`, {
                         ...fetchOpts,
                         method: 'POST',
                         body: JSON.stringify({ shopId, pageType, components: state.pages[pageType] || [] }),
@@ -647,7 +659,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
             // First save draft, then publish
             await get().saveTemplate(shopId, token);
 
-            const res = await fetch(`http://localhost:3000/api/layouts/${shopId}/publish`, {
+            const res = await fetch(`${API_BASE}/api/layouts/${shopId}/publish`, {
                 method: 'POST',
                 headers,
                 credentials: 'include',
@@ -664,7 +676,7 @@ export const useBuilderStore = create<BuilderStoreState>((set, get) => ({
     publishPage: async (shopId, pageType, token) => {
         const headers: any = { 'Content-Type': 'application/json', 'x-shop-id': shopId };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`http://localhost:3000/api/layouts/${shopId}/publish/page/${pageType}`, {
+        const res = await fetch(`${API_BASE}/api/layouts/${shopId}/publish/page/${pageType}`, {
             method: 'POST',
             headers,
             credentials: 'include',

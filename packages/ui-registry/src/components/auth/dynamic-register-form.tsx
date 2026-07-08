@@ -18,7 +18,8 @@ export function DynamicRegisterForm({ shopId, redirectUrl = '/' }: Props) {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3000/api/storefront-auth/register', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${API_BASE}/api/storefront-auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, shopId }),

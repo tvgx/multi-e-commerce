@@ -9,13 +9,15 @@ import { signIn } from '@/lib/auth-client';
 
 function LoginContent() {
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(() =>
+    searchParams.get('error') === 'google' ? 'Đăng nhập Google thất bại. Vui lòng thử lại.' : '',
+  );
+  const [loading, setLoading] = useState(false);
 
   const handleGoogle = async () => {
     setError('');
@@ -23,7 +25,18 @@ function LoginContent() {
       // Redirects to Google, then back to callbackUrl on success. Requires
       // GOOGLE_CLIENT_ID/SECRET on api-core + the OAuth client redirect URI
       // {BETTER_AUTH_URL}/api/auth/owner/callback/google.
-      await signIn.social({ provider: 'google', callbackURL: callbackUrl });
+      //
+      // callbackURL phải TUYỆT ĐỐI: auth server nằm ở api.<domain> khác origin
+      // với admin, better-auth redirect Location nguyên văn nên URL tương đối
+      // sẽ đưa user về api.<domain>/dashboard (JSON 404) thay vì admin.
+      const absoluteCallback = callbackUrl.startsWith('/')
+        ? `${window.location.origin}${callbackUrl}`
+        : callbackUrl;
+      await signIn.social({
+        provider: 'google',
+        callbackURL: absoluteCallback,
+        errorCallbackURL: `${window.location.origin}/login?error=google`,
+      });
     } catch (err: any) {
       setError(err?.message || 'Google sign-in failed');
     }

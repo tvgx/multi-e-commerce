@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Custom-domain routing (P0-2).
+ * Host-based routing: subdomain nền tảng + custom domain (P0-2).
  *
- * Storefront phục vụ shop theo path: `/[shopSlug]/...`. Khi người bán trỏ tên
- * miền riêng (đã xác thực TXT) về nền tảng, request tới với Host là tên miền đó
- * và KHÔNG có slug trong path. Middleware này resolve Host → slug rồi rewrite
- * `store.example.com/products/x` thành nội bộ `/<slug>/products/x`.
+ * Storefront phục vụ shop theo path: `/[shopSlug]/...`. Hai kiểu host được
+ * rewrite về path đó:
  *
- * Host của chính nền tảng (localhost dev, apex production trong
- * NEXT_PUBLIC_STOREFRONT_HOST) đi thẳng theo routing path-based như cũ.
+ * 1. Subdomain nền tảng `<slug>.tvgx1.id.vn` — label chính là `shop.domain`
+ *    (trùng path slug) nên rewrite thẳng, không cần gọi API.
+ * 2. Tên miền riêng của người bán (đã xác thực TXT) — resolve Host → slug qua
+ *    api-core `/api/shops/by-host` rồi rewrite.
+ *
+ * Apex/`www` (và host lạ không resolve được) đi thẳng theo routing path-based.
  */
 
 const API_BASE =
@@ -19,11 +21,20 @@ const API_BASE =
 
 // Hosts do nền tảng tự phục vụ (routing [shopSlug]). Tên miền riêng là mọi thứ
 // KHÔNG nằm trong tập này. Cấu hình host production qua NEXT_PUBLIC_STOREFRONT_HOST
-// (phân tách bằng dấu phẩy, vd: "omnicommerce.com").
-const PLATFORM_HOSTS = (process.env.NEXT_PUBLIC_STOREFRONT_HOST || 'localhost,127.0.0.1')
+// (phân tách bằng dấu phẩy, vd: "omnicommerce.com"). Image prod không được build
+// với biến NEXT_PUBLIC_* nên fallback thêm ROOT_DOMAIN (runtime, từ deploy/.env).
+const PLATFORM_HOSTS = (
+  process.env.NEXT_PUBLIC_STOREFRONT_HOST ||
+  process.env.ROOT_DOMAIN ||
+  'localhost,127.0.0.1'
+)
   .split(',')
-  .map((h) => h.trim().toLowerCase())
+  // Bỏ port (dev khai "localhost:3002") — hostname so sánh luôn không có port.
+  .map((h) => h.trim().toLowerCase().replace(/:\d+$/, ''))
   .filter(Boolean);
+
+// Subdomain hạ tầng, không bao giờ là slug shop.
+const RESERVED_SUBDOMAINS = new Set(['www', 'api', 'admin', 'cdn', 'images']);
 
 function isPlatformHost(hostname: string): boolean {
   if (!hostname) return true; // an toàn: coi host rỗng là nền tảng
@@ -31,6 +42,22 @@ function isPlatformHost(hostname: string): boolean {
   return PLATFORM_HOSTS.some(
     (ph) => hostname === ph || hostname.endsWith(`.${ph}`),
   );
+}
+
+/**
+ * `<slug>.tvgx1.id.vn` → "slug"; apex, `www.`, subdomain hạ tầng hoặc
+ * label nhiều cấp (a.b.tvgx1.id.vn) → null (đi routing path-based).
+ */
+function platformSubdomain(hostname: string): string | null {
+  for (const ph of PLATFORM_HOSTS) {
+    if (hostname !== ph && hostname.endsWith(`.${ph}`)) {
+      const label = hostname.slice(0, hostname.length - ph.length - 1);
+      if (label && !label.includes('.') && !RESERVED_SUBDOMAINS.has(label)) {
+        return label;
+      }
+    }
+  }
+  return null;
 }
 
 // Cache theo từng edge instance: host → slug | null (cache cả kết quả âm để
@@ -61,10 +88,22 @@ async function resolveSlug(hostname: string): Promise<string | null> {
   return slug;
 }
 
+function rewriteToSlug(req: NextRequest, slug: string): NextResponse {
+  const url = req.nextUrl.clone();
+  // Tránh prefix trùng nếu path đã nằm dưới slug.
+  if (url.pathname === `/${slug}` || url.pathname.startsWith(`/${slug}/`)) {
+    return NextResponse.next();
+  }
+  url.pathname = `/${slug}${url.pathname === '/' ? '' : url.pathname}`;
+  return NextResponse.rewrite(url);
+}
+
 export async function middleware(req: NextRequest) {
   const hostname = (req.headers.get('host') || '').split(':')[0].toLowerCase();
 
   if (isPlatformHost(hostname)) {
+    const label = platformSubdomain(hostname);
+    if (label) return rewriteToSlug(req, label);
     return NextResponse.next();
   }
 
@@ -74,13 +113,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const url = req.nextUrl.clone();
-  // Tránh prefix trùng nếu path đã nằm dưới slug.
-  if (url.pathname === `/${slug}` || url.pathname.startsWith(`/${slug}/`)) {
-    return NextResponse.next();
-  }
-  url.pathname = `/${slug}${url.pathname === '/' ? '' : url.pathname}`;
-  return NextResponse.rewrite(url);
+  return rewriteToSlug(req, slug);
 }
 
 export const config = {

@@ -23,7 +23,8 @@ export function DynamicChangePasswordForm({ shopId, redirectUrl = '/' }: Props) 
       const token = localStorage.getItem(`storefront_token_${shopId}`);
       if (!token) throw new Error('You must be logged in to change password');
 
-      const res = await fetch('http://localhost:3000/api/storefront-auth/change-password', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${API_BASE}/api/storefront-auth/change-password`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
