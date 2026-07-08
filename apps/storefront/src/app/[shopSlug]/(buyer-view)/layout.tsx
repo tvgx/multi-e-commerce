@@ -20,6 +20,8 @@ import { AnnouncementBar } from '@ecommerce/ui-registry/src/components/sections/
 import { SocialLinks } from '@/components/SocialLinks';
 import { getT } from '@/lib/i18n';
 import { VisitTracker } from '@/components/VisitTracker';
+import { ShopQuickNav } from '@/components/ShopQuickNav';
+import { User } from 'lucide-react';
 
 interface Props {
     children: React.ReactNode;
@@ -134,6 +136,14 @@ export default async function BuyerLayout({ children, params }: Props) {
                                 </a>
                             )}
                             <div className="mx-2 w-px h-4 bg-slate-200"></div>
+                            <a
+                                href={customerId ? `/${shopSlug}/profile` : `/${shopSlug}/account/login`}
+                                className="flex items-center gap-1.5 hover:text-brand transition-colors"
+                                title={customerId ? 'Tài khoản' : 'Đăng nhập'}
+                            >
+                                <User className="h-4 w-4" />
+                                {customerId ? 'Tài khoản' : 'Đăng nhập'}
+                            </a>
                             <LanguageSwitcher />
                             <CartTrigger />
                         </nav>
@@ -200,6 +210,9 @@ export default async function BuyerLayout({ children, params }: Props) {
             {shopInfo?.id && (
                 <ChatWidget shopId={shopInfo.id} customerId={customerId} />
             )}
+
+            {/* Điều hướng nổi — luôn có mặt dù shop chưa thiết kế Header/section nào */}
+            <ShopQuickNav shopSlug={shopSlug} loggedIn={!!customerId} />
         </div>
         </StorefrontPreviewProvider>
     );

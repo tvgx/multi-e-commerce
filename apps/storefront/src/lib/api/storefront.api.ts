@@ -32,6 +32,8 @@ export interface ShopInfo {
     owner?: { fullName: string; email: string };
     productsPerPage?: number;
     paymentMethods?: any[];
+    /** Thông tin chuyển khoản (CheckoutDefault hiển thị cạnh QR). */
+    bankAccount?: { bankName: string; accountNumber: string; accountHolder: string } | null;
 }
 
 export interface ProductCard {
@@ -137,6 +139,8 @@ export async function getShopInfo(shopIdentifier: string): Promise<ShopInfo | nu
             templateType: shop.templateType,
             productsPerPage: shop.productsPerPage,
             paymentMethods: shop.paymentMethods || [],
+            // API include sẵn bankAccount — không map là CheckoutDefault hiện "N/A"
+            bankAccount: shop.bankAccount ?? null,
         };
     } catch (err) {
         console.error(`[storefront.api] getShopInfo failed for shopIdentifier=${shopIdentifier}`, err);

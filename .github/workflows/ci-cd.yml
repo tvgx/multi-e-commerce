@@ -19,6 +19,7 @@ env:
   NEXT_PUBLIC_STOREFRONT_HOST: ${{ vars.NEXT_PUBLIC_STOREFRONT_HOST || 'tvgx1.id.vn' }}
   NEXT_PUBLIC_STOREFRONT_PROTOCOL: ${{ vars.NEXT_PUBLIC_STOREFRONT_PROTOCOL || 'https' }}
   NEXT_PUBLIC_IMAGE_PROXY_URL: ${{ vars.NEXT_PUBLIC_IMAGE_PROXY_URL || 'https://images.tvgx1.id.vn' }}
+  NEXT_PUBLIC_CDN_URL: ${{ vars.NEXT_PUBLIC_CDN_URL || 'https://cdn.tvgx1.id.vn' }}
 
 jobs:
   lint-and-test:
@@ -126,6 +127,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_IMAGE_PROXY_URL=${{ env.NEXT_PUBLIC_IMAGE_PROXY_URL }}
+            NEXT_PUBLIC_CDN_URL=${{ env.NEXT_PUBLIC_CDN_URL }}
 
   build-and-push-admin:
     needs: lint-and-test
@@ -168,6 +170,8 @@ jobs:
             NEXT_PUBLIC_STOREFRONT_URL=${{ env.NEXT_PUBLIC_STOREFRONT_URL }}
             NEXT_PUBLIC_STOREFRONT_HOST=${{ env.NEXT_PUBLIC_STOREFRONT_HOST }}
             NEXT_PUBLIC_STOREFRONT_PROTOCOL=${{ env.NEXT_PUBLIC_STOREFRONT_PROTOCOL }}
+            NEXT_PUBLIC_CDN_URL=${{ env.NEXT_PUBLIC_CDN_URL }}
+            NEXT_PUBLIC_IMAGE_PROXY_URL=${{ env.NEXT_PUBLIC_IMAGE_PROXY_URL }}
 
   build-and-push-shop-builder:
     needs: lint-and-test

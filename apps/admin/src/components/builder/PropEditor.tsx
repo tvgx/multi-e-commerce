@@ -133,7 +133,32 @@ export function PropEditor() {
     const updateGlobalComponent = useBuilderStore(s => s.updateGlobalComponent);
     const updateBlockProp = useBuilderStore(s => s.updateBlockProp);
     const [isUploading, setIsUploading] = React.useState(false);
-    const { shopId } = useParams() as { shopId: string };
+    // Wizard tạo shop (/create-shop/design) không có param [shopId] — lấy từ store
+    // (loadTemplate đã set) để x-shop-id không thành "undefined" gây 403 khi upload.
+    const params = useParams() as { shopId?: string };
+    const storeShopId = useBuilderStore(s => s.shopId);
+    const shopId = params.shopId || storeShopId || '';
+
+    // Danh sách sản phẩm thật của shop cho field type 'product' (product picker).
+    const [shopProducts, setShopProducts] = React.useState<any[]>([]);
+    React.useEffect(() => {
+        if (!shopId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                const res = await fetch(`${API_BASE}/api/catalog/products/shop/${shopId}?limit=100`, {
+                    credentials: 'include',
+                    headers: { 'x-shop-id': shopId },
+                });
+                if (!res.ok) return;
+                const json = await res.json();
+                const items = json.data?.data ?? json.data ?? [];
+                if (!cancelled && Array.isArray(items)) setShopProducts(items);
+            } catch { /* picker rơi về ô nhập ID */ }
+        })();
+        return () => { cancelled = true; };
+    }, [shopId]);
 
     const targetId = activeBlockId || activeComponentId;
 
@@ -343,6 +368,40 @@ export function PropEditor() {
                                 );
                             })}
                         </div>
+                    </div>
+                );
+            case 'product':
+                // Product picker — chọn sản phẩm thật thay vì gõ ID tay. Khi shop
+                // chưa có sản phẩm, rơi về ô nhập ID để không chặn thao tác.
+                if (shopProducts.length === 0) {
+                    return (
+                        <div className="space-y-2">
+                            <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
+                            <input
+                                id={elemId}
+                                type="text"
+                                value={currentValue ?? ''}
+                                onChange={e => handlePropChange(fieldId, e.target.value)}
+                                placeholder="ID sản phẩm (shop chưa có sản phẩm)"
+                                className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
+                            />
+                        </div>
+                    );
+                }
+                return (
+                    <div className="space-y-2">
+                        <label htmlFor={elemId} className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
+                        <select
+                            id={elemId}
+                            value={currentValue ?? ''}
+                            onChange={e => handlePropChange(fieldId, e.target.value)}
+                            className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+                        >
+                            <option value="">— Sản phẩm đầu tiên của shop —</option>
+                            {shopProducts.map((p: any) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
                     </div>
                 );
             case 'number':

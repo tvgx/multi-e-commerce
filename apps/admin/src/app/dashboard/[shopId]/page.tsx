@@ -4,7 +4,7 @@ import React, { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useBuildStatus } from "@/hooks/useBuildStatus";
-import { storefrontUrl } from "@/lib/urls";
+import { shopPublicUrl } from "@/lib/urls";
 import { apiClient } from "@/lib/api-client";
 import {
   Rocket,
@@ -170,7 +170,9 @@ function DashboardContent({ shopId }: { shopId: string }) {
   }
 
   const stepsArray = status ? Object.entries(status.steps).sort() : [];
-  const shopUrl = shopDomain ? storefrontUrl(shopDomain) : storefrontUrl(shopId);
+  // Path-based (https://tvgx1.id.vn/<slug>) — subdomain style chưa chắc sống
+  // trên mọi môi trường, còn path thì luôn đúng cả dev lẫn prod.
+  const shopUrl = shopPublicUrl({ id: shopId, domain: shopDomain });
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">

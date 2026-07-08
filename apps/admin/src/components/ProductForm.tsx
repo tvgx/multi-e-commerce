@@ -57,7 +57,9 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             variants: product.variants?.length ? product.variants.map(v => ({
               sku: v.sku || "",
               price: v.price || 0,
-              inStock: v.inStock || 0,
+              // Tồn kho thật nằm ở StockItem.countOnHand (variant không có cột
+              // inStock) — không cộng từ stockItems thì form luôn hiện 0.
+              inStock: v.inStock ?? (v.stockItems?.reduce((acc: number, s: any) => acc + (s.countOnHand || 0), 0) || 0),
               attributes: typeof v.attributes === 'string' ? JSON.parse(v.attributes) : (v.attributes || {}),
               image: v.image || ""
             })) : [

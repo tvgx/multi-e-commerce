@@ -1,5 +1,5 @@
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
-import { getShopPageLayout, getShopInfo } from '@/lib/api/storefront.api';
+import { getShopPageLayout, getShopInfo, getShopProducts } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { getT } from '@/lib/i18n';
 import React from 'react';
@@ -11,10 +11,13 @@ interface Props {
 export default async function ShopHomePage({ params }: Props) {
     const { shopSlug } = await params;
 
-    // Fetch layout and shop info in parallel — both are server-side only
-    const [pageLayout, shopInfo] = await Promise.all([
+    // Fetch layout, shop info and products in parallel — all server-side only.
+    // Products đi vào pageContext để các section sản phẩm (FeaturedProducts,
+    // RecommendedProducts, FeaturedCollection*) hiển thị hàng THẬT thay vì demo.
+    const [pageLayout, shopInfo, { products }] = await Promise.all([
         getShopPageLayout(shopSlug, 'home'),
         getShopInfo(shopSlug),
+        getShopProducts(shopSlug, { limit: 12 }),
     ]);
 
     // If no shop exists at all, show Next.js 404 page
@@ -47,5 +50,15 @@ export default async function ShopHomePage({ params }: Props) {
     }
 
     // Full dynamic render driven by the merged Layout JSON from NestJS
-    return <LayoutRenderer pageLayout={pageLayout} />;
+    return (
+        <LayoutRenderer
+            pageLayout={pageLayout}
+            pageContext={{
+                products,
+                totalProducts: products.length,
+                basePath: `/${shopSlug}`,
+                shopInfo,
+            }}
+        />
+    );
 }

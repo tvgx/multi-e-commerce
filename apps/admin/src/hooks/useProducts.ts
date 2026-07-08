@@ -74,6 +74,18 @@ export function useProducts(shopId: string) {
     }
   };
 
+  // Server soft-delete (status → ARCHIVED), sản phẩm biến mất khỏi storefront.
+  const deleteProduct = async (id: string) => {
+    setError(null);
+    try {
+      const res = await apiClient.delete<Product>(`/api/catalog/products/${id}`, { shopId });
+      return res.data;
+    } catch (err: any) {
+      setError(err.message || "Failed to delete product");
+      throw err;
+    }
+  };
+
   return {
     products,
     loading,
@@ -82,5 +94,6 @@ export function useProducts(shopId: string) {
     fetchProductById,
     createProduct,
     updateProduct,
+    deleteProduct,
   };
 }

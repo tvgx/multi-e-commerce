@@ -3,8 +3,10 @@ import { HeadingBlock } from '../../blocks/heading';
 import { ButtonBlock } from '../../blocks/button';
 import { cn } from '../../../lib/utils';
 import { SmartImage } from '../../blocks/SmartImage';
-
-const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
+import { DEFAULT_IMG } from '../../../lib/media';
+import { formatPrice } from '../../../lib/format';
+import { normalizeProducts, productHref } from '../../../lib/products';
+import { sectionStyle } from '../../../lib/section-style';
 
 /** Block con của thẻ sản phẩm (Phase B): bật/tắt, đổi thứ tự, chỉnh props. */
 export interface ProductCardBlock {
@@ -20,7 +22,15 @@ interface FeaturedProductProps {
     backgroundImageUrl?: string;
     title?: string;
     subtitle?: string;
+    badgeText?: string;
+    ctaLink?: string;
+    paddingY?: string;
+    backgroundColor?: string;
+    textColor?: string;
     blocks?: ProductCardBlock[];
+    /** Danh sách sản phẩm thật — inject từ pageContext (storefront) / preview (builder). */
+    products?: any[];
+    basePath?: string;
 }
 
 export function FeaturedProducts({
@@ -29,9 +39,30 @@ export function FeaturedProducts({
     backgroundImageUrl,
     title,
     subtitle,
+    badgeText = 'Limited Stock',
+    ctaLink,
+    paddingY,
+    backgroundColor,
+    textColor,
     blocks = [],
+    products,
+    basePath,
 }: FeaturedProductProps) {
     const isRight = mediaLayout === 'right';
+
+    // Sản phẩm hiển thị: ưu tiên sản phẩm owner chọn (productId), fallback sản
+    // phẩm đầu tiên của shop. Props (title/ảnh/mô tả) luôn override data thật.
+    const catalog = normalizeProducts(products);
+    const product = catalog.find((p) => p.id === productId) || catalog[0];
+
+    const displayImage = backgroundImageUrl || product?.image || DEFAULT_IMG;
+    const displayTitle = title || product?.name || 'The Ultimate Everyday Sneaker.';
+    const displaySubtitle =
+        subtitle ||
+        product?.description ||
+        "Engineered for all-day comfort with our proprietary cloud-foam tech. This isn't just a shoe, it's a statement.";
+    const displayPrice = product ? formatPrice(product.basePrice) : '$149.00';
+    const buyLink = ctaLink || (product ? productHref(basePath, product.id) : undefined);
 
     // Layout cũ (chưa có blocks) giữ nguyên; layout mới render theo blocks —
     // block bị ẩn (isHidden) không hiện, thứ tự block quyết định thứ tự phần tử.
@@ -47,15 +78,15 @@ export function FeaturedProducts({
     const showRating = has('ProductCardRating');
 
     return (
-        <section className="w-full py-20 px-4 md:px-12 bg-slate-900 text-white">
+        <section className="w-full px-4 md:px-12 bg-slate-900 text-white" style={sectionStyle({ paddingY, backgroundColor, textColor })}>
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
                 {showImage && (
                     <div className={cn('lg:w-1/2 w-full', isRight ? 'lg:order-2' : 'lg:order-1')}>
                         <div className="aspect-square bg-slate-800 rounded-full overflow-hidden relative shadow-2xl shadow-brand/20 p-4">
                             <div className="w-full h-full rounded-full overflow-hidden border border-slate-700">
                                 <SmartImage
-                                    src={backgroundImageUrl || DEFAULT_IMG}
-                                    alt="Featured Product"
+                                    src={displayImage}
+                                    alt={displayTitle}
                                     className={cn(
                                         'w-full h-full scale-110',
                                         propsOf('ProductCardImage').fit === 'contain' ? 'object-contain' : 'object-cover',
@@ -67,7 +98,9 @@ export function FeaturedProducts({
                                     {propsOf('ProductCardRating').label || '★ Top Rated'}
                                 </div>
                             )}
-                            <div className="absolute bottom-1/4 -right-4 bg-brand text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">Limited Stock</div>
+                            {badgeText && (
+                                <div className="absolute bottom-1/4 -right-4 bg-brand text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">{badgeText}</div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -75,22 +108,23 @@ export function FeaturedProducts({
                 <div className={cn('lg:w-1/2 w-full space-y-8 text-center lg:text-left', isRight ? 'lg:order-1' : 'lg:order-2')}>
                     {showName && (
                         <HeadingBlock
-                            content={title || 'The Ultimate Everyday Sneaker.'}
+                            content={displayTitle}
                             level="h2"
                             alignment="left"
                             className="text-5xl md:text-6xl font-black italic tracking-tighter"
                         />
                     )}
                     <p className="text-xl text-slate-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                        {subtitle || "Engineered for all-day comfort with our proprietary cloud-foam tech. This isn't just a shoe, it's a statement."}
+                        {displaySubtitle}
                     </p>
 
                     {(showPrice || showButton) && (
                         <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 pt-4">
-                            {showPrice && <span className="text-4xl font-bold">$149.00</span>}
+                            {showPrice && <span className="text-4xl font-bold">{displayPrice}</span>}
                             {showButton && (
                                 <ButtonBlock
                                     label={propsOf('ProductCardButton').label || 'Add To Cart'}
+                                    link={buyLink}
                                     style="primary"
                                     size="lg"
                                     className="w-full sm:w-auto bg-brand hover:opacity-90 text-brand-fg rounded-full shadow-lg shadow-brand/20"
@@ -108,9 +142,16 @@ export const featuredProductSchema = {
     name: 'Featured Product',
     category: 'Products',
     settings: [
-        { id: 'backgroundImageUrl', type: 'image', label: 'Ảnh sản phẩm' },
-        { id: 'title', type: 'text', label: 'Tiêu đề sản phẩm' },
-        { id: 'subtitle', type: 'textarea', label: 'Mô tả ngắn' },
+        { id: 'productId', type: 'product', label: 'Sản phẩm hiển thị' },
+        { id: 'backgroundImageUrl', type: 'image', label: 'Ảnh sản phẩm (để trống dùng ảnh SP)' },
+        { id: 'title', type: 'text', label: 'Tiêu đề (để trống dùng tên SP)' },
+        { id: 'subtitle', type: 'textarea', label: 'Mô tả ngắn (để trống dùng mô tả SP)' },
+        { id: 'badgeText', type: 'text', label: 'Nhãn góc ảnh', default: 'Limited Stock' },
         { id: 'mediaLayout', type: 'segmented', label: 'Vị trí hình ảnh', options: ['left', 'right'] },
+        { id: 'paddingY', type: 'segmented', label: 'Khoảng đệm dọc', options: [
+            { value: 'compact', label: 'Gọn' }, { value: 'normal', label: 'Vừa' }, { value: 'spacious', label: 'Rộng' },
+        ], default: 'normal' },
+        { id: 'backgroundColor', type: 'color', label: 'Màu nền', default: '#0f172a' },
+        { id: 'textColor', type: 'color', label: 'Màu chữ', default: '#ffffff' },
     ],
 };

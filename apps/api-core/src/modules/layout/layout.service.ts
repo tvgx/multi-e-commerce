@@ -424,14 +424,18 @@ export class LayoutService {
     );
   }
 
-  // URL storefront chính thức (server là source-of-truth). Theo định dạng hiện tại
-  // <identifier>.<host> — dùng domain nếu có, fallback shopId.
+  // URL storefront chính thức (server là source-of-truth). Ưu tiên path-based
+  // từ STOREFRONT_URL (prod: https://tvgx1.id.vn/<slug>) — biến này luôn có
+  // trong .env prod, còn STOREFRONT_HOST thì không nên fallback subdomain cũ
+  // trả về http://<slug>.localhost:3002 lên cả prod.
   async buildStorefrontUrl(shopId: string): Promise<string> {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
       select: { domain: true },
     });
     const identifier = shop?.domain || shopId;
+    const base = process.env.STOREFRONT_URL || process.env.NEXT_PUBLIC_STOREFRONT_URL;
+    if (base) return `${base.replace(/\/$/, '')}/${identifier}`;
     const protocol =
       process.env.STOREFRONT_PROTOCOL || process.env.NEXT_PUBLIC_STOREFRONT_PROTOCOL || 'http';
     const host =

@@ -27,7 +27,7 @@ export default async function ProductDetailsPage({ params }: Props) {
     }
 
     // Pass product and shopInfo as pageContext so that the Mega-Component receives them
-    return <LayoutRenderer pageLayout={pageLayout} pageContext={{ product, shopInfo }} />;
+    return <LayoutRenderer pageLayout={pageLayout} pageContext={{ product, shopInfo, basePath: `/${shopSlug}` }} />;
   } catch (error) {
     console.error('Error fetching product details:', error);
     return notFound();

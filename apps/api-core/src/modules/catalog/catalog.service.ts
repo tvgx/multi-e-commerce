@@ -275,7 +275,9 @@ export class CatalogService {
         skip,
         take: limit,
         orderBy: { [sortColumn]: sortDirection },
-        include: { variants: true, category: true },
+        // stockItems: bảng Products trên admin tính tồn kho từ đây — thiếu là
+        // cột Inventory hiện 0 dù kho có hàng.
+        include: { variants: { include: { stockItems: true } }, category: true },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -295,7 +297,7 @@ export class CatalogService {
     const shopId = this.getShopId();
     const product = await this.prisma.product.findFirst({
       where: { id, shopId },
-      include: { variants: true, category: true },
+      include: { variants: { include: { stockItems: true } }, category: true },
     });
     if (!product) throw new NotFoundException('Product not found');
     const ratings = await this.getRatingStats(shopId, [product.id]);
@@ -487,6 +489,29 @@ export class CatalogService {
           select: { id: true, sku: true },
         });
         await this.seedDefaultStock(tx, shopId, orphanVariants, dto.variants);
+
+        // Form sản phẩm gửi inStock cho variant đã có tồn kho → ghi đè
+        // countOnHand ở kho mặc định (shop chỉ có 1 kho; điều chỉnh nhiều kho
+        // vẫn qua trang Inventory). Bỏ qua variant không gửi inStock.
+        const defaultLocation = await tx.stockLocation.findFirst({
+          where: { shopId, isDefault: true },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (defaultLocation) {
+          for (const v of dto.variants) {
+            const n = Number(v.inStock);
+            if (!Number.isFinite(n)) continue;
+            const variant = await tx.variant.findUnique({
+              where: { shopId_sku: { shopId, sku: v.sku } },
+              select: { id: true },
+            });
+            if (!variant) continue;
+            await tx.stockItem.updateMany({
+              where: { variantId: variant.id, stockLocationId: defaultLocation.id },
+              data: { countOnHand: Math.max(0, Math.floor(n)) },
+            });
+          }
+        }
       }
 
       // CAT-3: sync collection membership when the form sends it (it always

@@ -1,11 +1,17 @@
-export type FieldType = 'text' | 'color' | 'image' | 'select' | 'textarea' | 'number' | 'boolean' | 'font';
+export type FieldType =
+  | 'text' | 'color' | 'image' | 'select' | 'textarea' | 'number' | 'boolean' | 'font'
+  // segmented: dãy nút chọn 1 (PropEditor render); product: picker sản phẩm thật của shop.
+  | 'segmented' | 'product';
 
 export interface FieldSchema {
   type: FieldType;
   id: string;
   label: string;
   default?: any;
-  options?: { value: string; label: string }[]; // For select type
+  options?: { value: string; label: string }[] | string[]; // For select/segmented type
+  min?: number;
+  max?: number;
+  step?: number;
 }
 
 export interface DefaultBlock {
@@ -50,6 +56,27 @@ const commonStyleSettings: FieldSchema[] = [
   { type: 'font', id: 'fontFamily', label: 'Font chữ', default: 'Inter' },
   { type: 'color', id: 'backgroundColor', label: 'Màu nền', default: '#ffffff' },
   { type: 'color', id: 'textColor', label: 'Màu chữ', default: '#000000' },
+];
+
+// Tùy chỉnh sâu cho section hiển thị sản phẩm: số lượng, mật độ đệm, cỡ tiêu đề.
+const productSectionSettings: FieldSchema[] = [
+  { type: 'number', id: 'maxItems', label: 'Số sản phẩm hiển thị', default: 8, min: 1, max: 24, step: 1 },
+  {
+    type: 'segmented', id: 'paddingY', label: 'Khoảng đệm dọc', default: 'normal',
+    options: [
+      { value: 'compact', label: 'Gọn' },
+      { value: 'normal', label: 'Vừa' },
+      { value: 'spacious', label: 'Rộng' },
+    ],
+  },
+  {
+    type: 'segmented', id: 'headingSize', label: 'Cỡ tiêu đề', default: 'md',
+    options: [
+      { value: 'sm', label: 'Nhỏ' },
+      { value: 'md', label: 'Vừa' },
+      { value: 'lg', label: 'Lớn' },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------
@@ -225,15 +252,20 @@ export const CollectionListsGridSchema: ComponentSchema = {
 // ---------------------------------------------------------
 export const FeaturedCollectionCarouselSchema: ComponentSchema = {
   id: 'FeaturedCollectionCarousel', title: 'Sản phẩm nổi bật (Carousel)', type: 'section',
-  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, ...commonTextSettings, ...commonStyleSettings ]
+  settings: [ ...commonTextSettings, ...productSectionSettings, ...commonStyleSettings ]
 };
 export const FeaturedCollectionEditorialSchema: ComponentSchema = {
   id: 'FeaturedCollectionEditorial', title: 'Sản phẩm nổi bật (Editorial)', type: 'section',
-  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, ...commonTextSettings, ...commonStyleSettings ]
+  settings: [ ...commonTextSettings, ...productSectionSettings, ...commonStyleSettings ]
 };
 export const FeaturedCollectionGridSchema: ComponentSchema = {
   id: 'FeaturedCollectionGrid', title: 'Sản phẩm nổi bật (Grid)', type: 'section',
-  settings: [ { type: 'text', id: 'collectionId', label: 'ID Bộ sưu tập' }, { type: 'number', id: 'columns', label: 'Số cột', default: 4 }, ...commonTextSettings, ...commonStyleSettings ]
+  settings: [
+    { type: 'number', id: 'columns', label: 'Số cột', default: 4, min: 2, max: 4, step: 1 },
+    { type: 'text', id: 'viewAllText', label: 'Nút xem tất cả (Text)', default: 'View All' },
+    { type: 'text', id: 'viewAllLink', label: 'Nút xem tất cả (Link)' },
+    ...commonTextSettings, ...productSectionSettings, ...commonStyleSettings,
+  ]
 };
 // --- Product card blocks (Phase B) ---
 // Thẻ sản phẩm trong FeaturedProducts/RecommendedProducts được ghép từ các

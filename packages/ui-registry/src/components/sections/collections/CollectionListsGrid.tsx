@@ -1,3 +1,4 @@
+import { defaultAsset } from '../../../lib/media';
 import React from 'react';
 import { HeadingBlock } from '../../blocks/heading';
 import { ButtonBlock } from '../../blocks/button';
@@ -56,7 +57,7 @@ export function CollectionListsGrid({
                         <a href="#" key={i} className="flex flex-col items-center group">
                             <div className="w-full aspect-square rounded-full overflow-hidden mb-4 bg-slate-100 p-2 border-2 border-transparent group-hover:border-brand transition-colors">
                                 <div className="w-full h-full rounded-full overflow-hidden bg-slate-200">
-                                    <SmartImage src={`http://localhost:9000/assets/default-3.png`} alt={`Category ${item}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" sizes="(min-width: 768px) 16vw, 33vw" />
+                                    <SmartImage src={defaultAsset('default-3.png')} alt={`Category ${item}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" sizes="(min-width: 768px) 16vw, 33vw" />
                                 </div>
                             </div>
                             <h3 className="font-semibold text-slate-900 group-hover:text-brand transition-colors text-center">Category {item}</h3>

@@ -1,3 +1,4 @@
+import { DEFAULT_IMG } from '../../../lib/media';
 import React from 'react';
 import { ButtonBlock } from '../../blocks/button';
 import { HeadingBlock } from '../../blocks/heading';
@@ -30,7 +31,7 @@ export function HeroBottomAligned({
         fontFamily: fontFamily || 'inherit',
     };
 
-    const displayImage = backgroundImageUrl || "http://localhost:9000/assets/default-component.png";
+    const displayImage = backgroundImageUrl || DEFAULT_IMG;
 
     return (
         <section className="relative w-full h-[70vh] min-h-[500px] flex flex-col justify-end pb-20 px-8" style={containerStyle}>

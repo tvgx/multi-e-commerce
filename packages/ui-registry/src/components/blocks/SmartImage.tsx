@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { CDN_BASE, DEFAULT_IMG } from '../../lib/media';
 
 /**
  * SmartImage — drop-in replacement for `<img>` across section components.
@@ -19,12 +20,12 @@ import React, { useState } from 'react';
  */
 
 const PROXY_BASE = process.env.NEXT_PUBLIC_IMAGE_PROXY_URL || '';
-const MEDIA_ORIGINS = (process.env.NEXT_PUBLIC_MEDIA_ORIGINS || 'http://localhost:9000')
+const MEDIA_ORIGINS = (process.env.NEXT_PUBLIC_MEDIA_ORIGINS || CDN_BASE)
     .split(',')
     .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean);
 
-const DEFAULT_FALLBACK = 'http://localhost:9000/assets/default-component.png';
+const DEFAULT_FALLBACK = DEFAULT_IMG;
 const SRCSET_WIDTHS = [384, 640, 960, 1280, 1920];
 
 function proxyablePath(src: string): string | null {

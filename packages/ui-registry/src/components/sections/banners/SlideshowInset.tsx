@@ -1,4 +1,5 @@
 "use client";
+import { DEFAULT_IMG } from '../../../lib/media';
 import React, { useState } from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
 
@@ -46,7 +47,7 @@ export function SlideshowInset({
                 {/* Slide image */}
                 <div className="absolute inset-0 transition-all duration-700">
                     <SmartImage
-                        src={slide.backgroundImageUrl || 'http://localhost:9000/assets/default-component.png'}
+                        src={slide.backgroundImageUrl || DEFAULT_IMG}
                         alt="Slide"
                         className="w-full h-full object-cover"
                         priority

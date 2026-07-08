@@ -31,6 +31,7 @@ export default async function CollectionPage({ params }: Props) {
                 description={collection.description}
                 products={products}
                 totalProducts={products.length}
+                basePath={`/${shopSlug}`}
             />
         );
     }
@@ -40,7 +41,8 @@ export default async function CollectionPage({ params }: Props) {
         shopInfo,
         title: collection.title,
         description: collection.description,
-        products
+        products,
+        basePath: `/${shopSlug}`
     }} />;
   } catch (error) {
     console.error('Error fetching collection details:', error);

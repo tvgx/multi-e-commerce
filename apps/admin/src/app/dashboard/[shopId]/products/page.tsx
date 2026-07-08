@@ -2,13 +2,38 @@
 
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon, Pencil, Archive } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 
 export default function ProductsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
-  const { products, loading, fetchProducts } = useProducts(shopId);
+  const router = useRouter();
+  const { products, loading, fetchProducts, deleteProduct } = useProducts(shopId);
   const [searchQuery, setSearchQuery] = useState("");
+  // id sản phẩm đang mở menu Actions (null = đóng hết)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+
+  // Click ra ngoài thì đóng menu
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [openMenuId]);
+
+  const handleArchive = async (productId: string, name: string) => {
+    if (!window.confirm(`Lưu trữ sản phẩm "${name}"? Sản phẩm sẽ ẩn khỏi cửa hàng.`)) return;
+    setArchivingId(productId);
+    try {
+      await deleteProduct(productId);
+      await fetchProducts(searchQuery.trim());
+    } finally {
+      setArchivingId(null);
+      setOpenMenuId(null);
+    }
+  };
 
   // Search server-side (tên/mô tả/SKU) với debounce 300ms
   useEffect(() => {
@@ -95,9 +120,12 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                           )}
                         </div>
                         <div>
-                          <div className="font-medium text-white group-hover:text-indigo-400 transition-colors">
+                          <Link
+                            href={`/dashboard/${shopId}/products/${product.id}/edit`}
+                            className="font-medium text-white group-hover:text-indigo-400 transition-colors hover:underline"
+                          >
                             {product.name}
-                          </div>
+                          </Link>
                           <div className="text-xs text-slate-500 mt-0.5">{product.variants?.length || 1} variants</div>
                         </div>
                       </div>
@@ -138,9 +166,37 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 rounded-lg hover:bg-white/10 text-slate-400 transition-colors inline-flex">
-                        <MoreHorizontal size={18} />
-                      </button>
+                      <div className="relative inline-block">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === product.id ? null : product.id);
+                          }}
+                          className="p-2 rounded-lg hover:bg-white/10 text-slate-400 transition-colors inline-flex"
+                          aria-label="Actions"
+                        >
+                          {archivingId === product.id ? <Loader2 size={18} className="animate-spin" /> : <MoreHorizontal size={18} />}
+                        </button>
+                        {openMenuId === product.id && (
+                          <div
+                            className="absolute right-0 top-full mt-1 z-20 min-w-[160px] rounded-xl border border-white/10 bg-slate-900 shadow-xl overflow-hidden text-left"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => router.push(`/dashboard/${shopId}/products/${product.id}/edit`)}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+                            >
+                              <Pencil size={14} /> Chỉnh sửa
+                            </button>
+                            <button
+                              onClick={() => handleArchive(product.id, product.name)}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            >
+                              <Archive size={14} /> Lưu trữ
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

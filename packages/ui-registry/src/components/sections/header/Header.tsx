@@ -7,6 +7,7 @@ import { AnnouncementBar } from './AnnouncementBar';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderLanguageSwitcher } from './HeaderLanguageSwitcher';
 import { SmartImage } from '../../blocks/SmartImage';
+import { useShopBase, shopHref } from '../../../lib/use-shop-base';
 
 export interface HeaderProps {
     shopName?: string;
@@ -33,6 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
     previewMode = false,
     blocks = []
 }) => {
+    // Link nội bộ phải mang prefix /{shopSlug} — thiếu nó thì Account/Cart/nav
+    // 404 khi shop được truy cập theo path (lý do "không thấy nút đăng nhập").
+    const base = useShopBase();
     // Extract menu items from blocks
     const navigation = blocks.length > 0 
         ? blocks.filter(b => b.componentId === 'HeaderMenuItem')
@@ -66,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                         {logoPosition === 'left' && (
                             <>
-                                <Link href="/" className="flex items-center space-x-2 mr-10">
+                                <Link href={base || '/'} className="flex items-center space-x-2 mr-10">
                                     {logoUrl ? (
                                         <SmartImage src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" sizes="200px" priority />
                                     ) : (
@@ -77,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     {navigation.map((item, idx) => (
                                         <Link
                                             key={item.id || idx}
-                                            href={item.props?.link || '/'}
+                                            href={shopHref(base, item.props?.link)}
                                             className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
                                         >
                                             {item.props?.label || 'Menu Item'}
@@ -90,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Center Logo */}
                     {logoPosition === 'center' && (
-                        <Link href="/" className="flex items-center space-x-2">
+                        <Link href={base || '/'} className="flex items-center space-x-2">
                             {logoUrl ? (
                                 <SmartImage src={logoUrl} alt="Logo" className="h-8 max-w-[200px] object-contain" sizes="200px" priority />
                             ) : (
@@ -106,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 {navigation.map((item, idx) => (
                                     <Link
                                         key={item.id || idx}
-                                        href={item.props?.link || '/'}
+                                        href={shopHref(base, item.props?.link)}
                                         className="text-sm font-medium transition-opacity opacity-80 hover:opacity-100"
                                     >
                                         {item.props?.label || 'Menu Item'}
@@ -116,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
                         )}
                         <div className="flex items-center space-x-2 sm:space-x-4">
                             <HeaderSearch />
-                            <Link href="/profile" className="p-2 text-inherit opacity-80 hover:opacity-100" title="Account">
+                            <Link href={`${base}/profile`} className="p-2 text-inherit opacity-80 hover:opacity-100" title="Account">
                                 <User className="h-5 w-5" />
                             </Link>
                             
@@ -127,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
                             )}
                             
                             {(blocks.length === 0 || hasCartTrigger) && (
-                                <Link href="/cart" className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
+                                <Link href={`${base}/cart`} className="p-2 text-inherit opacity-80 hover:opacity-100 relative" title="Cart">
                                     <ShoppingCart className="h-5 w-5" />
                                     <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand" />
                                 </Link>

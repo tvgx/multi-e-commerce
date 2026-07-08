@@ -1,7 +1,7 @@
 import React from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
 
-const DEFAULT_IMG = 'http://localhost:9000/assets/default-component.png';
+import { DEFAULT_IMG } from '../../../lib/media';
 
 interface BlogPostGridProps {
     title?: string;
