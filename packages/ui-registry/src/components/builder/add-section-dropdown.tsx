@@ -36,6 +36,8 @@ const SECTION_CATALOG: CatalogEntry[] = [
     // drop a product-detail layout onto the home page.
     { componentId: 'StandardCategoryPage', label: 'Danh sách sản phẩm', category: 'Trang sản phẩm', pages: ['product_listing'] },
     { componentId: 'StandardProductDetail', label: 'Chi tiết sản phẩm', category: 'Trang sản phẩm', pages: ['product_detail'] },
+    { componentId: 'StandardCheckout', label: 'Trang thanh toán', category: 'Trang chức năng', pages: ['checkout'] },
+    { componentId: 'StandardProfile', label: 'Trang tài khoản', category: 'Trang chức năng', pages: ['profile'] },
     { componentId: 'Hero', label: 'Image Banner', category: 'Banners' },
     { componentId: 'HeroBottomAligned', label: 'Hero: Căn dưới', category: 'Banners' },
     { componentId: 'HeroMarquee', label: 'Hero: Chữ chạy', category: 'Banners' },
@@ -76,6 +78,7 @@ const SECTION_CATALOG: CatalogEntry[] = [
 
 const CATEGORY_ICON: Record<string, React.ElementType> = {
     'Trang sản phẩm': LayoutTemplate,
+    'Trang chức năng': LayoutTemplate,
     Banners: ImageIcon,
     Collections: Grid,
     Products: Star,

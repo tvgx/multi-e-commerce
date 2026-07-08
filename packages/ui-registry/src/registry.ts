@@ -56,6 +56,7 @@ import { StandardProductDetail } from './components/pages/StandardProductDetail'
 import { StandardCategoryPage } from './components/pages/StandardCategoryPage';
 import { StandardCart } from './components/pages/StandardCart';
 import { StandardCheckout } from './components/pages/StandardCheckout';
+import { StandardProfile } from './components/pages/StandardProfile';
 
 import { ComponentSchemas } from './component-schemas';
 
@@ -118,7 +119,8 @@ export const registry: Record<string, any> = {
   StandardProductDetail,
   StandardCategoryPage,
   StandardCart,
-  StandardCheckout
+  StandardCheckout,
+  StandardProfile
 };
 
 export const schemaRegistry: Record<string, any> = {
@@ -193,3 +195,4 @@ export * from './components/pages/StandardProductDetail';
 export * from './components/pages/StandardCategoryPage';
 export * from './components/pages/StandardCart';
 export * from './components/pages/StandardCheckout';
+export * from './components/pages/StandardProfile';

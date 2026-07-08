@@ -35,6 +35,8 @@ export const EDITABLE_PAGE_TYPES = [
   'home',
   'product_listing',
   'product_detail',
+  'checkout',
+  'profile',
 ] as const;
 
 // Define minimal interfaces for type-safety since we're using raw Mongoose schemas
@@ -753,6 +755,14 @@ export class LayoutService {
       case 'product_detail':
         return {
           components: [section('StandardProductDetail', {}, 0)],
+        };
+      case 'checkout':
+        return {
+          components: [section('StandardCheckout', {}, 0)],
+        };
+      case 'profile':
+        return {
+          components: [section('StandardProfile', {}, 0)],
         };
       default:
         return { components: [] };

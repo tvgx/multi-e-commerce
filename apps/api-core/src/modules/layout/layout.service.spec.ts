@@ -398,16 +398,20 @@ describe('LayoutService', () => {
       expect(update.$set.publishedData).toEqual(update.$set.draftData);
 
       // One starter page per editable page type
-      expect(pageModel.findOneAndUpdate).toHaveBeenCalledTimes(3);
+      expect(pageModel.findOneAndUpdate).toHaveBeenCalledTimes(5);
       const seededTypes = pageModel.findOneAndUpdate.mock.calls.map((c) => c[0].pageType);
-      expect(seededTypes).toEqual(['home', 'product_listing', 'product_detail']);
+      expect(seededTypes).toEqual(['home', 'product_listing', 'product_detail', 'checkout', 'profile']);
       const listingCall = pageModel.findOneAndUpdate.mock.calls.find((c) => c[0].pageType === 'product_listing')!;
       expect(listingCall[1].$set.draftData.components[0].componentId).toBe('StandardCategoryPage');
+      const checkoutCall = pageModel.findOneAndUpdate.mock.calls.find((c) => c[0].pageType === 'checkout')!;
+      expect(checkoutCall[1].$set.draftData.components[0].componentId).toBe('StandardCheckout');
+      const profileCall = pageModel.findOneAndUpdate.mock.calls.find((c) => c[0].pageType === 'profile')!;
+      expect(profileCall[1].$set.draftData.components[0].componentId).toBe('StandardProfile');
 
       expect(res).toEqual({
         status: 'seeded',
         shopId: SHOP,
-        seeded: { global: true, pages: ['home', 'product_listing', 'product_detail'] },
+        seeded: { global: true, pages: ['home', 'product_listing', 'product_detail', 'checkout', 'profile'] },
       });
     });
 

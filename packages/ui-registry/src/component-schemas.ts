@@ -480,12 +480,32 @@ export const StandardProductDetailSchema: ComponentSchema = {
   settings: [],
 };
 
+export const StandardCheckoutSchema: ComponentSchema = {
+  id: 'StandardCheckout',
+  title: 'Trang thanh toán',
+  type: 'section',
+  category: 'Trang chức năng',
+  // Checkout is fully data-driven (cart, payment/shipping methods); nothing to edit.
+  settings: [],
+};
+
+export const StandardProfileSchema: ComponentSchema = {
+  id: 'StandardProfile',
+  title: 'Trang tài khoản',
+  type: 'section',
+  category: 'Trang chức năng',
+  // Account info + order history come from the buyer's session; nothing to edit.
+  settings: [],
+};
+
 // ---------------------------------------------------------
 // Registry Map
 // ---------------------------------------------------------
 export const ComponentSchemas: Record<string, ComponentSchema> = {
   StandardCategoryPage: StandardCategoryPageSchema,
   StandardProductDetail: StandardProductDetailSchema,
+  StandardCheckout: StandardCheckoutSchema,
+  StandardProfile: StandardProfileSchema,
   Hero: HeroSchema,
   HeroBottomAligned: HeroBottomAlignedSchema,
   AnnouncementBar: AnnouncementBarSchema,

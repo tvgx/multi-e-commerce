@@ -56,6 +56,8 @@ const ComponentRegistry: Record<string, React.ComponentType<any>> = {
     // These receive real data via pageContext (products / product) at render time.
     StandardCategoryPage: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardCategoryPage').then(m => m.StandardCategoryPage)),
     StandardProductDetail: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardProductDetail').then(m => m.StandardProductDetail)),
+    StandardCheckout: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardCheckout').then(m => m.StandardCheckout)),
+    StandardProfile: dynamic(() => import('@ecommerce/ui-registry/src/components/pages/StandardProfile').then(m => m.StandardProfile)),
 
     // Text
     FAQ: dynamic(() => import('@ecommerce/ui-registry/src/components/sections/text/FAQ').then(m => m.FAQ)),
