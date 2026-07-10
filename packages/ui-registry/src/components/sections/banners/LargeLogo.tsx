@@ -31,9 +31,16 @@ export function LargeLogo({ logoUrl, title, shopName, backgroundColor, textColor
                     priority
                 />
             ) : (
-                <h1 className="text-[15vw] md:text-[8rem] font-black tracking-tighter uppercase leading-none drop-shadow-xl select-none text-center">
+                // Decorative brand wordmark — intentionally NOT an <h1>. A page
+                // may stack this beside a Hero (which owns the real <h1>), and
+                // two <h1>s tank the page's SEO ("too many H1 headings").
+                <div
+                    role="img"
+                    aria-label={shopName || title || 'Logo'}
+                    className="text-[15vw] md:text-[8rem] font-black tracking-tighter uppercase leading-none drop-shadow-xl select-none text-center"
+                >
                     {title || shopName || 'BRAND'}
-                </h1>
+                </div>
             )}
         </section>
     );

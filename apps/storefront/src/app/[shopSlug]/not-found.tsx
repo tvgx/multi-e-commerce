@@ -1,12 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
 /** Shown when a shop page / product / collection isn't found (notFound()). */
 export default function ShopNotFound() {
   const params = useParams();
-  const shopSlug = (params?.shopSlug as string) || '';
+  const pathname = usePathname();
+
+  // Trỏ "Về trang chủ" đúng shop hiện tại. Ưu tiên param [shopSlug] (có cả khi
+  // truy cập qua subdomain/tên miền riêng — middleware rewrite về /<slug>/...);
+  // nếu useParams rỗng trong boundary not-found thì lấy segment đầu của URL
+  // path-based. Chỉ khi thật sự không có shop context mới về apex.
+  const slugFromParams = (params?.shopSlug as string) || '';
+  const slugFromPath = pathname?.split('/').filter(Boolean)[0] || '';
+  const shopSlug = slugFromParams || slugFromPath;
   const home = shopSlug ? `/${shopSlug}` : '/';
 
   return (

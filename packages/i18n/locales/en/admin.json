@@ -1108,6 +1108,11 @@
     "desc": "An error occurred while loading store data. Please try again.",
     "retry": "Try again"
   },
+  "notFound": {
+    "title": "Page not found",
+    "desc": "The page you're looking for doesn't exist or has been moved.",
+    "home": "Back to home"
+  },
   "themeToggle": {
     "toLight": "Switch to light theme",
     "toDark": "Switch to dark theme"

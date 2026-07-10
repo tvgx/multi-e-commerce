@@ -47,10 +47,17 @@ export async function generateMetadata({ params }: { params: Promise<{ shopSlug:
     const image = theme.logoUrl || theme.faviconUrl || undefined;
     const faviconUrl = theme.faviconUrl;
 
+    // Home-page title needs to be more than the bare shop slug ("demo") — a
+    // one-word title is flagged as too short and hurts ranking. Append the
+    // merchant tagline (Setup) or a sensible default, clamped so it stays within
+    // the ~60-char pixel budget search engines render.
+    const tagline = metaText(theme.metaTitleSuffix || theme.tagline || 'Mua sắm trực tuyến chính hãng', 48);
+    const homeTitle = `${name} — ${tagline}`;
+
     return {
         // `default` shows on the home page; `template` appends the shop name to
         // every child page title (e.g. "Áo thun · MyShop").
-        title: { default: name, template: `%s · ${name}` },
+        title: { default: homeTitle, template: `%s · ${name}` },
         description,
         applicationName: name,
         robots: { index: true, follow: true },

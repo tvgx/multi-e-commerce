@@ -1108,6 +1108,11 @@
     "desc": "Đã xảy ra lỗi khi tải dữ liệu cửa hàng. Vui lòng thử lại.",
     "retry": "Thử lại"
   },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "desc": "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
+    "home": "Về trang chủ"
+  },
   "themeToggle": {
     "toLight": "Chuyển sang giao diện sáng",
     "toDark": "Chuyển sang giao diện tối"

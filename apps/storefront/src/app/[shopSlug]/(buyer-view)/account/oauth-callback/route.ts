@@ -6,6 +6,27 @@ const API_BASE_URL =
   process.env.API_CORE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 /**
+ * External origin the buyer actually reached us on. `request.url` is unsafe for
+ * building redirect `Location`s: Next standalone binds `HOSTNAME=0.0.0.0`, so
+ * when the reverse proxy doesn't forward a usable host the internal bind address
+ * (`0.0.0.0:3002`) leaks into the redirect and the browser dies with
+ * ERR_ADDRESS_INVALID. Trust Caddy's `x-forwarded-*` (set per request, so it
+ * preserves subdomain / custom-domain hosts), then the Host header, and only
+ * fall back to the configured platform URL — never to `0.0.0.0`.
+ */
+function externalOrigin(request: NextRequest): string {
+  const xfHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const host = xfHost || request.headers.get('host')?.trim() || '';
+  const proto =
+    request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() ||
+    (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  if (host && !/^(0\.0\.0\.0|127\.0\.0\.1|\[::)/.test(host)) {
+    return `${proto}://${host}`;
+  }
+  return (process.env.STOREFRONT_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+}
+
+/**
  * OAuth handoff landing. api-core (Google callback) redirects here with a signed
  * customer JWT; we set the httpOnly `shop_session_{shopSlug}` cookie on the
  * storefront origin (so it's path-scoped correctly), merge any guest cart, and
@@ -20,8 +41,10 @@ export async function GET(
   const token = request.nextUrl.searchParams.get('token');
   const redirect = request.nextUrl.searchParams.get('redirect');
 
+  const origin = externalOrigin(request);
+
   if (!token) {
-    return NextResponse.redirect(new URL(`/${shopSlug}/account/login?error=google`, request.url));
+    return NextResponse.redirect(new URL(`/${shopSlug}/account/login?error=google`, origin));
   }
 
   const cookieStore = await cookies();
@@ -56,5 +79,5 @@ export async function GET(
   }
 
   const dest = redirect && redirect.startsWith(`/${shopSlug}`) ? redirect : `/${shopSlug}/profile`;
-  return NextResponse.redirect(new URL(dest, request.url));
+  return NextResponse.redirect(new URL(dest, origin));
 }
