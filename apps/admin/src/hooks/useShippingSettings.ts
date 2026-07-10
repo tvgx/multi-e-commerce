@@ -139,7 +139,7 @@ export function useShippingSettings(shopId: string) {
   /** Lưu địa chỉ kho mặc định. Trả về true nếu thành công (trang quyết định nav/toast). */
   const saveWarehouse = useCallback(async (input: WarehouseInput): Promise<boolean> => {
     if (!input.addressLine.trim() || !input.provinceCode || !input.wardCode) {
-      toast.error('Vui lòng nhập đầy đủ địa chỉ kho hàng');
+      toast.error(t('hooks.billingRequireWarehouse'));
       return false;
     }
     setSavingWarehouse(true);
@@ -157,7 +157,7 @@ export function useShippingSettings(shopId: string) {
       );
       return true;
     } catch (err: any) {
-      toast.error(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      toast.error(err?.message || t('hooks.billingGenericError'));
       return false;
     } finally {
       setSavingWarehouse(false);

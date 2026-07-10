@@ -4,8 +4,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { signUp } from '@/lib/auth-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function RegisterPage() {
+  const t = useTranslations('admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -27,15 +29,15 @@ export default function RegisterPage() {
             router.refresh();
           },
           onError: (ctx) => {
-            setError(ctx.error.message || 'Registration failed');
+            setError(ctx.error.message || t('auth.register.failed'));
           },
         },
       );
       if (authError) {
-        setError(authError.message || 'Registration failed');
+        setError(authError.message || t('auth.register.failed'));
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || t('auth.genericError'));
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function RegisterPage() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
               <Zap className="text-white w-7 h-7 fill-current" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">OmniCommerce</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{t('auth.brand')}</span>
           </Link>
         </div>
 
@@ -63,8 +65,8 @@ export default function RegisterPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
           <div className="relative z-10">
-            <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
-            <p className="text-slate-400 mb-8 text-sm">Join OmniCommerce and start your 60-second journey.</p>
+            <h1 className="text-2xl font-bold text-white mb-2">{t('auth.register.heading')}</h1>
+            <p className="text-slate-400 mb-8 text-sm">{t('auth.register.description')}</p>
 
             {error && (
               <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center animate-shake">
@@ -74,14 +76,14 @@ export default function RegisterPage() {
 
             <form onSubmit={handleRegister} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
+                <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.register.fullName')}</label>
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
+                    placeholder={t('auth.register.fullNamePlaceholder')}
                     className="w-full bg-black/40 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all focus:bg-black/60"
                     required
                   />
@@ -89,14 +91,14 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+                <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.register.email')}</label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
+                    placeholder={t('auth.register.emailPlaceholder')}
                     className="w-full bg-black/40 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all focus:bg-black/60"
                     required
                   />
@@ -104,7 +106,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+                <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.register.password')}</label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
                   <input
@@ -127,7 +129,7 @@ export default function RegisterPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Sign Up
+                    {t('auth.register.submit')}
                     <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </>
                 )}
@@ -136,9 +138,9 @@ export default function RegisterPage() {
 
             <div className="mt-8 pt-6 border-t border-white/10 text-center">
               <p className="text-slate-400 text-sm">
-                Already have an account?{' '}
+                {t('auth.register.haveAccount')}{' '}
                 <Link href="/login" className="text-white font-semibold hover:text-indigo-400 transition-colors">
-                  Sign in
+                  {t('auth.register.signIn')}
                 </Link>
               </p>
             </div>
@@ -147,9 +149,9 @@ export default function RegisterPage() {
 
         {/* Footer Links */}
         <div className="mt-8 flex justify-center gap-6 text-xs text-slate-500">
-          <Link href="/" className="hover:text-slate-300 transition-colors">Home</Link>
-          <Link href="/legal/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
-          <Link href="/legal/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+          <Link href="/" className="hover:text-slate-300 transition-colors">{t('auth.footer.home')}</Link>
+          <Link href="/legal/privacy" className="hover:text-slate-300 transition-colors">{t('auth.footer.privacy')}</Link>
+          <Link href="/legal/terms" className="hover:text-slate-300 transition-colors">{t('auth.footer.terms')}</Link>
         </div>
       </div>
     </div>

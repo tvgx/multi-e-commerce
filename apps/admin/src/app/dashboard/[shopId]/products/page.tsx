@@ -4,10 +4,12 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon, Pencil, Archive } from "lucide-react";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 import { useProducts } from "@/hooks/useProducts";
 
 export default function ProductsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
+  const t = useTranslations("admin");
   const router = useRouter();
   const { products, loading, fetchProducts, deleteProduct } = useProducts(shopId);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,7 +26,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
   }, [openMenuId]);
 
   const handleArchive = async (productId: string, name: string) => {
-    if (!window.confirm(`Lưu trữ sản phẩm "${name}"? Sản phẩm sẽ ẩn khỏi cửa hàng.`)) return;
+    if (!window.confirm(t("products.archiveConfirm", { name }))) return;
     setArchivingId(productId);
     try {
       await deleteProduct(productId);
@@ -47,15 +49,15 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Products</h1>
-          <p className="text-sm text-slate-400 mt-1">Manage your product catalog and variants</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t("products.title")}</h1>
+          <p className="text-sm text-slate-400 mt-1">{t("products.subtitle")}</p>
         </div>
-        <Link 
+        <Link
           href={`/dashboard/${shopId}/products/new`}
           className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 hover:-translate-y-0.5"
         >
           <Plus size={16} />
-          Add Product
+          {t("products.addProduct")}
         </Link>
       </div>
 
@@ -65,7 +67,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               type="text" 
-              placeholder="Search products (name, description, SKU)..."
+              placeholder={t("products.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
@@ -73,7 +75,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
           </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-slate-300 text-sm hover:bg-white/5 transition-colors">
             <Filter size={16} />
-            Filters
+            {t("products.filters")}
           </button>
         </div>
 
@@ -81,12 +83,12 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
           <table className="w-full text-left text-sm text-slate-400">
             <thead className="bg-white/5 text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-6 py-4 font-medium">Product</th>
-                <th className="px-6 py-4 font-medium">Categories</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Inventory</th>
-                <th className="px-6 py-4 font-medium">Base Price</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-6 py-4 font-medium">{t("products.colProduct")}</th>
+                <th className="px-6 py-4 font-medium">{t("products.colCategories")}</th>
+                <th className="px-6 py-4 font-medium">{t("products.colStatus")}</th>
+                <th className="px-6 py-4 font-medium">{t("products.colInventory")}</th>
+                <th className="px-6 py-4 font-medium">{t("products.colBasePrice")}</th>
+                <th className="px-6 py-4 font-medium text-right">{t("products.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -94,7 +96,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
-                    <p>Loading products...</p>
+                    <p>{t("products.loading")}</p>
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
@@ -103,8 +105,8 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                       <PackageOpen className="w-8 h-8 text-slate-500" />
                     </div>
-                    <p className="text-slate-300 font-medium mb-1">No products found</p>
-                    <p className="text-xs text-slate-500">Add your first product to get started.</p>
+                    <p className="text-slate-300 font-medium mb-1">{t("products.noneTitle")}</p>
+                    <p className="text-xs text-slate-500">{t("products.noneDesc")}</p>
                   </td>
                 </tr>
               ) : (
@@ -126,7 +128,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                           >
                             {product.name}
                           </Link>
-                          <div className="text-xs text-slate-500 mt-0.5">{product.variants?.length || 1} variants</div>
+                          <div className="text-xs text-slate-500 mt-0.5">{product.variants?.length || 1} {t("products.variantsSuffix")}</div>
                         </div>
                       </div>
                     </td>
@@ -157,7 +159,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                         {product.variants?.reduce((total: number, v: any) => {
                           const stock = v.stockItems?.reduce((acc: number, item: any) => acc + item.countOnHand, 0) || 0;
                           return total + stock;
-                        }, 0) || 0} in stock
+                        }, 0) || 0} {t("products.inStockSuffix")}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -173,7 +175,7 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                             setOpenMenuId(openMenuId === product.id ? null : product.id);
                           }}
                           className="p-2 rounded-lg hover:bg-white/10 text-slate-400 transition-colors inline-flex"
-                          aria-label="Actions"
+                          aria-label={t("products.actionsAria")}
                         >
                           {archivingId === product.id ? <Loader2 size={18} className="animate-spin" /> : <MoreHorizontal size={18} />}
                         </button>
@@ -186,13 +188,13 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
                               onClick={() => router.push(`/dashboard/${shopId}/products/${product.id}/edit`)}
                               className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 transition-colors"
                             >
-                              <Pencil size={14} /> Chỉnh sửa
+                              <Pencil size={14} /> {t("products.edit")}
                             </button>
                             <button
                               onClick={() => handleArchive(product.id, product.name)}
                               className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
                             >
-                              <Archive size={14} /> Lưu trữ
+                              <Archive size={14} /> {t("products.archive")}
                             </button>
                           </div>
                         )}

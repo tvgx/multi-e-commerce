@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface InventoryItem {
   id: string;
@@ -15,6 +16,7 @@ export interface InventoryItem {
 }
 
 export function useInventory(shopId: string) {
+  const t = useTranslations('admin');
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function useInventory(shopId: string) {
     try {
       // Find the product
       const product = items.find(p => p.id === productId || (p as any)._id === productId);
-      if (!product) throw new Error('Product not found');
+      if (!product) throw new Error(t('hooks.inventoryProductNotFound'));
 
       // Update the specific variant stock locally first or send full variants array
       const updatedVariants = product.variants.map(v => 
@@ -57,7 +59,7 @@ export function useInventory(shopId: string) {
 
       return true;
     } catch (err: any) {
-      toast.error(`Failed to adjust stock: ${err.message}`);
+      toast.error(t('hooks.inventoryAdjustFailed', { msg: err.message }));
       return false;
     }
   };

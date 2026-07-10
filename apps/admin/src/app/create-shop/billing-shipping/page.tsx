@@ -6,11 +6,13 @@ import { Package, CreditCard, MapPin, Loader2, CheckCircle2 } from "lucide-react
 import { useGeo } from "@/hooks/useGeo";
 import { useBillingShipping } from "@/hooks/useBillingShipping";
 import { WizardProgress } from "../components/wizard-progress";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 // Danh sách ngân hàng được hỗ trợ (theo yêu cầu): Agribank, VietinBank, Vietcombank, MB.
 const BANKS = ["Agribank", "VietinBank", "Vietcombank", "MB"];
 
 function BillingShippingForm() {
+  const t = useTranslations("admin");
   const router = useRouter();
   const searchParams = useSearchParams();
   const shopId = searchParams?.get("shopId") || "";
@@ -64,16 +66,16 @@ function BillingShippingForm() {
         <WizardProgress current="billing" />
 
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Thanh toán & Vận chuyển</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("billingShipping.title")}</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Thiết lập cấu hình cơ bản trước khi cửa hàng lên sóng.
+            {t("billingShipping.subtitle")}
           </p>
         </div>
 
         {/* Shipping */}
         <div className={sectionCls}>
           <h2 className="flex items-center gap-2 font-semibold">
-            <Package size={18} className="text-indigo-400" /> Phương thức vận chuyển
+            <Package size={18} className="text-indigo-400" /> {t("billingShipping.shippingMethod")}
           </h2>
 
           <label className="flex items-start gap-3 cursor-pointer">
@@ -84,17 +86,17 @@ function BillingShippingForm() {
               className="mt-1 accent-indigo-500"
             />
             <div className="flex-1">
-              <span className="text-sm font-medium">Phí vận chuyển đồng giá (Fixed Rate)</span>
+              <span className="text-sm font-medium">{t("billingShipping.fixedRate")}</span>
               {fixedEnabled && (
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Mức phí:</span>
+                  <span className="text-xs text-slate-400">{t("billingShipping.feeLabel")}</span>
                   <input
                     type="number"
                     value={fixedFee}
                     onChange={(e) => setFixedFee(e.target.value)}
                     className={`${inputCls} max-w-[180px]`}
                   />
-                  <span className="text-xs text-slate-400">VNĐ</span>
+                  <span className="text-xs text-slate-400">{t("billingShipping.vnd")}</span>
                 </div>
               )}
             </div>
@@ -108,17 +110,17 @@ function BillingShippingForm() {
               className="mt-1 accent-indigo-500"
             />
             <div className="flex-1">
-              <span className="text-sm font-medium">Miễn phí vận chuyển (Freeship)</span>
+              <span className="text-sm font-medium">{t("billingShipping.freeship")}</span>
               {freeshipEnabled && (
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Áp dụng cho đơn từ:</span>
+                  <span className="text-xs text-slate-400">{t("billingShipping.freeshipFrom")}</span>
                   <input
                     type="number"
                     value={freeThreshold}
                     onChange={(e) => setFreeThreshold(e.target.value)}
                     className={`${inputCls} max-w-[180px]`}
                   />
-                  <span className="text-xs text-slate-400">VNĐ</span>
+                  <span className="text-xs text-slate-400">{t("billingShipping.vnd")}</span>
                 </div>
               )}
             </div>
@@ -128,7 +130,7 @@ function BillingShippingForm() {
         {/* Payment */}
         <div className={sectionCls}>
           <h2 className="flex items-center gap-2 font-semibold">
-            <CreditCard size={18} className="text-emerald-400" /> Phương thức thanh toán
+            <CreditCard size={18} className="text-emerald-400" /> {t("billingShipping.paymentMethod")}
           </h2>
 
           <label className="flex items-start gap-3 cursor-pointer">
@@ -139,9 +141,9 @@ function BillingShippingForm() {
               className="mt-1 accent-indigo-500"
             />
             <div>
-              <span className="text-sm font-medium">Thanh toán khi nhận hàng (COD)</span>
+              <span className="text-sm font-medium">{t("billingShipping.cod")}</span>
               <p className="text-xs text-slate-500 mt-0.5">
-                Cho phép khách hàng kiểm tra hàng trước khi thanh toán.
+                {t("billingShipping.codDesc")}
               </p>
             </div>
           </label>
@@ -153,13 +155,13 @@ function BillingShippingForm() {
               onChange={(e) => setBankEnabled(e.target.checked)}
               className="mt-1 accent-indigo-500"
             />
-            <span className="text-sm font-medium">Chuyển khoản ngân hàng</span>
+            <span className="text-sm font-medium">{t("billingShipping.bankTransfer")}</span>
           </label>
 
           {bankEnabled && (
             <div className="ml-7 grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Ngân hàng</label>
+                <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.bankLabel")}</label>
                 <select
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
@@ -173,7 +175,7 @@ function BillingShippingForm() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Tên tài khoản</label>
+                <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.accountHolder")}</label>
                 <input
                   value={accountHolder}
                   onChange={(e) => setAccountHolder(e.target.value)}
@@ -182,7 +184,7 @@ function BillingShippingForm() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs text-slate-400 mb-1">Số tài khoản</label>
+                <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.accountNumber")}</label>
                 <input
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
@@ -197,21 +199,21 @@ function BillingShippingForm() {
         {/* Warehouse */}
         <div className={sectionCls}>
           <h2 className="flex items-center gap-2 font-semibold">
-            <MapPin size={18} className="text-amber-400" /> Địa chỉ kho hàng mặc định
+            <MapPin size={18} className="text-amber-400" /> {t("billingShipping.warehouseTitle")}
           </h2>
           <p className="text-xs text-slate-500 -mt-2">
-            Kho hàng là nơi shipper sẽ đến để lấy hàng.
+            {t("billingShipping.warehouseDesc")}
           </p>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tỉnh/Thành phố</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.province")}</label>
               <select
                 value={provinceCode}
                 onChange={(e) => onProvinceChange(e.target.value)}
                 className={inputCls}
               >
-                <option value="">— Chọn tỉnh/thành —</option>
+                <option value="">{t("billingShipping.selectProvince")}</option>
                 {provinces.map((p) => (
                   <option key={p.code} value={p.code}>
                     {p.name}
@@ -220,14 +222,14 @@ function BillingShippingForm() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Phường/Xã</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.ward")}</label>
               <select
                 value={wardCode}
                 onChange={(e) => setWardCode(e.target.value)}
                 disabled={!provinceCode || loadingWards}
                 className={`${inputCls} disabled:opacity-50`}
               >
-                <option value="">{loadingWards ? "Đang tải..." : "— Chọn phường/xã —"}</option>
+                <option value="">{loadingWards ? t("billingShipping.loadingWards") : t("billingShipping.selectWard")}</option>
                 {wards.map((w) => (
                   <option key={w.code} value={w.code}>
                     {w.name}
@@ -236,16 +238,16 @@ function BillingShippingForm() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-slate-400 mb-1">Địa chỉ cụ thể</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.addressLine")}</label>
               <input
                 value={addressLine}
                 onChange={(e) => setAddressLine(e.target.value)}
-                placeholder="123 Lê Lợi"
+                placeholder={t("shipping.addressPlaceholder")}
                 className={inputCls}
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-slate-400 mb-1">Số điện thoại (tùy chọn)</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("billingShipping.phoneOptional")}</label>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -263,7 +265,7 @@ function BillingShippingForm() {
             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-7 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 disabled:opacity-60"
           >
             {busy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-            Lưu và Hoàn tất tạo Shop
+            {t("billingShipping.finish")}
           </button>
         </div>
       </div>

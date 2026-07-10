@@ -62,7 +62,7 @@ export function GlobalSidebar() {
       </div>
 
       <div className="px-4 py-2">
-        <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.platform")}</h3>
+        <p className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.platform")}</p>
         <div className="space-y-1">
           {PLATFORM_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -94,7 +94,7 @@ export function GlobalSidebar() {
       </div>
 
       <div className="px-4 py-4">
-        <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.account")}</h3>
+        <p className="px-3 text-xs font-semibold text-muted-foreground tracking-wider mb-2 uppercase">{t("nav.account")}</p>
         <div className="space-y-1">
           {ACCOUNT_ITEMS.map((item) => {
             const isActive = pathname === item.href;

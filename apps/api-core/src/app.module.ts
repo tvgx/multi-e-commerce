@@ -1,4 +1,5 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -46,6 +47,8 @@ const DEV_ONLY_MODULES =
 
 @Module({
   imports: [
+    // Phải là import đầu tiên để Sentry bắt được toàn bộ request/error phía sau.
+    SentryModule.forRoot(),
     DatabaseModule,
     CommonModule,
     ConfigModule.forRoot({

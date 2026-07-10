@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@ecommerce/ui-registry/src/lib/format";
 import { toast, confirmDialog } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 import {
   usePlatformBilling,
   Plan,
@@ -44,6 +45,7 @@ function StatusBadge({ value }: { value: string }) {
 }
 
 export default function BillingPage() {
+  const t = useTranslations("admin");
   const { plans, subscription, invoices, loading, error, refresh, subscribe } =
     usePlatformBilling();
   const [subscribing, setSubscribing] = useState<string | null>(null);
@@ -55,11 +57,11 @@ export default function BillingPage() {
   const handleSubscribe = async (plan: Plan) => {
     const isPaid = plan.priceMonthly > 0;
     const ok = await confirmDialog({
-      title: `Đăng ký gói ${plan.name}?`,
+      title: t("billing.subscribeTitle", { plan: plan.name }),
       message: isPaid
-        ? `Gói ${plan.name} giá ${formatPrice(plan.priceMonthly)}/tháng. Bạn sẽ quét QR để thanh toán và xác nhận.`
-        : `Chuyển về gói ${plan.name} (miễn phí) ngay lập tức.`,
-      confirmText: "Đăng ký",
+        ? t("billing.subscribePaidMsg", { plan: plan.name, price: formatPrice(plan.priceMonthly) })
+        : t("billing.subscribeFreeMsg", { plan: plan.name }),
+      confirmText: t("billing.subscribeConfirm"),
     });
     if (!ok) return;
 
@@ -69,11 +71,11 @@ export default function BillingPage() {
       if (res.qrCodeUrl) {
         setPending(res); // paid plan → show QR, wait for confirm
       } else {
-        toast.success(`Đã chuyển sang gói ${plan.name}.`);
+        toast.success(t("billing.switchedTo", { plan: plan.name }));
         refresh();
       }
     } catch (err: any) {
-      toast.error(err.message || "Đăng ký gói thất bại");
+      toast.error(err.message || t("billing.subscribeFailed"));
     } finally {
       setSubscribing(null);
     }
@@ -94,7 +96,7 @@ export default function BillingPage() {
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span>{error}</span>
           <button onClick={refresh} className="ml-auto flex items-center gap-2 text-sm hover:text-rose-300">
-            <RefreshCw className="w-4 h-4" /> Thử lại
+            <RefreshCw className="w-4 h-4" /> {t("billing.retry")}
           </button>
         </div>
       </div>
@@ -107,24 +109,24 @@ export default function BillingPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <CreditCard className="w-6 h-6 text-indigo-400" />
-            Billing &amp; Plans
+            {t("billing.title")}
           </h1>
           <p className="text-zinc-400 mt-1 text-sm">
-            Gói dịch vụ nền tảng của bạn, nâng cấp và lịch sử hoá đơn.
+            {t("billing.subtitle")}
           </p>
         </div>
         <button
           onClick={refresh}
           className="flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 text-sm transition-colors"
         >
-          <RefreshCw className="w-4 h-4" /> Làm mới
+          <RefreshCw className="w-4 h-4" /> {t("billing.reload")}
         </button>
       </div>
 
       {/* Gói hiện tại */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
-          Gói hiện tại
+          {t("billing.currentPlan")}
         </h2>
         {subscription ? (
           <div className="flex flex-wrap items-center gap-6">
@@ -133,31 +135,31 @@ export default function BillingPage() {
                 {subscription.plan.name}
                 <StatusBadge value={subscription.status} />
                 {subscription.cancelAtPeriodEnd && (
-                  <span className="text-xs text-amber-400 font-medium">huỷ cuối kỳ</span>
+                  <span className="text-xs text-amber-400 font-medium">{t("billing.cancelAtPeriodEnd")}</span>
                 )}
               </div>
               <div className="text-zinc-400 text-sm mt-1">
                 {subscription.plan.priceMonthly > 0
-                  ? `${formatPrice(subscription.plan.priceMonthly)}/tháng`
-                  : "Miễn phí"}
-                {" · gia hạn "}
+                  ? `${formatPrice(subscription.plan.priceMonthly)}${t("billing.perMonth")}`
+                  : t("billing.free")}
+                {t("billing.renews")}
                 {new Date(subscription.currentPeriodEnd).toLocaleDateString("vi-VN")}
               </div>
             </div>
             <div className="flex gap-6 ml-auto text-sm">
               <div className="flex items-center gap-2 text-zinc-300">
                 <Store className="w-4 h-4 text-indigo-400" />
-                tối đa {subscription.plan.maxShops} shop
+                {t("billing.maxShops", { count: subscription.plan.maxShops })}
               </div>
               <div className="flex items-center gap-2 text-zinc-300">
                 <Package className="w-4 h-4 text-indigo-400" />
-                {subscription.plan.maxProductsPerShop} SP/shop
+                {t("billing.productsPerShop", { count: subscription.plan.maxProductsPerShop })}
               </div>
             </div>
           </div>
         ) : (
           <p className="text-zinc-500 text-sm">
-            Chưa có gói — hãy chạy <code className="text-zinc-300">npm run seed:plans</code> hoặc chọn một gói bên dưới.
+            {t("billing.noPlan1")} <code className="text-zinc-300">npm run seed:plans</code> {t("billing.noPlan2")}
           </p>
         )}
       </div>
@@ -165,7 +167,7 @@ export default function BillingPage() {
       {/* Danh sách gói */}
       <div>
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
-          Các gói
+          {t("billing.plans")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
@@ -184,17 +186,17 @@ export default function BillingPage() {
                   <span className="text-3xl font-bold text-white">
                     {plan.priceMonthly > 0 ? formatPrice(plan.priceMonthly) : "0đ"}
                   </span>
-                  <span className="text-zinc-500 text-sm"> /tháng</span>
+                  <span className="text-zinc-500 text-sm"> {t("billing.perMonth")}</span>
                 </div>
                 {plan.description && (
                   <p className="text-zinc-400 text-sm mt-3">{plan.description}</p>
                 )}
                 <ul className="mt-4 space-y-2 text-sm text-zinc-300 flex-1">
                   <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400" /> Tối đa {plan.maxShops} cửa hàng
+                    <Check className="w-4 h-4 text-emerald-400" /> {t("billing.featShops", { count: plan.maxShops })}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400" /> {plan.maxProductsPerShop} sản phẩm/shop
+                    <Check className="w-4 h-4 text-emerald-400" /> {t("billing.featProducts", { count: plan.maxProductsPerShop })}
                   </li>
                 </ul>
                 <button
@@ -207,14 +209,14 @@ export default function BillingPage() {
                   }`}
                 >
                   {subscribing === plan.key && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isCurrent ? "Gói hiện tại" : plan.priceMonthly > 0 ? "Nâng cấp" : "Chuyển về Free"}
+                  {isCurrent ? t("billing.currentPlanBtn") : plan.priceMonthly > 0 ? t("billing.upgrade") : t("billing.downgradeFree")}
                 </button>
               </div>
             );
           })}
           {plans.length === 0 && (
             <div className="col-span-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500 text-sm">
-              Chưa có gói nào — chạy <code className="text-zinc-300">npm run seed:plans</code>.
+              {t("billing.noPlansSeed1")} <code className="text-zinc-300">npm run seed:plans</code>.
             </div>
           )}
         </div>
@@ -223,20 +225,20 @@ export default function BillingPage() {
       {/* Lịch sử hoá đơn */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider px-6 pt-6 pb-4">
-          Lịch sử hoá đơn
+          {t("billing.invoiceHistory")}
         </h2>
         {invoices.length === 0 ? (
-          <p className="text-zinc-500 text-sm px-6 pb-6">Chưa có hoá đơn nào.</p>
+          <p className="text-zinc-500 text-sm px-6 pb-6">{t("billing.noInvoices")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-zinc-500 border-b border-zinc-800">
-                  <th className="px-6 py-3 font-medium">Số HĐ</th>
-                  <th className="px-6 py-3 font-medium">Ngày</th>
-                  <th className="px-6 py-3 font-medium">Mô tả</th>
-                  <th className="px-6 py-3 font-medium text-right">Số tiền</th>
-                  <th className="px-6 py-3 font-medium text-right">Trạng thái</th>
+                  <th className="px-6 py-3 font-medium">{t("billing.colNumber")}</th>
+                  <th className="px-6 py-3 font-medium">{t("billing.colDate")}</th>
+                  <th className="px-6 py-3 font-medium">{t("billing.colDesc")}</th>
+                  <th className="px-6 py-3 font-medium text-right">{t("billing.colAmount")}</th>
+                  <th className="px-6 py-3 font-medium text-right">{t("billing.colStatus")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -271,17 +273,17 @@ export default function BillingPage() {
                 refresh();
               }}
               className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200"
-              aria-label="Đóng"
+              aria-label={t("billing.close")}
             >
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
-              <QrCode className="w-5 h-5 text-indigo-400" /> Quét QR để thanh toán
+              <QrCode className="w-5 h-5 text-indigo-400" /> {t("billing.qrTitle")}
             </h3>
             <p className="text-zinc-400 text-sm mb-6">
-              Hoá đơn <span className="font-mono text-zinc-200">{pending.invoice?.number}</span> —{" "}
+              {t("billing.qrBody1")} <span className="font-mono text-zinc-200">{pending.invoice?.number}</span> —{" "}
               <span className="font-bold text-white">{formatPrice(pending.invoice?.amount ?? 0)}</span>.
-              Quét bằng điện thoại rồi bấm &quot;Đã thanh toán&quot; trên trang xác nhận.
+              {" "}{t("billing.qrBody2")}
             </p>
             <div className="flex justify-center mb-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -308,7 +310,7 @@ export default function BillingPage() {
               }}
               className="w-full py-3 rounded-xl bg-zinc-800 text-zinc-200 text-sm font-semibold hover:bg-zinc-700 transition-colors"
             >
-              Tôi đã xác nhận — làm mới trạng thái
+              {t("billing.confirmedRefresh")}
             </button>
           </div>
         </div>

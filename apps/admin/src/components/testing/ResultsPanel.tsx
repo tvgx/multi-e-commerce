@@ -3,6 +3,7 @@
 import React from "react";
 import { CheckCircle2, XCircle, MinusCircle, Loader2, Terminal } from "lucide-react";
 import type { JestRunResult, TestCaseResult } from "@/lib/testing-api";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 function statusIcon(status: string) {
   if (status === "passed") return <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />;
@@ -21,6 +22,7 @@ export function ResultsPanel({
   log: string;
   error: string | null;
 }) {
+  const t = useTranslations("admin");
   const [tab, setTab] = React.useState<"results" | "console">("results");
   const logRef = React.useRef<HTMLPreElement>(null);
 
@@ -45,20 +47,20 @@ export function ResultsPanel({
             </>
           )}
           {!running && !result && !error && (
-            <span className="text-zinc-500">Chọn một suite và bấm Run.</span>
+            <span className="text-zinc-500">{t("testingTool.selectAndRun")}</span>
           )}
           {error && <span className="text-red-400">{error}</span>}
         </div>
         <div className="flex gap-1 text-xs">
-          {(["results", "console"] as const).map((t) => (
+          {(["results", "console"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`rounded px-2 py-1 ${
-                tab === t ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+                tab === tabKey ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
-              {t === "results" ? "Kết quả" : "Console"}
+              {tabKey === "results" ? t("testingTool.tabResults") : "Console"}
             </button>
           ))}
         </div>
@@ -74,7 +76,7 @@ export function ResultsPanel({
           >
             {log || (
               <span className="text-zinc-600">
-                <Terminal size={12} className="mr-1 inline" /> Output của jest sẽ hiện ở đây…
+                <Terminal size={12} className="mr-1 inline" /> {t("testingTool.jestOutputHint")}
               </span>
             )}
           </pre>
@@ -85,10 +87,11 @@ export function ResultsPanel({
 }
 
 function ResultList({ result, running }: { result: JestRunResult | null; running: boolean }) {
+  const t = useTranslations("admin");
   if (!result) {
     return (
       <div className="p-4 text-sm text-zinc-600">
-        {running ? "Đang chạy…" : "Chưa có kết quả."}
+        {running ? t("testingTool.runningEllipsis") : t("testingTool.noResults")}
       </div>
     );
   }
@@ -104,7 +107,7 @@ function ResultList({ result, running }: { result: JestRunResult | null; running
       ))}
       {result.suites.length === 0 && (
         <div className="p-4 text-sm text-red-400">
-          Không parse được kết quả jest. Xem tab Console để biết chi tiết.
+          {t("testingTool.parseJestFailed")}
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 interface ShopAnalyticsChartProps {
   type: "line" | "pie";
@@ -9,6 +10,7 @@ interface ShopAnalyticsChartProps {
 }
 
 export const ShopAnalyticsChart: React.FC<ShopAnalyticsChartProps> = ({ type, data, title }) => {
+  const t = useTranslations("admin");
   if (type === "line") {
     // Premium Line Chart with SVGs
     const maxVal = Math.max(...data.datasets[0].data);
@@ -74,7 +76,7 @@ export const ShopAnalyticsChart: React.FC<ShopAnalyticsChartProps> = ({ type, da
         >
           <div className="absolute inset-4 bg-slate-900 rounded-full flex items-center justify-center">
             <span className="text-xs font-bold text-white text-center">
-               Tổng<br/>{total}
+               {t("analytics.chartTotal")}<br/>{total}
             </span>
           </div>
         </div>

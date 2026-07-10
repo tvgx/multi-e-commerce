@@ -4,14 +4,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Lock, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 function ResetPasswordForm() {
+  const t = useTranslations('admin');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -19,23 +21,23 @@ function ResetPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.reset.mismatch'));
       return;
     }
 
     setLoading(true);
     setError('');
     try {
-      if (!token) throw new Error('Missing reset token');
+      if (!token) throw new Error(t('auth.reset.missingToken'));
       const { error } = await authClient.resetPassword({
         newPassword: password,
         token,
       });
-      if (error) throw new Error(error.message || 'Failed to reset password');
+      if (error) throw new Error(error.message || t('auth.reset.failed'));
       setSuccess(true);
       setTimeout(() => router.push('/login'), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to reset password');
+      setError(err.message || t('auth.reset.failed'));
     } finally {
       setLoading(false);
     }
@@ -47,9 +49,9 @@ function ResetPasswordForm() {
         <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
           <CheckCircle2 className="w-8 h-8 text-emerald-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Password Reset!</h2>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('auth.reset.successHeading')}</h1>
         <p className="text-slate-400 mb-8 text-sm">
-          Your password has been updated successfully. Redirecting you to login...
+          {t('auth.reset.successBody')}
         </p>
       </div>
     );
@@ -57,8 +59,8 @@ function ResetPasswordForm() {
 
   return (
     <>
-      <h2 className="text-2xl font-bold text-white mb-2">New Password</h2>
-      <p className="text-slate-400 mb-8 text-sm">Create a new password for your account.</p>
+      <h1 className="text-2xl font-bold text-white mb-2">{t('auth.reset.heading')}</h1>
+      <p className="text-slate-400 mb-8 text-sm">{t('auth.reset.description')}</p>
 
       {error && (
         <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center">
@@ -68,7 +70,7 @@ function ResetPasswordForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300 ml-1">New Password</label>
+          <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.reset.newPassword')}</label>
           <div className="relative group">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
             <input
@@ -83,7 +85,7 @@ function ResetPasswordForm() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300 ml-1">Confirm Password</label>
+          <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.reset.confirmPassword')}</label>
           <div className="relative group">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
             <input
@@ -106,7 +108,7 @@ function ResetPasswordForm() {
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              Reset Password
+              {t('auth.reset.submit')}
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </>
           )}
@@ -117,6 +119,7 @@ function ResetPasswordForm() {
 }
 
 export default function ResetPasswordPage() {
+  const t = useTranslations('admin');
   return (
     <div className="min-h-screen bg-[#030014] text-slate-200 flex items-center justify-center p-6 relative overflow-hidden font-sans">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/20 blur-[120px] pointer-events-none" />
@@ -128,13 +131,13 @@ export default function ResetPasswordPage() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
               <Zap className="text-white w-7 h-7 fill-current" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">OmniCommerce</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{t('auth.brand')}</span>
           </Link>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-          
+
           <div className="relative z-10">
             <Suspense fallback={
               <div className="flex justify-center py-10">

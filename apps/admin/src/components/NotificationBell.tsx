@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export function NotificationBell({ shopId }: { shopId: string }) {
+  const t = useTranslations('admin');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<{ id: string, message: string, date: string }[]>([]);
@@ -34,7 +36,7 @@ export function NotificationBell({ shopId }: { shopId: string }) {
       setUnreadCount(prev => prev + 1);
       setNotifications(prev => [{
         id: Math.random().toString(),
-        message: data.message || 'New order received!',
+        message: data.message || t('notifications.newOrder'),
         date: new Date().toLocaleTimeString()
       }, ...prev].slice(0, 10)); // Keep last 10
     });
@@ -57,7 +59,7 @@ export function NotificationBell({ shopId }: { shopId: string }) {
     <div className="relative">
       <button
         onClick={toggleOpen}
-        aria-label={`Thông báo${unreadCount > 0 ? `, ${unreadCount} chưa đọc` : ''}`}
+        aria-label={unreadCount > 0 ? t('notifications.ariaWithCount', { count: unreadCount }) : t('notifications.aria')}
         aria-haspopup="true"
         aria-expanded={isOpen}
         className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all relative"
@@ -71,16 +73,16 @@ export function NotificationBell({ shopId }: { shopId: string }) {
       {isOpen && (
         <div className="absolute right-0 top-12 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden text-sm">
           <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-            <h3 className="font-bold text-white">Notifications</h3>
+            <h3 className="font-bold text-white">{t('notifications.title')}</h3>
             {unreadCount > 0 && (
-              <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-md">{unreadCount} New</span>
+              <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-md">{t('notifications.newBadge', { count: unreadCount })}</span>
             )}
           </div>
           
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-slate-500">
-                No recent notifications
+                {t('notifications.empty')}
               </div>
             ) : (
               <div className="divide-y divide-slate-800/50">

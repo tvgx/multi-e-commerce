@@ -15,8 +15,10 @@ import {
   type HttpScenario,
   type JestRunResult,
 } from "@/lib/testing-api";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 export function TestingTool() {
+  const t = useTranslations("admin");
   const [suites, setSuites] = React.useState<SuiteInfo[]>([]);
   const [scenarios, setScenarios] = React.useState<HttpScenario[]>([]);
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
@@ -43,9 +45,9 @@ export function TestingTool() {
         setSuites(suites);
         setScenarios(scenarios);
       })
-      .catch((e) => setLoadErr(e?.message ?? "Không tải được danh sách suite"));
+      .catch((e) => setLoadErr(e?.message ?? t("testingTool.loadSuitesFailed")));
     return () => cancelRef.current?.();
-  }, []);
+  }, [t]);
 
   async function selectSuite(specPath: string) {
     setSelected(specPath);
@@ -55,7 +57,7 @@ export function TestingTool() {
       setContent(content);
       setSavedContent(content);
     } catch (e: any) {
-      setContent(`// Không đọc được file: ${e?.message ?? ""}`);
+      setContent(t("testingTool.readFileFailed", { msg: e?.message ?? "" }));
       setSavedContent("");
     } finally {
       setLoadingFile(false);
@@ -119,16 +121,16 @@ export function TestingTool() {
       runJest(selected);
     } catch (e: any) {
       setSaving(false);
-      setRunError(e?.message ?? "Lưu thất bại");
+      setRunError(e?.message ?? t("testingTool.saveFailed"));
     }
   }
 
   if (loadErr) {
     return (
       <div className="p-8 text-sm text-red-400">
-        Không kết nối được test runner: {loadErr}
+        {t("testingTool.runnerDisconnected", { msg: loadErr })}
         <div className="mt-2 text-zinc-500">
-          Đảm bảo api-core đang chạy (dev) và NODE_ENV ≠ production.
+          {t("testingTool.runnerHint")}
         </div>
       </div>
     );
@@ -194,7 +196,7 @@ export function TestingTool() {
           <section className="flex min-w-0 flex-1 flex-col border-r border-zinc-800">
             <div className="flex items-center gap-2 border-b border-zinc-800 px-3 py-1.5">
               <span className="truncate font-mono text-xs text-zinc-400">
-                {selected ?? "Chọn một suite bên trái để xem & sửa code"}
+                {selected ?? t("testingTool.selectSuiteHint")}
               </span>
               {selected && (
                 <button
@@ -210,14 +212,14 @@ export function TestingTool() {
               {selected ? (
                 loadingFile ? (
                   <div className="flex h-full items-center justify-center text-sm text-zinc-500">
-                    <Loader2 size={16} className="mr-2 animate-spin" /> Đang tải file…
+                    <Loader2 size={16} className="mr-2 animate-spin" /> {t("testingTool.loadingFile")}
                   </div>
                 ) : (
                   <CodeEditor path={selected} value={content} onChange={setContent} />
                 )
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-                  Chưa chọn suite.
+                  {t("testingTool.noSuiteSelected")}
                 </div>
               )}
             </div>

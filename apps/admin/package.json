@@ -7,7 +7,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "fuser -k 3001/tcp || true; next dev -p 3001",
+    "dev": "fuser -k 3001/tcp || true; next dev -p 3001 --turbopack",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",

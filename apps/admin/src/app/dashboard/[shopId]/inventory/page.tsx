@@ -3,9 +3,11 @@
 import React, { useEffect, useState, use } from 'react';
 import { useInventory, InventoryItem } from '@/hooks/useInventory';
 import { Loader2, PackageOpen, RefreshCw, Save, X } from 'lucide-react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function InventoryPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
+  const t = useTranslations('admin');
   const { items, loading, error, fetchInventory, adjustStock } = useInventory(shopId);
 
   const [editingVariant, setEditingVariant] = useState<{productId: string, variantId: string, currentStock: number} | null>(null);
@@ -35,14 +37,14 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 relative">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Inventory Management</h1>
-          <p className="text-slate-400">Track and adjust stock levels across all product variants.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('inventory.title')}</h1>
+          <p className="text-slate-400">{t('inventory.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={() => fetchInventory()}
           className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-colors"
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> {t('inventory.refresh')}
         </button>
       </div>
 
@@ -57,11 +59,11 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-white/5 border-b border-white/10 text-slate-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Product</th>
-                <th className="px-6 py-4 font-medium">Variant SKU</th>
-                <th className="px-6 py-4 font-medium">Attributes</th>
-                <th className="px-6 py-4 font-medium text-right">In Stock</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-6 py-4 font-medium">{t('inventory.colProduct')}</th>
+                <th className="px-6 py-4 font-medium">{t('inventory.colSku')}</th>
+                <th className="px-6 py-4 font-medium">{t('inventory.colAttributes')}</th>
+                <th className="px-6 py-4 font-medium text-right">{t('inventory.colInStock')}</th>
+                <th className="px-6 py-4 font-medium text-right">{t('inventory.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -69,14 +71,14 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500 mb-4" />
-                    <p className="text-slate-400">Loading inventory...</p>
+                    <p className="text-slate-400">{t('inventory.loading')}</p>
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <PackageOpen className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                    <p className="text-slate-400">No products found.</p>
+                    <p className="text-slate-400">{t('inventory.noProducts')}</p>
                   </td>
                 </tr>
               ) : (
@@ -87,7 +89,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                     return (
                       <tr key={pId} className="hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4 font-medium text-white">{product.name}</td>
-                        <td className="px-6 py-4 text-slate-500 italic">No variants</td>
+                        <td className="px-6 py-4 text-slate-500 italic">{t('inventory.noVariants')}</td>
                         <td className="px-6 py-4 text-slate-500">-</td>
                         <td className="px-6 py-4 text-right">-</td>
                         <td className="px-6 py-4 text-right"></td>
@@ -115,7 +117,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                               ))}
                             </div>
                           ) : (
-                            <span className="text-slate-500">Default</span>
+                            <span className="text-slate-500">{t('inventory.default')}</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -128,7 +130,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                             onClick={() => handleAdjustClick(pId, vId, stock)}
                             className="px-3 py-1 bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 rounded text-xs font-bold transition-colors"
                           >
-                            Adjust
+                            {t('inventory.adjust')}
                           </button>
                         </td>
                       </tr>
@@ -146,7 +148,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Adjust Stock</h3>
+              <h2 className="text-xl font-bold text-white">{t('inventory.adjustStock')}</h2>
               <button onClick={() => setEditingVariant(null)} className="text-slate-400 hover:text-white">
                 <X size={20} />
               </button>
@@ -154,7 +156,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
             
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">New Stock Quantity</label>
+                <label className="block text-sm font-medium text-slate-400 mb-2">{t('inventory.newStockQty')}</label>
                 <input 
                   type="number"
                   min="0"
@@ -164,7 +166,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                 />
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Current Stock:</span>
+                <span className="text-slate-500">{t('inventory.currentStock')}</span>
                 <span className="text-slate-300 font-bold">{editingVariant.currentStock}</span>
               </div>
             </div>
@@ -174,7 +176,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                 onClick={() => setEditingVariant(null)}
                 className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors font-medium"
               >
-                Cancel
+                {t('inventory.cancel')}
               </button>
               <button 
                 onClick={handleSave}
@@ -182,7 +184,7 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
                 className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors font-bold disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                Save
+                {t('inventory.save')}
               </button>
             </div>
           </div>

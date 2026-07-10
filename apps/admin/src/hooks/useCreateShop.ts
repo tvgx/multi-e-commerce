@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface CreateShopInput {
   shopName: string;
@@ -13,6 +14,7 @@ export interface CreateShopInput {
  * seed là non-fatal. Trang chỉ giữ wizard step + form + điều hướng.
  */
 export function useCreateShop() {
+  const t = useTranslations('admin');
   const [loading, setLoading] = useState(false);
 
   /** Trả về shopId mới nếu tạo thành công, ngược lại null (đã toast lỗi). */
@@ -38,7 +40,7 @@ export function useCreateShop() {
 
       return shopId;
     } catch (err: any) {
-      toast.error(`Error: ${err.message}`);
+      toast.error(`${t('hooks.createShopErrorPrefix')}: ${err.message}`);
       return null;
     } finally {
       setLoading(false);

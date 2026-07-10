@@ -12,14 +12,17 @@ import {
 } from 'lucide-react';
 import {
   formatVND, formatCompactVND, PeriodSelect, KpiCard, DonutCard, FunnelSteps,
-  ORDER_STATE_LABELS, PAYMENT_STATE_LABELS, DOW_LABELS, CHART_TOOLTIP_STYLE,
+  useAnalyticsLabels, CHART_TOOLTIP_STYLE,
 } from '@/components/analytics/AnalyticsWidgets';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 const formatDateTick = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
 const formatPercent = (value: number, digits = 1) => `${value.toFixed(digits)}%`;
 
 export default function AnalyticsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = React.use(params);
+  const t = useTranslations('admin');
+  const { orderStateLabels, paymentStateLabels, dowLabels } = useAnalyticsLabels();
   const [period, setPeriod] = useState<AnalyticsPeriod>('30d');
   const { data, loading, error, refresh } = useAnalytics(shopId, period);
 
@@ -34,7 +37,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
   if (error) {
     return (
       <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-3xl">
-        Không tải được dữ liệu phân tích: {error}
+        {t('analytics.errorLoad')}: {error}
       </div>
     );
   }
@@ -59,7 +62,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
   }));
 
   const hourData = timing.byHour.map((p) => ({ ...p, label: `${p.hour}h` }));
-  const dowData = timing.byDow.map((p) => ({ ...p, label: DOW_LABELS[p.dow - 1] }));
+  const dowData = timing.byDow.map((p) => ({ ...p, label: dowLabels[p.dow - 1] }));
   const maxReviewCount = Math.max(...reviews.distribution.map((d) => d.count), 1);
   const maxSearchCount = Math.max(...topSearches.map((s) => s.count), 1);
 
@@ -68,13 +71,13 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Phân tích bán hàng</h1>
-          <p className="text-slate-400 mt-1">Theo dõi hiệu suất cửa hàng và hành vi khách hàng của bạn.</p>
+          <h1 className="text-3xl font-bold text-white">{t('analytics.title')}</h1>
+          <p className="text-slate-400 mt-1">{t('analytics.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={refresh}
-            title="Làm mới dữ liệu"
+            title={t('analytics.refreshTitle')}
             className="p-2.5 bg-slate-800 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -87,65 +90,65 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <KpiCard
           icon={<TrendingUp size={24} />}
-          label="Doanh thu"
+          label={t('analytics.kpiRevenue')}
           value={formatVND(current.revenue)}
           change={change.revenue}
           accent="indigo"
         />
         <KpiCard
           icon={<ShoppingBag size={24} />}
-          label="Đơn hàng"
+          label={t('analytics.kpiOrders')}
           value={String(current.orderCount)}
           change={change.orderCount}
           accent="emerald"
         />
         <KpiCard
           icon={<Receipt size={24} />}
-          label="Giá trị trung bình / đơn (AOV)"
+          label={t('analytics.kpiAov')}
           value={formatVND(current.aov)}
           change={change.aov}
           accent="amber"
         />
         <KpiCard
           icon={<Eye size={24} />}
-          label="Khách ghé shop"
+          label={t('analytics.kpiVisitors')}
           value={current.visitors.toLocaleString('vi-VN')}
-          sub={`${traffic.totalVisits.toLocaleString('vi-VN')} lượt ghé trong kỳ`}
+          sub={t('analytics.kpiVisitsInPeriod', { count: traffic.totalVisits.toLocaleString('vi-VN') })}
           change={change.visitors}
           accent="sky"
         />
         <KpiCard
           icon={<Target size={24} />}
-          label="Tỷ lệ chuyển đổi mua hàng"
+          label={t('analytics.kpiConversion')}
           value={formatPercent(current.conversionRate)}
-          sub={`${current.uniqueBuyers} khách mua / ${current.visitors} khách ghé`}
+          sub={t('analytics.kpiConversionSub', { buyers: current.uniqueBuyers, visitors: current.visitors })}
           change={change.conversionRate}
           accent="violet"
         />
         <KpiCard
           icon={<Undo2 size={24} />}
-          label="Khách ở lại sau lần đầu"
+          label={t('analytics.kpiRetained')}
           value={formatPercent(traffic.returningVisitorRate)}
-          sub={`${traffic.returningVisitors}/${traffic.totalVisitors} khách ghé lại ≥ 2 lần trong kỳ`}
+          sub={t('analytics.kpiRetainedSub', { returning: traffic.returningVisitors, total: traffic.totalVisitors })}
           accent="sky"
         />
         <KpiCard
           icon={<Repeat size={24} />}
-          label="Tỷ lệ mua lại"
+          label={t('analytics.kpiRepeat')}
           value={formatPercent(retention.repeatPurchaseRate)}
-          sub={`${retention.repeatCustomers}/${retention.totalPurchasers} khách mua ≥ 2 đơn (toàn thời gian)`}
+          sub={t('analytics.kpiRepeatSub', { repeat: retention.repeatCustomers, total: retention.totalPurchasers })}
           accent="emerald"
         />
         <KpiCard
           icon={<UserPlus size={24} />}
-          label="Khách hàng mới"
+          label={t('analytics.kpiNewCustomers')}
           value={String(current.newCustomers)}
           change={change.newCustomers}
           accent="violet"
         />
         <KpiCard
           icon={<XCircle size={24} />}
-          label="Tỷ lệ hủy đơn"
+          label={t('analytics.kpiCancelRate')}
           value={formatPercent(current.cancelRate)}
           change={change.cancelRate}
           invertChange
@@ -155,7 +158,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
 
       {/* Revenue + Orders Chart */}
       <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
-        <h3 className="text-lg font-bold text-white mb-6">Doanh thu & đơn hàng theo ngày</h3>
+        <h3 className="text-lg font-bold text-white mb-6">{t('analytics.chartRevenueOrders')}</h3>
         <div className="h-[360px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={revenueSeries} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
@@ -188,18 +191,18 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
               />
               <RechartsTooltip
                 contentStyle={CHART_TOOLTIP_STYLE}
-                labelFormatter={(label) => `Ngày ${formatDateTick(String(label))}`}
-                formatter={(value: any, name: any) =>
-                  name === 'Doanh thu' ? [formatVND(Number(value)), name] : [value, name]
+                labelFormatter={(label) => `${t('analytics.dayPrefix')} ${formatDateTick(String(label))}`}
+                formatter={(value: any, name: any, item: any) =>
+                  item?.dataKey === 'revenue' ? [formatVND(Number(value)), name] : [value, name]
                 }
               />
               <Legend wrapperStyle={{ fontSize: 13 }} />
-              <Bar yAxisId="orders" dataKey="orders" name="Đơn hàng" fill="#34d399" opacity={0.5} radius={[4, 4, 0, 0]} barSize={14} />
+              <Bar yAxisId="orders" dataKey="orders" name={t('analytics.seriesOrders')} fill="#34d399" opacity={0.5} radius={[4, 4, 0, 0]} barSize={14} />
               <Area
                 yAxisId="revenue"
                 type="monotone"
                 dataKey="revenue"
-                name="Doanh thu"
+                name={t('analytics.seriesRevenue')}
                 stroke="#818cf8"
                 strokeWidth={3}
                 fill="url(#revenueGradient)"
@@ -214,9 +217,9 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
       {/* Traffic chart + Funnel */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-1">Lưu lượng ghé shop theo ngày</h3>
+          <h3 className="text-lg font-bold text-white mb-1">{t('analytics.chartTraffic')}</h3>
           <p className="text-slate-500 text-xs mb-5">
-            Khách ghé là số người riêng biệt; lượt ghé tính mỗi phiên 30 phút.
+            {t('analytics.chartTrafficSub')}
           </p>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -226,11 +229,11 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                 <YAxis allowDecimals={false} stroke="rgba(255,255,255,0.4)" fontSize={12} />
                 <RechartsTooltip
                   contentStyle={CHART_TOOLTIP_STYLE}
-                  labelFormatter={(label) => `Ngày ${formatDateTick(String(label))}`}
+                  labelFormatter={(label) => `${t('analytics.dayPrefix')} ${formatDateTick(String(label))}`}
                 />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
-                <Bar dataKey="visits" name="Lượt ghé" fill="#38bdf8" opacity={0.4} radius={[4, 4, 0, 0]} barSize={14} />
-                <Line type="monotone" dataKey="visitors" name="Khách ghé" stroke="#38bdf8" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                <Bar dataKey="visits" name={t('analytics.seriesVisits')} fill="#38bdf8" opacity={0.4} radius={[4, 4, 0, 0]} barSize={14} />
+                <Line type="monotone" dataKey="visitors" name={t('analytics.seriesVisitors')} stroke="#38bdf8" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -239,22 +242,22 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2.5 bg-violet-500/20 rounded-xl text-violet-400"><Filter size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Hành trình mua hàng (funnel)</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.funnelTitle')}</h3>
           </div>
           <p className="text-slate-500 text-xs mb-5 mt-1">
-            % trên thanh là tỷ lệ chuyển đổi so với bước liền trước.
+            {t('analytics.funnelSub')}
           </p>
           <FunnelSteps
             steps={[
-              { label: 'Ghé shop', value: funnel.visitors, hint: 'khách riêng biệt' },
-              { label: 'Có giỏ hàng', value: funnel.cartCustomers },
-              { label: 'Đặt hàng', value: funnel.buyers },
-              { label: 'Nhận hàng thành công', value: funnel.completedBuyers },
+              { label: t('analytics.funnelVisit'), value: funnel.visitors, hint: t('analytics.funnelVisitHint') },
+              { label: t('analytics.funnelCart'), value: funnel.cartCustomers },
+              { label: t('analytics.funnelOrder'), value: funnel.buyers },
+              { label: t('analytics.funnelReceived'), value: funnel.completedBuyers },
             ]}
           />
           {funnel.visitors === 0 && (
             <p className="text-slate-500 text-xs mt-4">
-              Chưa có dữ liệu lượt ghé — số liệu bắt đầu được ghi nhận từ khi bật tính năng theo dõi.
+              {t('analytics.funnelNoData')}
             </p>
           )}
         </div>
@@ -263,33 +266,33 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
       {/* Status donuts + revenue composition */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <DonutCard
-          title="Trạng thái đơn hàng"
+          title={t('analytics.donutOrderStatus')}
           data={ordersByState}
-          labels={ORDER_STATE_LABELS}
-          emptyText="Chưa có đơn hàng nào trong kỳ này."
+          labels={orderStateLabels}
+          emptyText={t('analytics.donutOrderEmpty')}
         />
         <DonutCard
-          title="Trạng thái thanh toán"
+          title={t('analytics.donutPayStatus')}
           data={paymentsByState}
-          labels={PAYMENT_STATE_LABELS}
-          emptyText="Chưa có giao dịch nào trong kỳ này."
+          labels={paymentStateLabels}
+          emptyText={t('analytics.donutPayEmpty')}
         />
         <div className="flex flex-col">
           <DonutCard
             className="flex-1"
-            title="Cơ cấu doanh thu"
+            title={t('analytics.donutRevComposition')}
             data={{
               itemTotal: revenueBreakdown.itemTotal,
               shipmentTotal: revenueBreakdown.shipmentTotal,
               taxTotal: revenueBreakdown.taxTotal,
             }}
-            labels={{ itemTotal: 'Tiền hàng', shipmentTotal: 'Phí vận chuyển', taxTotal: 'Thuế' }}
-            emptyText="Chưa có doanh thu trong kỳ này."
+            labels={{ itemTotal: t('analytics.revItemTotal'), shipmentTotal: t('analytics.revShipment'), taxTotal: t('analytics.revTax') }}
+            emptyText={t('analytics.donutRevEmpty')}
             valueFormatter={formatCompactVND}
           />
           {revenueBreakdown.promoTotal > 0 && (
             <p className="text-slate-500 text-xs mt-2 px-2">
-              Đã giảm giá {formatVND(revenueBreakdown.promoTotal)} qua khuyến mãi trong kỳ.
+              {t('analytics.promoDiscounted', { amount: formatVND(revenueBreakdown.promoTotal) })}
             </p>
           )}
         </div>
@@ -300,7 +303,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-400"><Clock size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Đơn hàng theo giờ trong ngày</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.timingHourTitle')}</h3>
           </div>
           <div className="h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -310,21 +313,21 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                 <YAxis allowDecimals={false} stroke="rgba(255,255,255,0.4)" fontSize={12} />
                 <RechartsTooltip
                   contentStyle={CHART_TOOLTIP_STYLE}
-                  formatter={(value: any, name: any) =>
-                    name === 'Doanh thu' ? [formatVND(Number(value)), name] : [value, name]
+                  formatter={(value: any, name: any, item: any) =>
+                    item?.dataKey === 'revenue' ? [formatVND(Number(value)), name] : [value, name]
                   }
                 />
-                <Bar dataKey="orders" name="Đơn hàng" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="orders" name={t('analytics.seriesOrders')} fill="#fbbf24" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-slate-500 text-xs mt-3">Theo giờ Việt Nam — dùng để chọn khung giờ đăng sản phẩm, chạy khuyến mãi.</p>
+          <p className="text-slate-500 text-xs mt-3">{t('analytics.timingHourNote')}</p>
         </div>
 
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400"><Clock size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Đơn hàng theo thứ trong tuần</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.timingDowTitle')}</h3>
           </div>
           <div className="h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -334,15 +337,15 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                 <YAxis allowDecimals={false} stroke="rgba(255,255,255,0.4)" fontSize={12} />
                 <RechartsTooltip
                   contentStyle={CHART_TOOLTIP_STYLE}
-                  formatter={(value: any, name: any) =>
-                    name === 'Doanh thu' ? [formatVND(Number(value)), name] : [value, name]
+                  formatter={(value: any, name: any, item: any) =>
+                    item?.dataKey === 'revenue' ? [formatVND(Number(value)), name] : [value, name]
                   }
                 />
-                <Bar dataKey="orders" name="Đơn hàng" fill="#34d399" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="orders" name={t('analytics.seriesOrders')} fill="#34d399" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-slate-500 text-xs mt-3">Ngày nào khách mua nhiều nhất — lên lịch nhập hàng và khuyến mãi theo tuần.</p>
+          <p className="text-slate-500 text-xs mt-3">{t('analytics.timingDowNote')}</p>
         </div>
       </div>
 
@@ -351,10 +354,10 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-400"><Star size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Đánh giá sản phẩm</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.reviewsTitle')}</h3>
           </div>
           {reviews.totalReviews === 0 ? (
-            <p className="text-slate-500 text-center py-8">Shop chưa có đánh giá nào.</p>
+            <p className="text-slate-500 text-center py-8">{t('analytics.reviewsEmpty')}</p>
           ) : (
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="text-center shrink-0">
@@ -368,8 +371,8 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                     />
                   ))}
                 </div>
-                <p className="text-slate-500 text-xs">{reviews.totalReviews} đánh giá</p>
-                <p className="text-slate-500 text-xs">{reviews.newReviews} mới trong kỳ</p>
+                <p className="text-slate-500 text-xs">{t('analytics.reviewsCount', { count: reviews.totalReviews })}</p>
+                <p className="text-slate-500 text-xs">{t('analytics.reviewsNew', { count: reviews.newReviews })}</p>
               </div>
               <div className="flex-1 space-y-2">
                 {[...reviews.distribution].reverse().map((d) => (
@@ -392,7 +395,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-sky-500/20 rounded-xl text-sky-400"><Search size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Khách đang tìm gì trong shop</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.searchesTitle')}</h3>
           </div>
           <div className="space-y-3">
             {topSearches.map((item, index) => (
@@ -407,16 +410,16 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                     style={{ width: `${(item.count / maxSearchCount) * 100}%` }}
                   />
                 </div>
-                <span className="text-slate-400 text-xs w-12 text-right shrink-0">{item.count} lượt</span>
+                <span className="text-slate-400 text-xs w-12 text-right shrink-0">{item.count} {t('analytics.timesSuffix')}</span>
               </div>
             ))}
             {topSearches.length === 0 && (
-              <p className="text-slate-500 text-center py-8">Chưa có lượt tìm kiếm nào trong kỳ này.</p>
+              <p className="text-slate-500 text-center py-8">{t('analytics.searchesEmpty')}</p>
             )}
           </div>
           {topSearches.length > 0 && (
             <p className="text-slate-500 text-xs mt-4">
-              Từ khóa được tìm nhiều mà shop chưa có hàng là cơ hội nhập sản phẩm mới.
+              {t('analytics.searchesNote')}
             </p>
           )}
         </div>
@@ -427,7 +430,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-indigo-500/20 rounded-xl text-indigo-400"><Package size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Sản phẩm bán chạy</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.topProductsTitle')}</h3>
           </div>
           <div className="space-y-3">
             {topProducts.map((product, index) => (
@@ -441,12 +444,12 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-white text-sm font-bold">{formatVND(product.revenue)}</p>
-                  <p className="text-slate-500 text-xs">Đã bán {product.quantity}</p>
+                  <p className="text-slate-500 text-xs">{t('analytics.soldSuffix', { count: product.quantity })}</p>
                 </div>
               </div>
             ))}
             {topProducts.length === 0 && (
-              <p className="text-slate-500 text-center py-8">Chưa có sản phẩm nào được bán trong kỳ này.</p>
+              <p className="text-slate-500 text-center py-8">{t('analytics.topProductsEmpty')}</p>
             )}
           </div>
         </div>
@@ -454,7 +457,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-400"><Crown size={20} /></div>
-            <h3 className="text-lg font-bold text-white">Khách hàng thân thiết</h3>
+            <h3 className="text-lg font-bold text-white">{t('analytics.topCustomersTitle')}</h3>
           </div>
           <div className="space-y-3">
             {customers.topCustomers.map((customer, index) => (
@@ -468,12 +471,12 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-white text-sm font-bold">{formatVND(customer.totalSpent)}</p>
-                  <p className="text-slate-500 text-xs">{customer.orderCount} đơn</p>
+                  <p className="text-slate-500 text-xs">{t('analytics.ordersSuffix', { count: customer.orderCount })}</p>
                 </div>
               </div>
             ))}
             {customers.topCustomers.length === 0 && (
-              <p className="text-slate-500 text-center py-8">Chưa có khách hàng nào mua trong kỳ này.</p>
+              <p className="text-slate-500 text-center py-8">{t('analytics.topCustomersEmpty')}</p>
             )}
           </div>
 
@@ -481,14 +484,14 @@ export default function AnalyticsPage({ params }: { params: Promise<{ shopId: st
           {buyerTotal > 0 && (
             <div className="mt-6 pt-6 border-t border-white/5">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-violet-400 font-medium">Khách mới: {customers.newBuyers}</span>
-                <span className="text-emerald-400 font-medium">Khách quay lại: {customers.returningBuyers}</span>
+                <span className="text-violet-400 font-medium">{t('analytics.newBuyers', { count: customers.newBuyers })}</span>
+                <span className="text-emerald-400 font-medium">{t('analytics.returningBuyers', { count: customers.returningBuyers })}</span>
               </div>
               <div className="h-2.5 bg-violet-500/40 rounded-full overflow-hidden flex">
                 <div className="h-full bg-emerald-500 ml-auto rounded-full" style={{ width: `${returningPercent}%` }} />
               </div>
               <p className="text-slate-500 text-xs mt-2">
-                {returningPercent.toFixed(0)}% khách mua trong kỳ là khách quay lại.
+                {t('analytics.returningNote', { percent: returningPercent.toFixed(0) })}
               </p>
             </div>
           )}

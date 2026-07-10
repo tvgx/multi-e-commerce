@@ -28,18 +28,19 @@ import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { ChatPanel } from "./ChatPanel";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 
-const STAGE_LABELS: Record<string, string> = {
-  extract: "Đang trích xuất dữ liệu...",
-  parse: "Đang chuẩn hóa cấu trúc...",
-  assemble: "Đang ghép nối các trang...",
-  compile: "Đang biên dịch giao diện...",
-  "db-save": "Đang lưu vào Database...",
-  minio: "Đang xuất bản tài nguyên...",
-  published: "Hoàn tất!",
+const STAGE_LABEL_KEYS: Record<string, string> = {
+  extract: "finalizing.stageExtract",
+  parse: "finalizing.stageParse",
+  assemble: "finalizing.stageAssemble",
+  compile: "finalizing.stageCompile",
+  "db-save": "finalizing.stageDbSave",
+  minio: "finalizing.stageMinio",
+  published: "finalizing.stagePublished",
 };
 
 // Màn "Shop đang được tạo" — poll tiến độ build nền và hiển thị URL khi xong.
 function FinalizingView({ shopId }: { shopId: string }) {
+  const t = useTranslations("admin");
   const router = useRouter();
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
@@ -65,7 +66,7 @@ function FinalizingView({ shopId }: { shopId: string }) {
     <div className="max-w-2xl mx-auto py-16 px-6">
       <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 via-violet-700 to-indigo-900 p-10 text-white shadow-2xl text-center">
         <div className="text-xs font-bold uppercase tracking-widest text-indigo-200/70 mb-8">
-          🚀 OmniAdmin · Khởi tạo cửa hàng
+          {t("finalizing.brandInit")}
         </div>
 
         {failed ? (
@@ -73,15 +74,15 @@ function FinalizingView({ shopId }: { shopId: string }) {
             <div className="w-20 h-20 mx-auto rounded-full bg-red-500/20 flex items-center justify-center mb-6">
               <AlertTriangle className="w-10 h-10 text-red-300" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Tạo shop thất bại</h2>
-            <p className="text-indigo-100/70 text-sm mb-6">{status?.error || "Đã có lỗi xảy ra."}</p>
+            <h2 className="text-xl font-bold mb-2">{t("finalizing.createFailed")}</h2>
+            <p className="text-indigo-100/70 text-sm mb-6">{status?.error || t("finalizing.genericError")}</p>
             <button
               onClick={retry}
               disabled={retrying}
               className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-indigo-700 transition-all hover:bg-slate-100 disabled:opacity-60"
             >
               {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Thử lại
+              {t("finalizing.retry")}
             </button>
           </>
         ) : done ? (
@@ -89,7 +90,7 @@ function FinalizingView({ shopId }: { shopId: string }) {
             <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center mb-6">
               <CheckCircle2 className="w-10 h-10 text-emerald-300" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Shop của bạn đã sẵn sàng tại:</h2>
+            <h2 className="text-xl font-bold mb-2">{t("finalizing.readyAt")}</h2>
             {status?.storefrontUrl && (
               <a
                 href={status.storefrontUrl}
@@ -107,17 +108,17 @@ function FinalizingView({ shopId }: { shopId: string }) {
               onClick={() => router.replace(`/dashboard/${shopId}`)}
               className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 font-semibold text-indigo-700 transition-all hover:bg-slate-100"
             >
-              Truy cập trang Quản trị <ArrowRight className="w-4 h-4" />
+              {t("finalizing.goAdmin")} <ArrowRight className="w-4 h-4" />
             </button>
           </>
         ) : (
           <>
             <Loader2 className="w-14 h-14 mx-auto animate-spin text-indigo-200 mb-6" />
             <h2 className="text-xl font-bold mb-2 uppercase tracking-wide">
-              Shop của bạn đang được tạo, bạn chờ chút nhé...
+              {t("finalizing.creating")}
             </h2>
             <p className="text-indigo-100/70 text-sm mb-8">
-              {STAGE_LABELS[status?.stage || ""] || "Đang cấu hình Database và Giao diện..."}
+              {STAGE_LABEL_KEYS[status?.stage || ""] ? t(STAGE_LABEL_KEYS[status?.stage || ""]) : t("finalizing.configuring")}
             </p>
             <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden mb-3">
               <div

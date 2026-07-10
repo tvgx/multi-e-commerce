@@ -1,9 +1,28 @@
 import { getShopPageBySlug, getShopInfo } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
+import { shopUrl, metaText } from '@/lib/seo';
+import type { Metadata } from 'next';
 
 interface Props {
   params: Promise<{ shopSlug: string; slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { shopSlug, slug } = await params;
+  const page = await getShopPageBySlug(shopSlug, slug);
+  const canonical = shopUrl(shopSlug, `/pages/${slug}`);
+  if (!page) return { alternates: { canonical } };
+  const title = page.title || slug;
+  const description = page.metaDescription || page.excerpt
+    ? metaText(page.metaDescription || page.excerpt)
+    : undefined;
+  return {
+    title,
+    ...(description ? { description } : {}),
+    alternates: { canonical },
+    openGraph: { type: 'article', title, ...(description ? { description } : {}), url: canonical },
+  };
 }
 
 export default async function CustomPage({ params }: Props) {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface DomainVerificationRecord {
   type: string; // 'TXT'
@@ -15,6 +16,7 @@ export interface DomainVerificationRecord {
  * - `verify`: gọi backend resolve bản ghi TXT thật rồi đối chiếu.
  */
 export function useDomainVerification(shopId: string) {
+  const t = useTranslations('admin');
   const [customDomain, setCustomDomain] = useState<string | null>(null);
   const [domainVerified, setDomainVerified] = useState(false);
   const [record, setRecord] = useState<DomainVerificationRecord | null>(null);
@@ -36,11 +38,11 @@ export function useDomainVerification(shopId: string) {
         setRecord({ type: 'TXT', host: '@', value: `shopVolo-verification=${shopId}` });
       }
     } catch (err: any) {
-      setError(err.message || 'Không tải được thông tin tên miền');
+      setError(err.message || t('hooks.domainLoadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, t]);
 
   useEffect(() => {
     load();
@@ -64,7 +66,7 @@ export function useDomainVerification(shopId: string) {
       setRecord(data?.verification ?? null);
       return data?.verification ?? null;
     } catch (err: any) {
-      setError(err.message || 'Lưu tên miền thất bại');
+      setError(err.message || t('hooks.domainSaveFailed'));
       return null;
     } finally {
       setSaving(false);
@@ -85,10 +87,7 @@ export function useDomainVerification(shopId: string) {
       setDomainVerified(verified);
       return verified;
     } catch (err: any) {
-      setError(
-        err.message ||
-          'Xác thực thất bại. Vui lòng kiểm tra lại bản ghi DNS và thử lại.',
-      );
+      setError(err.message || t('hooks.domainVerifyFailed'));
       return false;
     } finally {
       setVerifying(false);

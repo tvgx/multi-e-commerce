@@ -9,11 +9,13 @@ import { apiClient } from "@/lib/api-client";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
 import { ProductPickerModal } from "@/components/products/ProductPickerModal";
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from "@ecommerce/i18n/src/react";
 import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 
 export default function NewCollectionPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
   const router = useRouter();
+  const t = useTranslations("admin");
   const { createCollection } = useCollections(shopId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,10 +74,10 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
       }
 
       await createCollection({ ...formData, imageUrl: finalImageUrl, productIds });
-      toast.success("Collection created successfully");
+      toast.success(t("collectionForm.createdSuccess"));
       completeAndNavigate();
     } catch (err: any) {
-      setError(err.message || "Failed to create category");
+      setError(err.message || t("collectionForm.createFailed"));
       setLoading(false);
     }
   };
@@ -90,14 +92,14 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
           >
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Create Category</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t("collectionForm.createTitle")}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href={`/dashboard/${shopId}/collections`}
             className="px-6 py-2.5 rounded-full text-sm font-semibold text-slate-300 hover:text-white transition-colors"
           >
-            Discard
+            {t("collectionForm.discard")}
           </Link>
           <button
             onClick={handleSubmit}
@@ -105,7 +107,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Category
+            {t("collectionForm.saveCategory")}
           </button>
         </div>
       </div>
@@ -118,15 +120,15 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-          <h2 className="text-lg font-bold text-white">Basic Information</h2>
-          
+          <h2 className="text-lg font-bold text-white">{t("collectionForm.basicInfo")}</h2>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.titleLabel")}</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Summer Collection 2026"
+                placeholder={t("collectionForm.titlePlaceholder")}
                 value={formData.title}
                 onChange={handleTitleChange}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
@@ -134,7 +136,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Slug (URL)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.slugLabel")}</label>
               <input
                 type="text"
                 required
@@ -146,10 +148,10 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.descLabel")}</label>
               <textarea
                 rows={4}
-                placeholder="Describe this category..."
+                placeholder={t("collectionForm.descPlaceholder")}
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
@@ -158,17 +160,17 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
 
             <div className="pt-4 border-t border-white/10">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-300">Products in Collection</label>
+                <label className="block text-sm font-medium text-slate-300">{t("collectionForm.productsInCollection")}</label>
                 <button
                   type="button"
                   onClick={() => setIsPickerOpen(true)}
                   className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20"
                 >
-                  + Add Products
+                  {t("collectionForm.addProducts")}
                 </button>
               </div>
               <div className="text-sm text-slate-400">
-                {productIds.length} product(s) selected to be added.
+                {t("collectionForm.selectedToAdd", { count: productIds.length })}
               </div>
             </div>
           </div>
@@ -176,10 +178,10 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Cover Image</h2>
-            
+            <h2 className="text-lg font-bold text-white">{t("collectionForm.coverImage")}</h2>
+
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Image URL</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.imageUrl")}</label>
               <input
                 type="url"
                 placeholder="https://example.com/image.png"
@@ -202,7 +204,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                   <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
                     <ImageIcon className="w-8 h-8 mb-2" />
-                    <span className="text-sm font-medium">Click to change image</span>
+                    <span className="text-sm font-medium">{t("collectionForm.clickToChange")}</span>
                   </div>
                 </div>
               ) : (
@@ -211,15 +213,15 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                  <span className="text-sm font-medium">Click to upload an image</span>
+                  <span className="text-sm font-medium">{t("collectionForm.clickToUpload")}</span>
                 </div>
               )}
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Status</h2>
-            
+            <h2 className="text-lg font-bold text-white">{t("collectionForm.status")}</h2>
+
             <div className="space-y-4">
               <label className="flex items-start gap-3 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 cursor-pointer hover:bg-indigo-500/10 transition-colors">
                 <div className="flex h-6 items-center">
@@ -231,8 +233,8 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                   />
                 </div>
                 <div>
-                  <div className="font-medium text-white">Active</div>
-                  <div className="text-sm text-slate-400">Category is visible to customers on the storefront</div>
+                  <div className="font-medium text-white">{t("collectionForm.active")}</div>
+                  <div className="text-sm text-slate-400">{t("collectionForm.activeDesc")}</div>
                 </div>
               </label>
 
@@ -246,8 +248,8 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
                   />
                 </div>
                 <div>
-                  <div className="font-medium text-white">Draft (Hidden)</div>
-                  <div className="text-sm text-slate-400">Category is hidden from the storefront</div>
+                  <div className="font-medium text-white">{t("collectionForm.draftHidden")}</div>
+                  <div className="text-sm text-slate-400">{t("collectionForm.draftDesc")}</div>
                 </div>
               </label>
             </div>
@@ -261,7 +263,7 @@ export default function NewCollectionPage({ params }: { params: Promise<{ shopId
         onClose={() => setIsPickerOpen(false)}
         onAdd={async (ids) => {
           setProductIds(ids);
-          toast.success(`${ids.length} product(s) selected`);
+          toast.success(t("collectionForm.productsSelected", { count: ids.length }));
         }}
         existingProductIds={[]}
       />

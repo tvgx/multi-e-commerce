@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, User } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface ChatSession {
   _id: string;
@@ -18,6 +19,7 @@ interface ChatMessage {
 }
 
 export function ChatPanel({ shopId }: { shopId: string }) {
+  const t = useTranslations('admin');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -74,12 +76,12 @@ export function ChatPanel({ shopId }: { shopId: string }) {
         <div className="p-4 border-b border-slate-200 bg-slate-50">
           <h2 className="font-bold flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-indigo-600" />
-            Hỗ trợ khách hàng
+            {t('chatPanel.title')}
           </h2>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {sessions.length === 0 ? (
-            <div className="text-center text-slate-500 mt-10 text-sm">Chưa có tin nhắn nào</div>
+            <div className="text-center text-slate-500 mt-10 text-sm">{t('chatPanel.empty')}</div>
           ) : (
             sessions.map(session => (
               <button 
@@ -91,7 +93,7 @@ export function ChatPanel({ shopId }: { shopId: string }) {
                   <User className="w-5 h-5 text-slate-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">Khách hàng {session.customerId.substring(0, 6)}...</div>
+                  <div className="font-medium text-sm truncate">{t('chatPanel.customerPrefix')} {session.customerId.substring(0, 6)}...</div>
                   <div className="text-xs text-slate-500 truncate">{session.lastMessage}</div>
                 </div>
               </button>
@@ -122,7 +124,7 @@ export function ChatPanel({ shopId }: { shopId: string }) {
                   type="text" 
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  placeholder="Nhập tin nhắn..." 
+                  placeholder={t('chatPanel.inputPlaceholder')}
                   className="flex-1 border border-slate-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
                 <button type="submit" className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700">
@@ -134,7 +136,7 @@ export function ChatPanel({ shopId }: { shopId: string }) {
         ) : (
           <div className="flex-1 flex items-center justify-center text-slate-400 flex-col gap-3">
             <MessageCircle className="w-12 h-12 text-slate-300" />
-            <p>Chọn một cuộc trò chuyện để bắt đầu</p>
+            <p>{t('chatPanel.selectConversation')}</p>
           </div>
         )}
       </div>

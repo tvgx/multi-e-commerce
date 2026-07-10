@@ -20,11 +20,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Layers, Lock, Box, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Pencil } from 'lucide-react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 // -----------------------------------------------------------------------
 // AddBlockInline – shows allowed blocks for a given parent section
 // -----------------------------------------------------------------------
 function AddBlockInline({ parentId, parentComponentId }: { parentId: string; parentComponentId: string }) {
+    const t = useTranslations('admin');
     const [isOpen, setIsOpen] = useState(false);
     const addBlock = useBuilderStore(s => s.addBlock);
 
@@ -44,7 +46,7 @@ function AddBlockInline({ parentId, parentComponentId }: { parentId: string; par
                     }`}
             >
                 <Plus size={11} className={`transition-transform ${isOpen ? 'rotate-45' : ''}`} />
-                Thêm khối
+                {t('builderTool.addBlock')}
             </button>
             {isOpen && (
                 <div className="mt-1 rounded-lg border border-border bg-popover overflow-hidden shadow-lg">
@@ -102,6 +104,7 @@ function BlockTree({ blocks, parentId, level = 0 }: { blocks: any[], parentId: s
 }
 
 function BlockItem({ block, level }: { block: any, level: number }) {
+    const t = useTranslations('admin');
     const activeBlockId = useBuilderStore(s => s.activeBlockId);
     const setActiveBlock = useBuilderStore(s => s.setActiveBlock);
     const removeBlock = useBuilderStore(s => s.removeBlock);
@@ -178,14 +181,14 @@ function BlockItem({ block, level }: { block: any, level: number }) {
                 )}
 
                 {/* Rename */}
-                <button onClick={startRename} className={`${actionBtn} hover:text-foreground`} title="Đổi tên">
+                <button onClick={startRename} className={`${actionBtn} hover:text-foreground`} title={t('builderTool.rename')}>
                     <Pencil size={10} />
                 </button>
                 {/* Duplicate */}
                 <button
                     onClick={(e) => { e.stopPropagation(); duplicateBlock(block.id); }}
                     className={`${actionBtn} hover:text-foreground`}
-                    title="Nhân bản"
+                    title={t('builderTool.duplicate')}
                 >
                     <Copy size={10} />
                 </button>
@@ -193,7 +196,7 @@ function BlockItem({ block, level }: { block: any, level: number }) {
                 <button
                     onClick={(e) => { e.stopPropagation(); toggleBlockVisibility(block.id); }}
                     className={`p-0.5 rounded transition-opacity text-muted-foreground/60 hover:text-foreground ${isHidden ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
-                    title={isHidden ? 'Hiện khối' : 'Ẩn khối'}
+                    title={isHidden ? t('builderTool.showBlock') : t('builderTool.hideBlock')}
                 >
                     {isHidden ? <EyeOff size={11} /> : <Eye size={11} />}
                 </button>
@@ -201,7 +204,7 @@ function BlockItem({ block, level }: { block: any, level: number }) {
                 <button
                     onClick={(e) => { e.stopPropagation(); removeBlock(block.id); }}
                     className={`${actionBtn} hover:text-red-400`}
-                    title="Xoá khối"
+                    title={t('builderTool.deleteBlock')}
                 >
                     <Trash2 size={11} />
                 </button>
@@ -365,6 +368,7 @@ function SortableItem({ id, section }: { id: string, section: any }) {
 // SectionList – main left-panel component
 // -----------------------------------------------------------------------
 export function SectionList() {
+    const t = useTranslations('admin');
     const pages = useBuilderStore(s => s.pages);
     const activePage = useBuilderStore(s => s.activePage);
     const reorderPageSections = useBuilderStore(s => s.reorderPageSections);
@@ -405,7 +409,7 @@ export function SectionList() {
 
                     {sections.length === 0 ? (
                         <div className="text-center text-muted-foreground/50 text-xs py-6 border border-dashed border-border rounded-xl mb-2">
-                            Chưa có section nào.
+                            {t('builderTool.noSections')}
                         </div>
                     ) : (
                         <DndContext

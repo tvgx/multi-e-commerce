@@ -12,9 +12,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { apiClient } from '@/lib/api-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function BuilderPage({ params }: { params: Promise<{ shopId: string }> }) {
     const { shopId } = use(params);
+    const t = useTranslations('admin');
     const loadTemplate = useBuilderStore(s => s.loadTemplate);
     const saveTemplate = useBuilderStore(s => s.saveTemplate);
     const publishTemplate = useBuilderStore(s => s.publishTemplate);
@@ -100,13 +102,13 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
         try {
             await publishTemplate(shopId);
             setPublishSuccess(true);
-            toast.success('Xuất bản thành công! Đang chuyển trang...');
+            toast.success(t('builderTool.publishSuccess'));
             setTimeout(() => {
                 setIsNavigating(true);
                 router.push(`/dashboard/${shopId}/online-store/navigation`);
             }, 1000);
         } catch {
-            toast.error('Xuất bản thất bại. Vui lòng thử lại.');
+            toast.error(t('builderTool.publishFailed'));
             setPublishing(false);
         }
     };
@@ -115,7 +117,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
         return (
             <div className="h-screen flex flex-col items-center justify-center gap-4">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-                {isNavigating && <p className="text-muted-foreground text-sm">Đang tải cấu hình Navigation...</p>}
+                {isNavigating && <p className="text-muted-foreground text-sm">{t('builderTool.loadingNav')}</p>}
             </div>
         );
     }
@@ -140,15 +142,15 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                     >
                         <ArrowLeft size={18} />
                     </Link>
-                    <span className="hidden lg:inline text-sm font-semibold text-foreground truncate">Trình thiết kế</span>
+                    <span className="hidden lg:inline text-sm font-semibold text-foreground truncate">{t('builderTool.designer')}</span>
                     <PageSwitcher variant="dark" />
                     <button
                         onClick={() => setShowSetup(true)}
-                        title="Thiết lập chung (màu, logo, thông tin shop)"
+                        title={t('builderTool.setupTitleFull')}
                         className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-medium px-2 py-1.5 rounded-md shrink-0"
                     >
                         <SlidersHorizontal size={14} />
-                        <span className="hidden xl:inline">Thiết lập chung</span>
+                        <span className="hidden xl:inline">{t('builderTool.setupGeneral')}</span>
                     </button>
                 </div>
 
@@ -202,7 +204,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                         className="flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold disabled:opacity-50"
                     >
                         {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                        Lưu
+                        {t('builderTool.save')}
                     </button>
                     <button
                         onClick={handlePublish}
@@ -219,7 +221,7 @@ export default function BuilderPage({ params }: { params: Promise<{ shopId: stri
                                 ? <CheckCircle size={13} />
                                 : <Globe size={13} />
                         }
-                        {publishSuccess ? 'Đã xuất bản!' : 'Xuất bản'}
+                        {publishSuccess ? t('builderTool.published') : t('builderTool.publish')}
                     </button>
                 </div>
             </div>

@@ -1,11 +1,20 @@
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
-import { getShopPageLayout, getShopInfo, getShopProducts } from '@/lib/api/storefront.api';
+import { getShopPageLayout, getShopInfo, getShopProducts, getShopBootstrapData } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
 import { getT } from '@/lib/i18n';
+import { shopUrl } from '@/lib/seo';
+import { JsonLd } from '@/components/JsonLd';
+import type { Metadata } from 'next';
 import React from 'react';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { shopSlug } = await params;
+    // Home canonical points at the shop root (dedupes subdomain/custom-domain).
+    return { alternates: { canonical: shopUrl(shopSlug) } };
 }
 
 export default async function ShopHomePage({ params }: Props) {
@@ -14,16 +23,46 @@ export default async function ShopHomePage({ params }: Props) {
     // Fetch layout, shop info and products in parallel — all server-side only.
     // Products đi vào pageContext để các section sản phẩm (FeaturedProducts,
     // RecommendedProducts, FeaturedCollection*) hiển thị hàng THẬT thay vì demo.
-    const [pageLayout, shopInfo, { products }] = await Promise.all([
+    // getShopBootstrapData is deduped with the layout's call (same request).
+    const [pageLayout, shopInfo, { products }, bootstrap] = await Promise.all([
         getShopPageLayout(shopSlug, 'home'),
         getShopInfo(shopSlug),
         getShopProducts(shopSlug, { limit: 12 }),
+        getShopBootstrapData(shopSlug),
     ]);
 
     // If no shop exists at all, show Next.js 404 page
     if (!shopInfo) {
         notFound();
     }
+
+    // Structured data: Store + WebSite (with a SearchAction so Google can surface
+    // a sitelinks search box). Rendered inline on the first HTML response.
+    const home = shopUrl(shopSlug);
+    const theme = bootstrap?.globalLayout?.theme || {};
+    const logo = theme.logoUrl || theme.faviconUrl || undefined;
+    const socials = Object.values((theme.social || {}) as Record<string, string>).filter(Boolean);
+    const storeJsonLd = <JsonLd data={[
+        {
+            '@context': 'https://schema.org',
+            '@type': 'Store',
+            name: shopInfo.name,
+            url: home,
+            ...(logo ? { logo, image: logo } : {}),
+            ...(socials.length ? { sameAs: socials } : {}),
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: shopInfo.name,
+            url: home,
+            potentialAction: {
+                '@type': 'SearchAction',
+                target: `${shopUrl(shopSlug, '/all-products')}?q={search_term_string}`,
+                'query-input': 'required name=search_term_string',
+            },
+        },
+    ]} />;
 
     // If shop exists but has no layout configured yet, show a friendly fallback
     if (!pageLayout) {
@@ -32,6 +71,7 @@ export default async function ShopHomePage({ params }: Props) {
 
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                {storeJsonLd}
                 <div className="text-6xl mb-6">🛍️</div>
                 <h1 className="text-3xl font-bold text-slate-800 mb-3">
                     {shopInfo.name || shopSlug.toUpperCase()}
@@ -51,14 +91,17 @@ export default async function ShopHomePage({ params }: Props) {
 
     // Full dynamic render driven by the merged Layout JSON from NestJS
     return (
-        <LayoutRenderer
-            pageLayout={pageLayout}
-            pageContext={{
-                products,
-                totalProducts: products.length,
-                basePath: `/${shopSlug}`,
-                shopInfo,
-            }}
-        />
+        <>
+            {storeJsonLd}
+            <LayoutRenderer
+                pageLayout={pageLayout}
+                pageContext={{
+                    products,
+                    totalProducts: products.length,
+                    basePath: `/${shopSlug}`,
+                    shopInfo,
+                }}
+            />
+        </>
     );
 }

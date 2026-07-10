@@ -3,6 +3,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 import type { AnalyticsPeriod } from '@/hooks/useAnalytics';
 
 export const formatVND = (value: number) =>
@@ -15,33 +16,51 @@ export const formatCompactVND = (value: number) => {
   return `₫${value}`;
 };
 
-export const PERIOD_OPTIONS: { value: AnalyticsPeriod; label: string }[] = [
-  { value: '7d', label: '7 ngày qua' },
-  { value: '30d', label: '30 ngày qua' },
-  { value: '90d', label: '90 ngày qua' },
+export const PERIOD_OPTION_KEYS: { value: AnalyticsPeriod; labelKey: string }[] = [
+  { value: '7d', labelKey: 'analytics.period7d' },
+  { value: '30d', labelKey: 'analytics.period30d' },
+  { value: '90d', labelKey: 'analytics.period90d' },
 ];
 
-export const ORDER_STATE_LABELS: Record<string, string> = {
-  checkout: 'Chờ xác nhận',
-  confirmed: 'Đã xác nhận',
-  processing: 'Đang xử lý',
-  shipped: 'Đang giao',
-  delivered: 'Đã giao',
-  completed: 'Hoàn thành',
-  returned: 'Hoàn trả',
-  canceled: 'Đã hủy',
+const ORDER_STATE_KEYS: Record<string, string> = {
+  checkout: 'analytics.orderState.checkout',
+  confirmed: 'analytics.orderState.confirmed',
+  processing: 'analytics.orderState.processing',
+  shipped: 'analytics.orderState.shipped',
+  delivered: 'analytics.orderState.delivered',
+  completed: 'analytics.orderState.completed',
+  returned: 'analytics.orderState.returned',
+  canceled: 'analytics.orderState.canceled',
 };
 
-export const PAYMENT_STATE_LABELS: Record<string, string> = {
-  balance_due: 'Chờ thanh toán',
-  paid: 'Đã thanh toán',
-  credit_owed: 'Nợ công',
-  refunded: 'Đã hoàn tiền',
-  void: 'Đã hủy',
+const PAYMENT_STATE_KEYS: Record<string, string> = {
+  balance_due: 'analytics.payState.balance_due',
+  paid: 'analytics.payState.paid',
+  credit_owed: 'analytics.payState.credit_owed',
+  refunded: 'analytics.payState.refunded',
+  void: 'analytics.payState.void',
 };
 
 // ISODOW: 1 = Thứ 2 … 7 = Chủ nhật
-export const DOW_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const DOW_KEYS = [
+  'analytics.dow.mon', 'analytics.dow.tue', 'analytics.dow.wed', 'analytics.dow.thu',
+  'analytics.dow.fri', 'analytics.dow.sat', 'analytics.dow.sun',
+];
+
+/**
+ * Dịch các bản đồ nhãn trạng thái (const module-scope không gọi được hook,
+ * nên gom vào một hook để trang truyền `labels` đã dịch cho DonutCard/chart).
+ */
+export function useAnalyticsLabels() {
+  const t = useTranslations('admin');
+  const mapLabels = (keys: Record<string, string>) =>
+    Object.fromEntries(Object.entries(keys).map(([k, key]) => [k, t(key)]));
+  return {
+    orderStateLabels: mapLabels(ORDER_STATE_KEYS),
+    paymentStateLabels: mapLabels(PAYMENT_STATE_KEYS),
+    dowLabels: DOW_KEYS.map((k) => t(k)),
+  };
+}
 
 export const CHART_COLORS = [
   '#818cf8', // indigo
@@ -68,29 +87,31 @@ export function PeriodSelect({
   value: AnalyticsPeriod;
   onChange: (period: AnalyticsPeriod) => void;
 }) {
+  const t = useTranslations('admin');
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as AnalyticsPeriod)}
       className="bg-slate-800 text-white border border-white/10 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
     >
-      {PERIOD_OPTIONS.map((opt) => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      {PERIOD_OPTION_KEYS.map((opt) => (
+        <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
       ))}
     </select>
   );
 }
 
 export function ChangeBadge({ value, invert = false }: { value: number | null; invert?: boolean }) {
+  const t = useTranslations('admin');
   if (value === null) {
-    return <span className="text-xs font-medium text-slate-500">Kỳ trước chưa có dữ liệu</span>;
+    return <span className="text-xs font-medium text-slate-500">{t('analytics.changeNoPrev')}</span>;
   }
 
   const rounded = Math.round(value * 10) / 10;
   if (rounded === 0) {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400">
-        <Minus size={12} /> 0% so với kỳ trước
+        <Minus size={12} /> 0% {t('analytics.vsPrev')}
       </span>
     );
   }
@@ -101,7 +122,7 @@ export function ChangeBadge({ value, invert = false }: { value: number | null; i
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-bold ${isGood ? 'text-emerald-400' : 'text-rose-400'}`}>
       {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-      {isUp ? '+' : ''}{rounded}% so với kỳ trước
+      {isUp ? '+' : ''}{rounded}% {t('analytics.vsPrev')}
     </span>
   );
 }

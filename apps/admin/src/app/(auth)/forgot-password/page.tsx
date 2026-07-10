@@ -3,8 +3,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Zap, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('admin');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -19,10 +21,10 @@ export default function ForgotPasswordPage() {
         email,
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      if (error) throw new Error(error.message || 'Failed to send reset link');
+      if (error) throw new Error(error.message || t('auth.forgot.failed'));
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset link');
+      setError(err.message || t('auth.forgot.failed'));
     } finally {
       setLoading(false);
     }
@@ -39,35 +41,35 @@ export default function ForgotPasswordPage() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
               <Zap className="text-white w-7 h-7 fill-current" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">OmniCommerce</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{t('auth.brand')}</span>
           </Link>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-          
+
           <div className="relative z-10">
             {success ? (
               <div className="text-center py-6">
                 <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Check your email</h2>
+                <h1 className="text-2xl font-bold text-white mb-2">{t('auth.forgot.successHeading')}</h1>
                 <p className="text-slate-400 mb-8 text-sm px-4">
-                  We have sent a password reset link to <strong className="text-white">{email}</strong>.
+                  {t('auth.forgot.successBody')} <strong className="text-white">{email}</strong>.
                 </p>
                 <Link
                   href="/login"
                   className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
                 >
-                  Return to login
+                  {t('auth.forgot.returnToLogin')}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-white mb-2">Reset Password</h2>
-                <p className="text-slate-400 mb-8 text-sm">Enter your email and we&apos;ll send you a link to reset your password.</p>
+                <h1 className="text-2xl font-bold text-white mb-2">{t('auth.forgot.heading')}</h1>
+                <p className="text-slate-400 mb-8 text-sm">{t('auth.forgot.description')}</p>
 
                 {error && (
                   <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center">
@@ -77,14 +79,14 @@ export default function ForgotPasswordPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+                    <label className="text-sm font-medium text-slate-300 ml-1">{t('auth.forgot.email')}</label>
                     <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors group-focus-within:text-indigo-400" />
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="name@company.com"
+                        placeholder={t('auth.forgot.emailPlaceholder')}
                         className="w-full bg-black/40 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all focus:bg-black/60"
                         required
                       />
@@ -100,7 +102,7 @@ export default function ForgotPasswordPage() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
-                        Send Reset Link
+                        {t('auth.forgot.submit')}
                         <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                       </>
                     )}
@@ -109,7 +111,7 @@ export default function ForgotPasswordPage() {
 
                 <div className="mt-8 pt-6 border-t border-white/10 text-center">
                   <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
-                    Back to login
+                    {t('auth.forgot.backToLogin')}
                   </Link>
                 </div>
               </>

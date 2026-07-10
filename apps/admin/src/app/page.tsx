@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Zap, Target, LayoutTemplate, ShieldCheck, Code2, Rocket, PlayCircle } from "lucide-react";
 import { CreateShopButton } from "@/components/home/CreateShopButton";
+import { getT } from "@/lib/i18n";
 
 
-export default function PlatformLandingPage() {
+export default async function PlatformLandingPage() {
+  const t = await getT("admin");
   return (
     <div className="min-h-screen bg-[#030014] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Dynamic Background */}
@@ -20,13 +22,13 @@ export default function PlatformLandingPage() {
             <span className="text-xl font-bold tracking-tight text-white">OmniCommerce</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-            <Link href="#architecture" className="hover:text-white transition-colors">Architecture</Link>
-            <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="#features" className="hover:text-white transition-colors">{t("landing.navFeatures")}</Link>
+            <Link href="#architecture" className="hover:text-white transition-colors">{t("landing.navArchitecture")}</Link>
+            <Link href="#pricing" className="hover:text-white transition-colors">{t("landing.navPricing")}</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-semibold text-white/80 hover:text-white transition-colors hidden sm:block">
-              Log in
+              {t("landing.login")}
             </Link>
             <CreateShopButton variant="secondary" />
 
@@ -39,23 +41,23 @@ export default function PlatformLandingPage() {
         <div className="mx-auto max-w-7xl px-6 pt-20 text-center lg:pt-32">
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300 mb-8 backdrop-blur-sm">
             <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-ping" />
-            Platform Multi-tenant Thế Hệ Mới v2.0
+            {t("landing.heroBadge")}
           </div>
           <h1 className="mx-auto max-w-5xl text-5xl font-extrabold tracking-tight text-white sm:text-7xl lg:text-8xl bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-            Kinh doanh trực tuyến <br className="hidden sm:block" />
+            {t("landing.heroTitle1")} <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 animate-gradient-x">
-              chỉ trong 60 giây.
+              {t("landing.heroTitle2")}
             </span>
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg text-slate-400 leading-relaxed">
-            Hệ thống thương mại điện tử đa kênh tích hợp <strong className="text-white font-semibold">Zero-File Layout Engine</strong> và kiến trúc dữ liệu Hybrid SQL/NoSQL chuyên biệt. Khởi tạo ngay hệ sinh thái của riêng bạn mà không cần bận tâm đến hạ tầng.
+            {t("landing.heroDesc1")} <strong className="text-white font-semibold">Zero-File Layout Engine</strong> {t("landing.heroDesc2")}
           </p>
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5">
             <CreateShopButton />
 
             <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10">
               <PlayCircle className="w-5 h-5" />
-              Xem Demo
+              {t("landing.watchDemo")}
             </button>
           </div>
         </div>
@@ -107,27 +109,27 @@ export default function PlatformLandingPage() {
         <div id="features" className="mx-auto max-w-7xl px-6 mt-32">
           <div className="mb-16 text-center">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Nền Tảng Công Nghệ Đỉnh Cao
+              {t("landing.featuresTitle")}
             </h2>
             <p className="mt-4 text-slate-400 max-w-2xl mx-auto">
-              Không chỉ là một trang tạo cửa hàng, OmniCommerce cung cấp một kiến trúc hệ thống cấp doanh nghiệp để đảm bảo kinh doanh không bao giờ gián đoạn.
+              {t("landing.featuresSubtitle")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
               icon={<ShieldCheck />}
-              title="Identity & Auth Độc Lập"
-              desc="Hệ thống xác thực phân quyền mạnh mẽ bằng Better Auth, đảm bảo cách ly dữ liệu tuyệt đối giữa các Tenant."
+              title={t("landing.feat1Title")}
+              desc={t("landing.feat1Desc")}
             />
             <FeatureCard
               icon={<Code2 />}
-              title="Zero-File Layout"
-              desc="Thiết kế giao diện cửa hàng dạng JSON schema lưu trong MongoDB, render siêu tốc không cần code-server rendering phức tạp."
+              title={t("landing.feat2Title")}
+              desc={t("landing.feat2Desc")}
             />
             <FeatureCard
               icon={<Target />}
-              title="Hybrid Database"
-              desc="Kết hợp hoàn hảo giữa PostgreSQL (ACID cho đơn hàng/tồn kho) và MongoDB (Flexible cho giao diện & logs)."
+              title={t("landing.feat3Title")}
+              desc={t("landing.feat3Desc")}
             />
           </div>
         </div>

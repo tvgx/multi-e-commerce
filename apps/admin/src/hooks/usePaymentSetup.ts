@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface BankAccount {
   bankName: string;
@@ -16,6 +17,7 @@ const EMPTY: BankAccount = { bankName: '', accountNumber: '', accountHolder: '',
  * và lưu (cập nhật bank-account + bật COD/chuyển khoản). Trang giữ phần form + điều hướng.
  */
 export function usePaymentSetup(shopId: string) {
+  const t = useTranslations('admin');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [initialBankAccount, setInitialBankAccount] = useState<BankAccount | null>(null);
@@ -65,12 +67,12 @@ export function usePaymentSetup(shopId: string) {
 
       return true;
     } catch (err: any) {
-      toast.error(`Lỗi: ${err.message}`);
+      toast.error(`${t('hooks.paymentErrorPrefix')}: ${err.message}`);
       return false;
     } finally {
       setSaving(false);
     }
-  }, [shopId]);
+  }, [shopId, t]);
 
   return { loading, saving, initialBankAccount, save };
 }

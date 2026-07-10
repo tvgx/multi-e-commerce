@@ -2,10 +2,27 @@ import { getCollectionBySlug, getShopInfo, getShopPageLayout } from '@/lib/api/s
 import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
 import { StandardCategoryPage } from '@ecommerce/ui-registry/src/components/pages/StandardCategoryPage';
+import { shopUrl, metaText } from '@/lib/seo';
+import type { Metadata } from 'next';
 import React from 'react';
 
 interface Props {
   params: Promise<{ shopSlug: string; slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { shopSlug, slug } = await params;
+  const collection = await getCollectionBySlug(shopSlug, slug);
+  const canonical = shopUrl(shopSlug, `/collections/${slug}`);
+  if (!collection) return { alternates: { canonical } };
+  const title = collection.title || collection.name || slug;
+  const description = metaText(collection.description || `Bộ sưu tập ${title}.`);
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { type: 'website', title, description, url: canonical },
+  };
 }
 
 export default async function CollectionPage({ params }: Props) {

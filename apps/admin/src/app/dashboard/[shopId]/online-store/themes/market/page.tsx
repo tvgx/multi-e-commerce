@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Sparkles, Check, ImageOff } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 interface ThemeListItem {
   themeId: string;
@@ -21,6 +22,7 @@ export default function ThemeMarketPage({
   params: Promise<{ shopId: string }>;
 }) {
   const { shopId } = React.use(params);
+  const t = useTranslations("admin");
   const router = useRouter();
   const [themes, setThemes] = useState<ThemeListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function ThemeMarketPage({
     apiClient
       .get<ThemeListItem[]>("/api/themes?status=published")
       .then((res) => setThemes(res.data || []))
-      .catch((err) => toast.error(`Không tải được theme: ${err.message}`))
+      .catch((err) => toast.error(`${t("onlineStoreThemes.loadThemeFailed")}: ${err.message}`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,10 +40,10 @@ export default function ThemeMarketPage({
     setApplying(themeId);
     try {
       await apiClient.post(`/api/themes/${themeId}/apply/${shopId}`, {});
-      toast.success("Đã áp dụng theme! Đang mở trình chỉnh sửa…");
+      toast.success(t("onlineStoreThemes.applyThemeToast"));
       router.push(`/dashboard/${shopId}/online-store/builder`);
     } catch (err: any) {
-      toast.error(`Áp dụng thất bại: ${err.message}`);
+      toast.error(`${t("onlineStoreThemes.applyFailed")}: ${err.message}`);
       setApplying(null);
     }
   };
@@ -53,18 +55,17 @@ export default function ThemeMarketPage({
           href={`/dashboard/${shopId}/online-store/themes`}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
         >
-          <ArrowLeft size={16} /> Quay lại Giao diện
+          <ArrowLeft size={16} /> {t("onlineStoreThemes.backToThemes")}
         </Link>
         <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
-          <Sparkles size={12} /> Theme Market
+          <Sparkles size={12} /> {t("onlineStoreThemes.marketBadge")}
         </div>
       </div>
 
       <div className="space-y-3">
-        <h1 className="text-4xl font-extrabold text-white">Chợ giao diện</h1>
+        <h1 className="text-4xl font-extrabold text-white">{t("onlineStoreThemes.marketTitle")}</h1>
         <p className="text-slate-400 max-w-xl">
-          Chọn một thiết kế dựng sẵn. Áp dụng sẽ nạp giao diện vào bản nháp của
-          bạn và mở trình chỉnh sửa để tinh chỉnh trước khi xuất bản.
+          {t("onlineStoreThemes.marketSubtitle")}
         </p>
       </div>
 
@@ -74,8 +75,7 @@ export default function ThemeMarketPage({
         </div>
       ) : themes.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-16 text-center text-slate-400">
-          Chưa có theme nào được xuất bản. Hãy curate từ design-agent
-          (<code className="text-indigo-400">promote-theme --publish</code>).
+          {t("onlineStoreThemes.marketEmptyPre")}<code className="text-indigo-400">promote-theme --publish</code>).
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -100,7 +100,7 @@ export default function ThemeMarketPage({
               </div>
               <div className="p-6 flex flex-col flex-1 gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-bold text-white">{theme.title}</h3>
+                  <h2 className="text-lg font-bold text-white">{theme.title}</h2>
                   {theme.category && (
                     <span className="text-[10px] uppercase tracking-wider text-slate-500 border border-white/10 rounded-full px-2 py-0.5">
                       {theme.category}
@@ -119,11 +119,11 @@ export default function ThemeMarketPage({
                 >
                   {applying === theme.themeId ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Đang áp dụng…
+                      <Loader2 className="w-4 h-4 animate-spin" /> {t("onlineStoreThemes.applying")}
                     </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4" /> Áp dụng theme
+                      <Check className="w-4 h-4" /> {t("onlineStoreThemes.applyTheme")}
                     </>
                   )}
                 </button>

@@ -2,6 +2,7 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { apiClient } from "../lib/api-client";
 import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 interface UseOnboardingAutoNavOptions {
   shopId: string;
@@ -23,6 +24,7 @@ export function useOnboardingAutoNav({
   isLastStep = false,
 }: UseOnboardingAutoNavOptions) {
   const router = useRouter();
+  const t = useTranslations("admin");
 
   const completeAndNavigate = useCallback(async () => {
     try {
@@ -30,7 +32,7 @@ export function useOnboardingAutoNav({
         `/api/shops/${shopId}/onboarding/complete/${currentStep}`,
         {},
       );
-      toast.success("Đã hoàn thành! Chuyển sang bước tiếp theo...");
+      toast.success(t("hooks.onboardingCompleted"));
 
       if (isLastStep) {
         router.push(`/dashboard/${shopId}`);
@@ -38,9 +40,9 @@ export function useOnboardingAutoNav({
         router.push(nextRoute);
       }
     } catch (err: any) {
-      toast.error(err?.message || "Không thể cập nhật tiến trình");
+      toast.error(err?.message || t("hooks.onboardingUpdateFailed"));
     }
-  }, [shopId, currentStep, nextRoute, isLastStep, router]);
+  }, [shopId, currentStep, nextRoute, isLastStep, router, t]);
 
   return { completeAndNavigate };
 }

@@ -1,10 +1,6 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  Logger,
-} from '@nestjs/common';
+import { Catch, HttpException, Logger } from '@nestjs/common';
+import type { ExceptionFilter, ArgumentsHost } from '@nestjs/common';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { CustomException } from './custom.exception';
@@ -14,6 +10,7 @@ import { ResponseCodes } from '../constants/response-codes.constant';
 export class CustomExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(CustomExceptionFilter.name);
 
+  @SentryExceptionCaptured()
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

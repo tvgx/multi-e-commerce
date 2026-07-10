@@ -2,17 +2,19 @@
 
 import React from "react";
 import { Check } from "lucide-react";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 export type WizardStepKey = "design" | "navigation" | "billing";
 
 // Các bước lớn của wizard tạo shop — hiển thị đồng bộ ở mọi trang trong flow.
-const STEPS: { key: WizardStepKey; label: string }[] = [
-  { key: "design", label: "Thiết kế giao diện" },
-  { key: "navigation", label: "Điều hướng" },
-  { key: "billing", label: "Thanh toán & Vận chuyển" },
+const STEPS: { key: WizardStepKey; labelKey: string }[] = [
+  { key: "design", labelKey: "wizard.stepDesign" },
+  { key: "navigation", labelKey: "wizard.stepNavigation" },
+  { key: "billing", labelKey: "wizard.stepBilling" },
 ];
 
 export function WizardProgress({ current }: { current: WizardStepKey }) {
+  const t = useTranslations("admin");
   const activeIdx = STEPS.findIndex((s) => s.key === current);
 
   return (
@@ -39,7 +41,7 @@ export function WizardProgress({ current }: { current: WizardStepKey }) {
                   active ? "text-white" : done ? "text-emerald-300" : "text-slate-500"
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </span>
             </div>
             {i < STEPS.length - 1 && (

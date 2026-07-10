@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 /** Route-level error boundary for shop dashboard pages. */
 export default function ShopDashboardError({
@@ -11,6 +12,7 @@ export default function ShopDashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('admin');
   useEffect(() => {
     console.error('Dashboard error:', error);
   }, [error]);
@@ -20,15 +22,15 @@ export default function ShopDashboardError({
       <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center mb-6">
         <AlertTriangle className="w-8 h-8 text-rose-500" />
       </div>
-      <h1 className="text-2xl font-bold text-white mb-2">Không tải được trang</h1>
+      <h1 className="text-2xl font-bold text-white mb-2">{t('shopError.title')}</h1>
       <p className="text-slate-400 max-w-md mb-8">
-        Đã xảy ra lỗi khi tải dữ liệu cửa hàng. Vui lòng thử lại.
+        {t('shopError.desc')}
       </p>
       <button
         onClick={reset}
         className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
       >
-        Thử lại
+        {t('shopError.retry')}
       </button>
     </div>
   );

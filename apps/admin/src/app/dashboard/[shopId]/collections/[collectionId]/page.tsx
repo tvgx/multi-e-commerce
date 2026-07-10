@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useCollections, Collection } from "@/hooks/useCollections";
 import { toast, confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from "@ecommerce/i18n/src/react";
 import { ProductPickerModal } from "@/components/products/ProductPickerModal";
 
 export default function EditCollectionPage({ params }: { params: Promise<{ shopId: string; collectionId: string }> }) {
   const { shopId, collectionId } = use(params);
   const router = useRouter();
+  const t = useTranslations("admin");
   const {
     updateCollection,
     removeProductFromCollection,
@@ -49,10 +51,10 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
           });
           setProducts(detail.products || []);
         } else {
-          setError("Category not found");
+          setError(t("collectionForm.notFound"));
         }
       } catch (err: any) {
-        setError("Failed to load category");
+        setError(t("collectionForm.loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -83,7 +85,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
       await updateCollection(collectionId, formData);
       router.push(`/dashboard/${shopId}/collections`);
     } catch (err: any) {
-      setError(err.message || "Failed to update category");
+      setError(err.message || t("collectionForm.updateFailed"));
       setSaving(false);
     }
   };
@@ -91,8 +93,8 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
   const handleRemoveProduct = async (productId: string) => {
     if (
       !(await confirmDialog({
-        message: "Gỡ sản phẩm này khỏi danh mục?",
-        confirmText: "Gỡ",
+        message: t("collectionForm.removeConfirm"),
+        confirmText: t("collectionForm.removeConfirmBtn"),
         danger: true,
       }))
     )
@@ -101,19 +103,19 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
       await removeProductFromCollection(collectionId, productId);
       setProducts(products.filter(p => p.productId !== productId));
     } catch (err: any) {
-      toast.error("Failed to remove product");
+      toast.error(t("collectionForm.removeFailed"));
     }
   };
 
   const handleAddProducts = async (productIds: string[]) => {
     try {
       await addProductsToCollection(collectionId, productIds);
-      toast.success("Products added successfully");
+      toast.success(t("collectionForm.productsAdded"));
       // Reload products list
       const detail = formData.slug ? await getCollectionDetails(formData.slug) : null;
       setProducts(detail?.products || []);
     } catch (err: any) {
-      toast.error(err.message || "Failed to add products");
+      toast.error(err.message || t("collectionForm.addFailed"));
     }
   };
 
@@ -132,14 +134,14 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
           >
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Edit Collection</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t("collectionForm.editTitle")}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href={`/dashboard/${shopId}/collections`}
             className="px-6 py-2.5 rounded-full text-sm font-semibold text-slate-300 hover:text-white transition-colors"
           >
-            Discard
+            {t("collectionForm.discard")}
           </Link>
           <button
             onClick={handleSubmit}
@@ -147,7 +149,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 disabled:opacity-50 disabled:pointer-events-none"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Changes
+            {t("collectionForm.saveChanges")}
           </button>
         </div>
       </div>
@@ -162,11 +164,11 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
         <div className="lg:col-span-2 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-              <h2 className="text-lg font-bold text-white">Basic Information</h2>
-              
+              <h2 className="text-lg font-bold text-white">{t("collectionForm.basicInfo")}</h2>
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.titleLabel")}</label>
                   <input
                     type="text"
                     required
@@ -177,7 +179,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Slug (URL)</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.slugLabel")}</label>
                   <input
                     type="text"
                     required
@@ -188,7 +190,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.descLabel")}</label>
                   <textarea
                     rows={4}
                     value={formData.description}
@@ -201,10 +203,10 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-                <h2 className="text-lg font-bold text-white">Cover Image</h2>
-                
+                <h2 className="text-lg font-bold text-white">{t("collectionForm.coverImage")}</h2>
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Image URL</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t("collectionForm.imageUrl")}</label>
                   <input
                     type="url"
                     value={formData.imageUrl}
@@ -219,15 +221,15 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                   ) : (
                     <div className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500 bg-black/20">
                       <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                      <span className="text-sm">No Image</span>
+                      <span className="text-sm">{t("collectionForm.noImage")}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-                <h2 className="text-lg font-bold text-white">Status</h2>
-                
+                <h2 className="text-lg font-bold text-white">{t("collectionForm.status")}</h2>
+
                 <div className="space-y-4">
                   <label className="flex items-start gap-3 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 cursor-pointer hover:bg-indigo-500/10 transition-colors">
                     <div className="flex h-6 items-center">
@@ -239,7 +241,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                       />
                     </div>
                     <div>
-                      <div className="font-medium text-white">Active</div>
+                      <div className="font-medium text-white">{t("collectionForm.active")}</div>
                     </div>
                   </label>
 
@@ -253,7 +255,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                       />
                     </div>
                     <div>
-                      <div className="font-medium text-white">Draft</div>
+                      <div className="font-medium text-white">{t("collectionForm.draft")}</div>
                     </div>
                   </label>
                 </div>
@@ -266,7 +268,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden">
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h2 className="font-bold text-white">Products in Collection</h2>
+                <h2 className="font-bold text-white">{t("collectionForm.productsInCollection")}</h2>
                 <span className="bg-indigo-500/20 text-indigo-400 py-0.5 px-2 rounded-full text-xs font-medium">
                   {products.length}
                 </span>
@@ -276,14 +278,14 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                 onClick={() => setIsPickerOpen(true)}
                 className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20"
               >
-                + Add Products
+                {t("collectionForm.addProducts")}
               </button>
             </div>
             
             <div className="p-2 space-y-1 max-h-[600px] overflow-y-auto">
               {products.length === 0 ? (
                 <div className="p-8 text-center text-sm text-slate-500">
-                  No products in this category. Assign products from the Products page.
+                  {t("collectionForm.noProductsAssign")}
                 </div>
               ) : (
                 products.map((p) => (
@@ -298,13 +300,13 @@ export default function EditCollectionPage({ params }: { params: Promise<{ shopI
                       </div>
                       <div className="truncate">
                         <div className="text-sm font-medium text-white truncate">{p.product?.name}</div>
-                        <div className="text-xs text-slate-500">Order: {p.order}</div>
+                        <div className="text-xs text-slate-500">{t("collectionForm.orderLabel")} {p.order}</div>
                       </div>
                     </div>
                     <button 
                       onClick={() => handleRemoveProduct(p.productId)}
                       className="p-2 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                      title="Remove product"
+                      title={t("collectionForm.removeProduct")}
                     >
                       <Trash2 size={16} />
                     </button>

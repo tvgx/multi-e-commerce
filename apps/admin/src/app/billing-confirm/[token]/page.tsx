@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { CheckCircle2, XCircle, Loader2, AlertCircle, QrCode } from 'lucide-react';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 /**
  * Trang xác nhận thanh toán subscription — đích của QR trên trang Billing.
@@ -12,6 +13,7 @@ import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
  */
 export default function BillingConfirmPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
+  const t = useTranslations('admin');
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
       try {
         const res = await fetch(`${apiUrl}/api/billing/token-info/${token}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Token không hợp lệ hoặc đã hết hạn');
+        if (!res.ok) throw new Error(data.message || t('billingConfirm.invalidToken'));
         setInfo(data.data);
       } catch (err: any) {
         setStatus('error');
@@ -46,12 +48,12 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
         body: JSON.stringify({ token, action }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Xác nhận thất bại');
+      if (!res.ok) throw new Error(data.message || t('billingConfirm.confirmFailed'));
       setStatus('success');
       setMessage(
         action === 'confirm'
-          ? 'Thanh toán đã được xác nhận — gói của bạn đã kích hoạt.'
-          : 'Đã từ chối thanh toán. Hoá đơn bị huỷ.',
+          ? t('billingConfirm.confirmedMsg')
+          : t('billingConfirm.rejectedMsg'),
       );
     } catch (err: any) {
       setStatus('error');
@@ -80,7 +82,7 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
             <XCircle className="w-16 h-16 text-rose-400 mx-auto mb-4" />
           )}
           <h1 className={`text-2xl font-bold mb-2 ${ok ? 'text-emerald-300' : 'text-rose-300'}`}>
-            {ok ? 'Thành công!' : 'Lỗi'}
+            {ok ? t('billingConfirm.success') : t('billingConfirm.error')}
           </h1>
           <p className="text-slate-400">{message}</p>
         </div>
@@ -92,21 +94,21 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
     <div className="flex items-center justify-center min-h-screen bg-[#030014] p-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
         <h1 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-2 mb-1">
-          <QrCode className="w-6 h-6 text-indigo-400" /> Xác nhận thanh toán
+          <QrCode className="w-6 h-6 text-indigo-400" /> {t('billingConfirm.title')}
         </h1>
         <p className="text-slate-400 text-center text-sm mb-6">
-          Gói <strong className="text-white">{info?.planName ?? '—'}</strong> · Hoá đơn{' '}
+          {t('billingConfirm.planLabel')} <strong className="text-white">{info?.planName ?? '—'}</strong> {t('billingConfirm.invoiceLabel')}{' '}
           <span className="font-mono">{info?.invoiceNumber}</span>
         </p>
 
         <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-6 text-center mb-6">
-          <p className="text-sm text-indigo-300 font-medium mb-1">Số tiền cần thanh toán</p>
+          <p className="text-sm text-indigo-300 font-medium mb-1">{t('billingConfirm.amountDue')}</p>
           <p className="text-4xl font-bold text-white">{formatPrice(info?.amount ?? 0)}</p>
         </div>
 
         <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-xl mb-6 text-sm">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          Chỉ bấm &quot;Đã thanh toán&quot; sau khi bạn đã chuyển khoản thành công.
+          {t('billingConfirm.warning')}
         </div>
 
         <div className="flex gap-4">
@@ -115,7 +117,7 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
             onClick={() => handleAction('reject')}
             className="w-full py-3 rounded-xl border border-white/10 text-rose-400 hover:bg-rose-500/10 text-sm font-semibold transition-colors disabled:opacity-60"
           >
-            Từ chối
+            {t('billingConfirm.reject')}
           </button>
           <button
             disabled={actionLoading}
@@ -123,7 +125,7 @@ export default function BillingConfirmPage({ params }: { params: Promise<{ token
             className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-bold transition-all hover:shadow-[0_0_16px_rgba(99,102,241,0.35)] disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Đã thanh toán
+            {t('billingConfirm.paid')}
           </button>
         </div>
       </div>

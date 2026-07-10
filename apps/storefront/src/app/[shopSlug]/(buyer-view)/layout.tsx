@@ -1,4 +1,5 @@
 import { getShopBootstrapData } from '@/lib/api/storefront.api';
+import { metaText } from '@/lib/seo';
 import type { Metadata } from 'next';
 import React from 'react';
 import { CartInitializer } from '@ecommerce/ui-registry/src/components/cart/CartInitializer';
@@ -28,15 +29,44 @@ interface Props {
     params: Promise<{ shopSlug: string }>;
 }
 
-// Per-shop browser tab title + favicon, driven by the merchant's Setup
-// (theme.faviconUrl). Reuses the cached bootstrap fetch, so no extra round-trip.
+// Per-shop SEO defaults driven by the merchant's Setup (name, theme logo/favicon,
+// announcement). Reuses the cached bootstrap fetch, so no extra round-trip.
+// Canonical is intentionally NOT set here — it must be per-page, so each page's
+// own generateMetadata declares its canonical URL.
 export async function generateMetadata({ params }: { params: Promise<{ shopSlug: string }> }): Promise<Metadata> {
     const { shopSlug } = await params;
     const bootstrap = await getShopBootstrapData(shopSlug);
-    const name = bootstrap?.shop?.name || shopSlug;
-    const faviconUrl = bootstrap?.globalLayout?.theme?.faviconUrl;
+    const shop = bootstrap?.shop;
+    const theme = bootstrap?.globalLayout?.theme || {};
+    const name = shop?.name || shopSlug;
+    const description = metaText(
+        theme.metaDescription ||
+        theme.announcementText ||
+        `Mua sắm trực tuyến tại ${name}. Sản phẩm chính hãng, thanh toán an toàn, giao hàng tận nơi.`,
+    );
+    const image = theme.logoUrl || theme.faviconUrl || undefined;
+    const faviconUrl = theme.faviconUrl;
+
     return {
-        title: name,
+        // `default` shows on the home page; `template` appends the shop name to
+        // every child page title (e.g. "Áo thun · MyShop").
+        title: { default: name, template: `%s · ${name}` },
+        description,
+        applicationName: name,
+        robots: { index: true, follow: true },
+        openGraph: {
+            type: 'website',
+            siteName: name,
+            title: name,
+            description,
+            ...(image ? { images: [{ url: image, alt: name }] } : {}),
+        },
+        twitter: {
+            card: image ? 'summary_large_image' : 'summary',
+            title: name,
+            description,
+            ...(image ? { images: [image] } : {}),
+        },
         ...(faviconUrl ? { icons: { icon: faviconUrl } } : {}),
     };
 }

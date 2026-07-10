@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useBuilderStore, EDITABLE_PAGES } from "@ecommerce/ui-registry/src/store/builder-store";
 import { ChevronDown, FileText, Check } from "lucide-react";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 /**
  * Plain-language page picker for the storefront builder. Lets a non-technical
@@ -10,6 +11,7 @@ import { ChevronDown, FileText, Check } from "lucide-react";
  * Product detail) without knowing the underlying page-type keys.
  */
 export function PageSwitcher({ variant = "dark" }: { variant?: "dark" | "light" }) {
+    const t = useTranslations("admin");
     const activePage = useBuilderStore((s) => s.activePage);
     const setActivePage = useBuilderStore((s) => s.setActivePage);
     const setActiveComponent = useBuilderStore((s) => s.setActiveComponent);
@@ -37,7 +39,7 @@ export function PageSwitcher({ variant = "dark" }: { variant?: "dark" | "light" 
         <div ref={ref} className="relative">
             <button
                 onClick={() => setOpen((v) => !v)}
-                title="Chọn trang để chỉnh sửa"
+                title={t("builderTool.selectPageToEdit")}
                 className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                     isDark
                         ? "bg-slate-800 text-white hover:bg-slate-700"
@@ -56,7 +58,7 @@ export function PageSwitcher({ variant = "dark" }: { variant?: "dark" | "light" 
                     }`}
                 >
                     <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                        Trang cần tùy chỉnh
+                        {t("builderTool.pageToCustomize")}
                     </div>
                     {EDITABLE_PAGES.map((page) => {
                         const selected = page.key === activePage;

@@ -16,23 +16,24 @@ import {
   Figma,
 } from "lucide-react";
 import { useMyThemes, type MyTheme } from "@/hooks/useMyThemes";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 const STATUS_META: Record<
   MyTheme["status"],
-  { label: string; cls: string; icon: React.ReactNode }
+  { labelKey: string; cls: string; icon: React.ReactNode }
 > = {
   draft: {
-    label: "Bản nháp",
+    labelKey: "onlineStoreThemes.statusDraft",
     cls: "text-slate-300 bg-white/5 border-white/10",
     icon: <FileEdit size={12} />,
   },
   pending: {
-    label: "Chờ duyệt",
+    labelKey: "onlineStoreThemes.statusPending",
     cls: "text-amber-300 bg-amber-500/10 border-amber-500/20",
     icon: <Clock size={12} />,
   },
   published: {
-    label: "Đã xuất bản",
+    labelKey: "onlineStoreThemes.statusPublished",
     cls: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
     icon: <CheckCircle2 size={12} />,
   },
@@ -44,6 +45,7 @@ export default function MyThemesPage({
   params: Promise<{ shopId: string }>;
 }) {
   const { shopId } = React.use(params);
+  const t = useTranslations("admin");
   const router = useRouter();
   const { themes, loading, busy, importing, submit, remove, apply, importFigma } =
     useMyThemes(shopId);
@@ -70,23 +72,22 @@ export default function MyThemesPage({
           href={`/dashboard/${shopId}/online-store/themes`}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
         >
-          <ArrowLeft size={16} /> Quay lại Giao diện
+          <ArrowLeft size={16} /> {t("onlineStoreThemes.backToThemes")}
         </Link>
       </div>
 
       <div className="space-y-3">
-        <h1 className="text-4xl font-extrabold text-white">Theme của tôi</h1>
+        <h1 className="text-4xl font-extrabold text-white">{t("onlineStoreThemes.mineTitle")}</h1>
         <p className="text-slate-400 max-w-xl">
-          Các theme bạn đã tạo. Gửi duyệt để đăng lên chợ giao diện, hoặc áp dụng
-          trực tiếp vào shop này.
+          {t("onlineStoreThemes.mineSubtitle")}
         </p>
       </div>
 
       {/* Figma import */}
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Figma size={18} /> Import từ Figma
-        </h3>
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <Figma size={18} /> {t("onlineStoreThemes.importFigma")}
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input
             value={figma.fileKey}
@@ -97,21 +98,21 @@ export default function MyThemesPage({
           <input
             value={figma.title}
             onChange={(e) => setFigma({ ...figma, title: e.target.value })}
-            placeholder="Tên theme"
+            placeholder={t("onlineStoreThemes.themeName")}
             className="rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none"
           />
           <input
             value={figma.category}
             onChange={(e) => setFigma({ ...figma, category: e.target.value })}
-            placeholder="Danh mục (tuỳ chọn)"
+            placeholder={t("onlineStoreThemes.categoryOptional")}
             className="rounded-xl bg-slate-950 border border-white/10 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-500 outline-none"
           />
         </div>
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-slate-500">
             {importing
-              ? "Đang trích xuất từ Figma — có thể mất vài phút, đừng đóng trang."
-              : "File nhiều frame có thể mất vài phút. Chọn nodeIds để import nhanh hơn."}
+              ? t("onlineStoreThemes.importingHint")
+              : t("onlineStoreThemes.importHint")}
           </p>
           <button
             onClick={handleImportFigma}
@@ -119,7 +120,7 @@ export default function MyThemesPage({
             className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-semibold text-black hover:bg-slate-200 disabled:opacity-50"
           >
             {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Figma size={16} />}
-            Import
+            {t("onlineStoreThemes.importBtn")}
           </button>
         </div>
       </div>
@@ -130,8 +131,7 @@ export default function MyThemesPage({
         </div>
       ) : themes.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-16 text-center text-slate-400">
-          Bạn chưa có theme nào. Hãy bấm <strong>“Lưu thành theme”</strong> ở trang
-          Giao diện hoặc import từ Figma ở trên.
+          {t("onlineStoreThemes.mineEmpty1")} <strong>{t("onlineStoreThemes.mineEmptyStrong")}</strong> {t("onlineStoreThemes.mineEmpty2")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -158,11 +158,11 @@ export default function MyThemesPage({
                   <span
                     className={`absolute top-3 left-3 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${meta.cls}`}
                   >
-                    {meta.icon} {meta.label}
+                    {meta.icon} {t(meta.labelKey)}
                   </span>
                 </div>
                 <div className="p-6 flex flex-col flex-1 gap-3">
-                  <h3 className="text-lg font-bold text-white">{theme.title}</h3>
+                  <h2 className="text-lg font-bold text-white">{theme.title}</h2>
                   {theme.description && (
                     <p className="text-sm text-slate-400 line-clamp-2 flex-1">
                       {theme.description}
@@ -170,7 +170,7 @@ export default function MyThemesPage({
                   )}
                   {theme.status === "draft" && theme.review?.rejectionReason && (
                     <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-                      Bị từ chối: {theme.review.rejectionReason}
+                      {t("onlineStoreThemes.rejectedPrefix")} {theme.review.rejectionReason}
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -184,7 +184,7 @@ export default function MyThemesPage({
                       ) : (
                         <Paintbrush size={14} />
                       )}
-                      Áp dụng
+                      {t("onlineStoreThemes.apply")}
                     </button>
                     {theme.status === "draft" && (
                       <button
@@ -192,7 +192,7 @@ export default function MyThemesPage({
                         disabled={busy !== null}
                         className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/40 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50"
                       >
-                        <Send size={14} /> Gửi duyệt
+                        <Send size={14} /> {t("onlineStoreThemes.submitReview")}
                       </button>
                     )}
                     <button

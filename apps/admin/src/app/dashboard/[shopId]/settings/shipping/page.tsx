@@ -120,7 +120,7 @@ export default function ShippingSettingsPage() {
     if (isOnboarding) {
       await completeAndNavigate();
     } else {
-      toast.success("Đã lưu địa chỉ kho hàng!");
+      toast.success(t("shipping.warehouseSaved"));
     }
   };
 
@@ -162,7 +162,7 @@ export default function ShippingSettingsPage() {
           {/* Methods List */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Phương thức vận chuyển</h2>
+              <h2 className="text-xl font-bold text-white">{t("shipping.methodsHeading")}</h2>
               <button
                 onClick={openCreate}
                 className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20 transition-all flex items-center gap-2 text-sm"
@@ -228,21 +228,21 @@ export default function ShippingSettingsPage() {
           {/* Warehouse */}
           <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl">
             <h2 className="flex items-center gap-2 font-bold text-xl text-white mb-2">
-              <MapPin size={22} className="text-amber-400" /> Địa chỉ kho hàng mặc định
+              <MapPin size={22} className="text-amber-400" /> {t("shipping.warehouseTitle")}
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Kho hàng là nơi shipper sẽ đến để lấy hàng. Bắt buộc phải có để hoàn tất thiết lập vận chuyển.
+              {t("shipping.warehouseDesc")}
             </p>
 
             <div className="grid sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Tỉnh/Thành phố *</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("shipping.provinceLabel")}</label>
                 <select
                   value={provinceCode}
                   onChange={(e) => onProvinceChange(e.target.value)}
                   className={inputCls}
                 >
-                  <option value="">— Chọn tỉnh/thành —</option>
+                  <option value="">{t("shipping.provincePlaceholder")}</option>
                   {provinces.map((p) => (
                     <option key={p.code} value={p.code}>
                       {p.name}
@@ -251,14 +251,14 @@ export default function ShippingSettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Phường/Xã *</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("shipping.wardLabel")}</label>
                 <select
                   value={wardCode}
                   onChange={(e) => setWardCode(e.target.value)}
                   disabled={!provinceCode || loadingWards}
                   className={`${inputCls} disabled:opacity-50`}
                 >
-                  <option value="">{loadingWards ? "Đang tải..." : "— Chọn phường/xã —"}</option>
+                  <option value="">{loadingWards ? t("shipping.wardLoading") : t("shipping.wardPlaceholder")}</option>
                   {wards.map((w) => (
                     <option key={w.code} value={w.code}>
                       {w.name}
@@ -267,16 +267,16 @@ export default function ShippingSettingsPage() {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Địa chỉ cụ thể *</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("shipping.addressLabel")}</label>
                 <input
                   value={addressLine}
                   onChange={(e) => setAddressLine(e.target.value)}
-                  placeholder="123 Lê Lợi"
+                  placeholder={t("shipping.addressPlaceholder")}
                   className={inputCls}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Số điện thoại (tùy chọn)</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("shipping.phoneLabel")}</label>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -293,9 +293,9 @@ export default function ShippingSettingsPage() {
                 className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 w-full md:w-auto"
               >
                 {savingWarehouse ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> {t("shipping.savingWarehouse")}</>
                 ) : (
-                  <><CheckCircle2 className="w-5 h-5" /> {isOnboarding ? "Lưu & Tiếp tục" : "Lưu Địa chỉ Kho"}</>
+                  <><CheckCircle2 className="w-5 h-5" /> {isOnboarding ? t("shipping.saveAndContinue") : t("shipping.saveWarehouseBtn")}</>
                 )}
               </button>
             </div>

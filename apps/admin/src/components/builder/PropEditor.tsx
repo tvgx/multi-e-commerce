@@ -7,6 +7,7 @@ import { GOOGLE_FONTS } from '@ecommerce/ui-registry/src/component-schemas';
 import { Settings2, Type, Image as ImageIcon, Link as LinkIcon, Palette, AlignLeft, Upload, Paintbrush, SlidersHorizontal } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 // -----------------------------------------------------------------------
 // Recursive node finder
@@ -70,6 +71,7 @@ function FontRow({ label, value, onChange }: { label: string; value: string; onC
 }
 
 function ThemeSettingsPanel() {
+    const t = useTranslations('admin');
     const theme = useBuilderStore(s => s.theme) as Record<string, string>;
 
     // Toàn bộ cài đặt chung (màu/font/logo/tên/social) đã gom về SetupWizard để
@@ -82,16 +84,15 @@ function ThemeSettingsPanel() {
             <div className="p-4 border-b border-border sticky top-0 bg-card z-10 shrink-0">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                     <Paintbrush size={16} className="text-indigo-400" />
-                    Thiết lập chung
+                    {t('builderTool.setupGeneral')}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Màu sắc, logo, thông tin cửa hàng</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('builderTool.setupSubtitle')}</p>
             </div>
 
             <div className="p-5 space-y-5 overflow-y-auto flex-1">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Chọn một section ở khu vực giữa để chỉnh sửa nội dung của nó, hoặc mở
-                    <span className="text-slate-200 font-medium"> Thiết lập chung</span> để đổi màu sắc, font, logo,
-                    favicon và thông tin cửa hàng.
+                    {t('builderTool.nothingSelected1')}
+                    <span className="text-slate-200 font-medium"> {t('builderTool.setupGeneral')}</span> {t('builderTool.nothingSelected2')}
                 </p>
 
                 <button
@@ -99,19 +100,19 @@ function ThemeSettingsPanel() {
                     className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
                 >
                     <SlidersHorizontal size={15} />
-                    Mở Thiết lập chung
+                    {t('builderTool.openSetup')}
                 </button>
 
                 <div className="rounded-xl border border-border bg-card/50 p-3 space-y-2">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Đang áp dụng</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('builderTool.applying')}</p>
                     <div className="flex items-center gap-2 text-xs text-slate-300">
                         <span className="h-5 w-5 rounded border border-border shrink-0" style={{ background: theme.primaryColor || '#059669' }} />
-                        Màu chủ đạo
+                        {t('builderTool.primaryColor')}
                         <span className="ml-auto font-mono text-muted-foreground uppercase">{theme.primaryColor || '#059669'}</span>
                     </div>
                     {theme.shopName && (
                         <div className="flex items-center gap-2 text-xs text-slate-300">
-                            <span className="text-muted-foreground">Tên:</span> {theme.shopName}
+                            <span className="text-muted-foreground">{t('builderTool.nameLabel')}</span> {theme.shopName}
                         </div>
                     )}
                 </div>
@@ -124,6 +125,7 @@ function ThemeSettingsPanel() {
 // PropEditor – shows properties for selected element, or Theme Settings
 // -----------------------------------------------------------------------
 export function PropEditor() {
+    const t = useTranslations('admin');
     const pages = useBuilderStore(s => s.pages);
     const activePage = useBuilderStore(s => s.activePage);
     const activeComponentId = useBuilderStore(s => s.activeComponentId);
@@ -175,7 +177,7 @@ export function PropEditor() {
         return (
             <div className="flex flex-col h-full items-center justify-center p-6 text-center text-muted-foreground">
                 <Settings2 className="w-12 h-12 mb-4 opacity-50" />
-                <p className="text-sm">Node not found</p>
+                <p className="text-sm">{t('builderTool.nodeNotFound')}</p>
             </div>
         );
     }
@@ -212,12 +214,12 @@ export function PropEditor() {
             if (res.ok) {
                 const json = await res.json();
                 if (json.data?.url) handlePropChange(fieldId, json.data.url);
-                else toast.error('Upload failed');
+                else toast.error(t('builderTool.uploadFailed'));
             } else {
-                toast.error('Upload failed');
+                toast.error(t('builderTool.uploadFailed'));
             }
         } catch {
-            toast.error('Upload error');
+            toast.error(t('builderTool.uploadError'));
         } finally {
             setIsUploading(false);
         }
@@ -382,7 +384,7 @@ export function PropEditor() {
                                 type="text"
                                 value={currentValue ?? ''}
                                 onChange={e => handlePropChange(fieldId, e.target.value)}
-                                placeholder="ID sản phẩm (shop chưa có sản phẩm)"
+                                placeholder={t('builderTool.productIdPlaceholder')}
                                 className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors"
                             />
                         </div>
@@ -397,7 +399,7 @@ export function PropEditor() {
                             onChange={e => handlePropChange(fieldId, e.target.value)}
                             className="w-full bg-secondary border border-border text-sm rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
                         >
-                            <option value="">— Sản phẩm đầu tiên của shop —</option>
+                            <option value="">{t('builderTool.firstProduct')}</option>
                             {shopProducts.map((p: any) => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
@@ -447,13 +449,13 @@ export function PropEditor() {
                 </h3>
                 {schema.description && <p className="text-xs text-muted-foreground mt-1">{schema.description}</p>}
                 {activeBlockId && (
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5 uppercase tracking-wider">Block</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5 uppercase tracking-wider">{t('builderTool.block')}</p>
                 )}
             </div>
 
             <div className="p-5 space-y-6 flex-1 overflow-y-auto">
                 {(!fields || fields.length === 0) ? (
-                    <p className="text-muted-foreground text-sm">Không có thuộc tính nào để tùy chỉnh.</p>
+                    <p className="text-muted-foreground text-sm">{t('builderTool.noProps')}</p>
                 ) : (
                     fields.map((field: any) => {
                         const fieldId = field.id || field.name;
@@ -476,7 +478,7 @@ export function PropEditor() {
                             }}
                             className="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-red-500/20 hover:border-red-500/40"
                         >
-                            Xóa section này
+                            {t('builderTool.deleteSection')}
                         </button>
                     </div>
                 )}

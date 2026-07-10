@@ -2,16 +2,22 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "@ecommerce/i18n/src/react";
+
+function EditorLoading() {
+  const t = useTranslations("admin");
+  return (
+    <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+      {t("testingTool.loadingEditor")}
+    </div>
+  );
+}
 
 // Monaco is client-only and heavy — load it lazily. This page is dev-only so the
 // bundle never ships to production.
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full items-center justify-center text-sm text-zinc-500">
-      Đang tải trình soạn thảo…
-    </div>
-  ),
+  loading: () => <EditorLoading />,
 });
 
 function languageFor(path: string): string {

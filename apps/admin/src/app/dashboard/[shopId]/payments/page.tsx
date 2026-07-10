@@ -18,12 +18,14 @@ import {
 import Link from "next/link";
 import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import { usePaymentSetup, BankAccount } from "@/hooks/usePaymentSetup";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 const EMPTY_BANK: BankAccount = { bankName: "", accountNumber: "", accountHolder: "", branch: "" };
 
 export default function PaymentSetupPage() {
   const params = useParams();
   const shopId = params.shopId as string;
+  const t = useTranslations("admin");
 
   const { completeAndNavigate } = useOnboardingAutoNav({
     shopId,
@@ -59,16 +61,16 @@ export default function PaymentSetupPage() {
         className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Quay lại Dashboard
+        {t("payments.backToDashboard")}
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest border border-indigo-500/20">
-            Step 5 of 7
+            {t("payments.stepBadge")}
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">Thiết lập Thanh toán</h1>
-          <p className="text-slate-400 text-lg">Cung cấp thông tin tài khoản ngân hàng để khách hàng có thể thanh toán qua QR.</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white">{t("payments.title")}</h1>
+          <p className="text-slate-400 text-lg">{t("payments.subtitle")}</p>
         </div>
       </div>
 
@@ -78,11 +80,11 @@ export default function PaymentSetupPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <Building2 size={16} className="text-indigo-400" /> Tên ngân hàng
+                  <Building2 size={16} className="text-indigo-400" /> {t("payments.bankName")}
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: Vietcombank, Techcombank..."
+                  placeholder={t("payments.bankNamePlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={bankAccount.bankName}
                   onChange={(e) => setBankAccount({ ...bankAccount, bankName: e.target.value })}
@@ -91,11 +93,11 @@ export default function PaymentSetupPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <Hash size={16} className="text-emerald-400" /> Số tài khoản
+                  <Hash size={16} className="text-emerald-400" /> {t("payments.accountNumber")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Nhập số tài khoản ngân hàng"
+                  placeholder={t("payments.accountNumberPlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={bankAccount.accountNumber}
                   onChange={(e) => setBankAccount({ ...bankAccount, accountNumber: e.target.value })}
@@ -104,11 +106,11 @@ export default function PaymentSetupPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <User size={16} className="text-amber-400" /> Tên chủ tài khoản
+                  <User size={16} className="text-amber-400" /> {t("payments.accountHolder")}
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: NGUYEN VAN A"
+                  placeholder={t("payments.accountHolderPlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={bankAccount.accountHolder}
                   onChange={(e) => setBankAccount({ ...bankAccount, accountHolder: e.target.value.toUpperCase() })}
@@ -117,11 +119,11 @@ export default function PaymentSetupPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <MapPin size={16} className="text-rose-400" /> Chi nhánh (Tùy chọn)
+                  <MapPin size={16} className="text-rose-400" /> {t("payments.branch")}
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: Chi nhánh Hà Nội"
+                  placeholder={t("payments.branchPlaceholder")}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={bankAccount.branch}
                   onChange={(e) => setBankAccount({ ...bankAccount, branch: e.target.value })}
@@ -136,9 +138,9 @@ export default function PaymentSetupPage() {
                 className="w-full md:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
               >
                 {saving ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> {t("payments.saving")}</>
                 ) : (
-                  <><Save className="w-5 h-5" /> Lưu & Tiếp tục</>
+                  <><Save className="w-5 h-5" /> {t("payments.saveContinue")}</>
                 )}
               </button>
             </div>
@@ -147,20 +149,20 @@ export default function PaymentSetupPage() {
 
         <div className="space-y-6">
           <div className="bg-gradient-to-br from-indigo-600/20 to-violet-600/20 border border-indigo-500/20 rounded-[2rem] p-6 space-y-4">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <QrCode size={18} className="text-indigo-400" /> Cách hoạt động
-            </h3>
+            <h2 className="font-bold text-white flex items-center gap-2">
+              <QrCode size={18} className="text-indigo-400" /> {t("payments.howItWorks")}
+            </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Khi bạn điền thông tin này, hệ thống sẽ tự động kích hoạt 2 phương thức thanh toán:
+              {t("payments.howItWorksDesc")}
             </p>
             <ul className="space-y-3">
               <li className="flex gap-3 text-sm text-slate-300">
                 <div className="mt-1"><CheckCircle2 size={14} className="text-emerald-500" /></div>
-                <span><strong>QRPAY:</strong> Khách hàng quét mã QR để mở trang xác nhận chuyển khoản.</span>
+                <span><strong>QRPAY:</strong> {t("payments.qrpayDesc")}</span>
               </li>
               <li className="flex gap-3 text-sm text-slate-300">
                 <div className="mt-1"><CheckCircle2 size={14} className="text-emerald-500" /></div>
-                <span><strong>COD:</strong> Thanh toán tiền mặt khi nhận hàng (shipper thu hộ).</span>
+                <span><strong>COD:</strong> {t("payments.codDesc")}</span>
               </li>
             </ul>
           </div>
@@ -170,10 +172,10 @@ export default function PaymentSetupPage() {
                 <div className="p-3 bg-amber-500/20 text-amber-500 rounded-xl">
                    <Wallet size={20} />
                 </div>
-                <h3 className="font-bold text-white">Lưu ý bảo mật</h3>
+                <h2 className="font-bold text-white">{t("payments.securityNote")}</h2>
              </div>
              <p className="text-xs text-slate-500 leading-relaxed">
-                Chúng tôi chỉ sử dụng thông tin này để hiển thị mã QR thanh toán cho khách hàng của bạn. Chúng tôi KHÔNG có quyền truy cập vào tài khoản ngân hàng của bạn.
+                {t("payments.securityDesc")}
              </p>
           </div>
         </div>

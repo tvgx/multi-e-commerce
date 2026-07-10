@@ -5,6 +5,7 @@ import { useBuilderStore } from '@ecommerce/ui-registry/src/store/builder-store'
 import { GOOGLE_FONTS } from '@ecommerce/ui-registry/src/component-schemas';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 import {
     Store, Palette, Image as ImageIcon, Share2, PanelTop,
     Upload, Loader2, Check, ChevronLeft, ChevronRight, Sparkles, Trash2,
@@ -43,29 +44,31 @@ interface SetupForm {
 }
 
 // Bảng màu sẵn — 1-click chọn cả 5 màu. Đều sáng & đơn giản theo yêu cầu.
-const COLOR_PRESETS: { name: string; primary: string; background: string; text: string; button: string; buttonText: string }[] = [
-    { name: 'Tươi sáng', primary: '#059669', background: '#ffffff', text: '#111827', button: '#059669', buttonText: '#ffffff' },
-    { name: 'Đại dương', primary: '#2563eb', background: '#ffffff', text: '#0f172a', button: '#2563eb', buttonText: '#ffffff' },
-    { name: 'Hoàng hôn', primary: '#ea580c', background: '#fffaf5', text: '#1c1917', button: '#ea580c', buttonText: '#ffffff' },
-    { name: 'Thanh lịch', primary: '#111827', background: '#ffffff', text: '#111827', button: '#111827', buttonText: '#ffffff' },
-    { name: 'Ngọt ngào', primary: '#db2777', background: '#fff1f7', text: '#1f2937', button: '#db2777', buttonText: '#ffffff' },
+// nameKey → dịch tại render (labelKey pattern, xem useTranslations trong component).
+const COLOR_PRESETS: { nameKey: string; primary: string; background: string; text: string; button: string; buttonText: string }[] = [
+    { nameKey: 'setupWizard.presetBright', primary: '#059669', background: '#ffffff', text: '#111827', button: '#059669', buttonText: '#ffffff' },
+    { nameKey: 'setupWizard.presetOcean', primary: '#2563eb', background: '#ffffff', text: '#0f172a', button: '#2563eb', buttonText: '#ffffff' },
+    { nameKey: 'setupWizard.presetSunset', primary: '#ea580c', background: '#fffaf5', text: '#1c1917', button: '#ea580c', buttonText: '#ffffff' },
+    { nameKey: 'setupWizard.presetElegant', primary: '#111827', background: '#ffffff', text: '#111827', button: '#111827', buttonText: '#ffffff' },
+    { nameKey: 'setupWizard.presetSweet', primary: '#db2777', background: '#fff1f7', text: '#1f2937', button: '#db2777', buttonText: '#ffffff' },
 ];
 
-const SOCIAL_FIELDS: { key: string; label: string; placeholder: string }[] = [
-    { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/cua-hang' },
-    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/cua-hang' },
-    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@cua-hang' },
-    { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@cua-hang' },
-    { key: 'email', label: 'Email liên hệ', placeholder: 'lienhe@cua-hang.com' },
-    { key: 'phone', label: 'Số điện thoại', placeholder: '0900 000 000' },
+// label/placeholder có key (email/phone dịch được); Facebook… giữ nguyên tên riêng.
+const SOCIAL_FIELDS: { key: string; label?: string; labelKey?: string; placeholderKey: string }[] = [
+    { key: 'facebook', label: 'Facebook', placeholderKey: 'setupWizard.facebookPlaceholder' },
+    { key: 'instagram', label: 'Instagram', placeholderKey: 'setupWizard.instagramPlaceholder' },
+    { key: 'tiktok', label: 'TikTok', placeholderKey: 'setupWizard.tiktokPlaceholder' },
+    { key: 'youtube', label: 'YouTube', placeholderKey: 'setupWizard.youtubePlaceholder' },
+    { key: 'email', labelKey: 'setupWizard.socialEmailLabel', placeholderKey: 'setupWizard.socialEmailPlaceholder' },
+    { key: 'phone', labelKey: 'setupWizard.socialPhoneLabel', placeholderKey: 'setupWizard.socialPhonePlaceholder' },
 ];
 
 const STEPS = [
-    { id: 'brand', label: 'Thương hiệu', icon: Store },
-    { id: 'colors', label: 'Màu & Chữ', icon: Palette },
-    { id: 'logo', label: 'Logo & Favicon', icon: ImageIcon },
-    { id: 'social', label: 'Liên hệ', icon: Share2 },
-    { id: 'headfoot', label: 'Header & Footer', icon: PanelTop },
+    { id: 'brand', labelKey: 'setupWizard.stepBrand', icon: Store },
+    { id: 'colors', labelKey: 'setupWizard.stepColors', icon: Palette },
+    { id: 'logo', labelKey: 'setupWizard.stepLogo', icon: ImageIcon },
+    { id: 'social', labelKey: 'setupWizard.stepSocial', icon: Share2 },
+    { id: 'headfoot', labelKey: 'setupWizard.stepHeadfoot', icon: PanelTop },
 ];
 
 async function uploadImage(shopId: string, file: File, entityType: string): Promise<string> {
@@ -87,6 +90,7 @@ async function uploadImage(shopId: string, file: File, entityType: string): Prom
 }
 
 export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
+    const t = useTranslations('admin');
     const theme = useBuilderStore((s) => s.theme) as Record<string, any>;
     const setTheme = useBuilderStore((s) => s.setTheme);
     const globalComponents = useBuilderStore((s) => s.globalComponents);
@@ -109,7 +113,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
         bodyFont: theme.bodyFont || theme.fontFamily || 'Inter',
         logoUrl: theme.logoUrl || '',
         faviconUrl: theme.faviconUrl || '',
-        copyrightText: theme.copyrightText || `© ${new Date().getFullYear()} ${theme.shopName || 'Cửa hàng của tôi'}`,
+        copyrightText: theme.copyrightText || `© ${new Date().getFullYear()} ${theme.shopName || t('setupWizard.defaultShopName')}`,
         announcementText: theme.announcementText || '',
         social: { ...(theme.social || {}) },
     }));
@@ -144,7 +148,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
             set(kind === 'logo' ? 'logoUrl' : 'faviconUrl', url);
             setTheme(kind === 'logo' ? { logoUrl: url } : { faviconUrl: url });
         } catch {
-            toast.error('Tải ảnh lên thất bại. Vui lòng thử lại.');
+            toast.error(t('setupWizard.uploadFailed'));
         } finally {
             setUploading(null);
         }
@@ -186,10 +190,10 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                     .catch(() => { /* tên hiển thị vẫn lấy từ theme.shopName */ });
             }
 
-            toast.success('Đã lưu thiết lập! Bắt đầu thiết kế giao diện.');
+            toast.success(t('setupWizard.saveSuccess'));
             onComplete();
         } catch {
-            toast.error('Lưu thiết lập thất bại. Vui lòng thử lại.');
+            toast.error(t('setupWizard.saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -204,10 +208,10 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                 <div className="max-w-3xl mx-auto">
                     <div className="flex items-center gap-2 mb-1">
                         <Sparkles size={18} className="text-brand" />
-                        <h1 className="text-lg font-bold">Thiết lập cửa hàng</h1>
+                        <h1 className="text-lg font-bold">{t('setupWizard.title')}</h1>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        Khai báo những thông tin cơ bản trước khi thiết kế giao diện. Bạn có thể chỉnh lại bất cứ lúc nào.
+                        {t('setupWizard.subtitle')}
                     </p>
 
                     {/* Step dots */}
@@ -226,7 +230,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                                                 : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
                                 >
                                     {done ? <Check size={13} /> : <Icon size={13} />}
-                                    <span className="hidden sm:inline">{s.label}</span>
+                                    <span className="hidden sm:inline">{t(s.labelKey)}</span>
                                 </button>
                             );
                         })}
@@ -238,22 +242,22 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
             <div className="flex-1 overflow-y-auto px-6 py-8">
                 <div className="max-w-3xl mx-auto">
                     {STEPS[step].id === 'brand' && (
-                        <Section title="Thương hiệu của bạn" desc="Tên này hiển thị trên header, tiêu đề trang và footer.">
-                            <Field label="Tên cửa hàng" required>
+                        <Section title={t('setupWizard.brandTitle')} desc={t('setupWizard.brandDesc')}>
+                            <Field label={t('setupWizard.shopNameLabel')} required>
                                 <input
                                     type="text"
                                     value={form.shopName}
                                     onChange={(e) => set('shopName', e.target.value)}
-                                    placeholder="VD: Sneaker Head Store"
+                                    placeholder={t('setupWizard.shopNamePlaceholder')}
                                     className={inputCls}
                                 />
                             </Field>
-                            <Field label="Khẩu hiệu / mô tả ngắn" hint="Không bắt buộc — hiển thị ở một số bố cục footer.">
+                            <Field label={t('setupWizard.taglineLabel')} hint={t('setupWizard.taglineHint')}>
                                 <input
                                     type="text"
                                     value={form.tagline}
                                     onChange={(e) => set('tagline', e.target.value)}
-                                    placeholder="VD: Giày chính hãng, giao nhanh toàn quốc"
+                                    placeholder={t('setupWizard.taglinePlaceholder')}
                                     className={inputCls}
                                 />
                             </Field>
@@ -261,15 +265,15 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                     )}
 
                     {STEPS[step].id === 'colors' && (
-                        <Section title="Màu sắc & kiểu chữ" desc="Chọn một bảng màu có sẵn rồi tinh chỉnh, hoặc đặt từng màu thủ công.">
+                        <Section title={t('setupWizard.colorsTitle')} desc={t('setupWizard.colorsDesc')}>
                             <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Bảng màu gợi ý</p>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{t('setupWizard.presetSectionLabel')}</p>
                                 <div className="flex flex-wrap gap-2">
                                     {COLOR_PRESETS.map((p) => {
                                         const selected = form.primaryColor.toLowerCase() === p.primary.toLowerCase();
                                         return (
                                             <button
-                                                key={p.name}
+                                                key={p.nameKey}
                                                 onClick={() => applyPreset(p)}
                                                 className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all
                                                     ${selected ? 'border-foreground ring-2 ring-foreground/10' : 'border-border hover:border-foreground/30'}`}
@@ -278,7 +282,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                                                     <span className="h-4 w-4 rounded-full border border-white" style={{ background: p.primary }} />
                                                     <span className="h-4 w-4 rounded-full border border-white" style={{ background: p.background }} />
                                                 </span>
-                                                {p.name}
+                                                {t(p.nameKey)}
                                             </button>
                                         );
                                     })}
@@ -286,18 +290,18 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-2 rounded-xl border border-border bg-card px-4 py-2 divide-y divide-border sm:divide-y-0">
-                                <ColorRow label="Màu chủ đạo" value={form.primaryColor} onChange={(v) => { set('primaryColor', v); setTheme({ primaryColor: v }); }} />
-                                <ColorRow label="Màu nền" value={form.backgroundColor} onChange={(v) => { set('backgroundColor', v); setTheme({ backgroundColor: v }); }} />
-                                <ColorRow label="Màu chữ" value={form.textColor} onChange={(v) => { set('textColor', v); setTheme({ textColor: v }); }} />
-                                <ColorRow label="Màu nút" value={form.buttonColor} onChange={(v) => { set('buttonColor', v); setTheme({ buttonColor: v }); }} />
-                                <ColorRow label="Màu chữ trên nút" value={form.buttonTextColor} onChange={(v) => { set('buttonTextColor', v); setTheme({ buttonTextColor: v }); }} />
+                                <ColorRow label={t('setupWizard.colorPrimary')} value={form.primaryColor} onChange={(v) => { set('primaryColor', v); setTheme({ primaryColor: v }); }} />
+                                <ColorRow label={t('setupWizard.colorBackground')} value={form.backgroundColor} onChange={(v) => { set('backgroundColor', v); setTheme({ backgroundColor: v }); }} />
+                                <ColorRow label={t('setupWizard.colorText')} value={form.textColor} onChange={(v) => { set('textColor', v); setTheme({ textColor: v }); }} />
+                                <ColorRow label={t('setupWizard.colorButton')} value={form.buttonColor} onChange={(v) => { set('buttonColor', v); setTheme({ buttonColor: v }); }} />
+                                <ColorRow label={t('setupWizard.colorButtonText')} value={form.buttonTextColor} onChange={(v) => { set('buttonTextColor', v); setTheme({ buttonTextColor: v }); }} />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                                <Field label="Font tiêu đề">
+                                <Field label={t('setupWizard.fontHeading')}>
                                     <FontSelect value={form.headingFont} onChange={(v) => { set('headingFont', v); setTheme({ headingFont: v }); }} />
                                 </Field>
-                                <Field label="Font nội dung">
+                                <Field label={t('setupWizard.fontBody')}>
                                     <FontSelect value={form.bodyFont} onChange={(v) => { set('bodyFont', v); setTheme({ bodyFont: v }); }} />
                                 </Field>
                             </div>
@@ -305,38 +309,40 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                     )}
 
                     {STEPS[step].id === 'logo' && (
-                        <Section title="Logo & Favicon" desc="Khuyến khích tải lên để cửa hàng chuyên nghiệp hơn — có thể bỏ qua, khi đó sẽ dùng tên cửa hàng.">
+                        <Section title={t('setupWizard.logoTitle')} desc={t('setupWizard.logoDesc')}>
                             <UploadRow
-                                label="Logo cửa hàng"
-                                hint="Khuyến nghị: PNG/SVG nền trong suốt, cao khoảng 80px."
+                                label={t('setupWizard.logoLabel')}
+                                hint={t('setupWizard.logoHint')}
                                 value={form.logoUrl}
                                 uploading={uploading === 'logo'}
                                 onFile={(f) => handleUpload('logo', f)}
                                 onClear={() => { set('logoUrl', ''); setTheme({ logoUrl: '' }); }}
                                 preview="logo"
+                                t={t}
                             />
                             <UploadRow
-                                label="Favicon"
-                                hint="Khuyến nghị: ảnh vuông 512×512 (hiển thị ở tab trình duyệt)."
+                                label={t('setupWizard.faviconLabel')}
+                                hint={t('setupWizard.faviconHint')}
                                 value={form.faviconUrl}
                                 uploading={uploading === 'favicon'}
                                 onFile={(f) => handleUpload('favicon', f)}
                                 onClear={() => { set('faviconUrl', ''); setTheme({ faviconUrl: '' }); }}
                                 preview="favicon"
+                                t={t}
                             />
                         </Section>
                     )}
 
                     {STEPS[step].id === 'social' && (
-                        <Section title="Mạng xã hội & liên hệ" desc="Các liên kết này dùng cho footer và nút liên hệ. Bỏ trống nếu chưa có.">
+                        <Section title={t('setupWizard.socialTitle')} desc={t('setupWizard.socialDesc')}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {SOCIAL_FIELDS.map((s) => (
-                                    <Field key={s.key} label={s.label}>
+                                    <Field key={s.key} label={s.labelKey ? t(s.labelKey) : s.label!}>
                                         <input
                                             type="text"
                                             value={form.social[s.key] || ''}
                                             onChange={(e) => set('social', { ...form.social, [s.key]: e.target.value })}
-                                            placeholder={s.placeholder}
+                                            placeholder={t(s.placeholderKey)}
                                             className={inputCls}
                                         />
                                     </Field>
@@ -346,22 +352,22 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                     )}
 
                     {STEPS[step].id === 'headfoot' && (
-                        <Section title="Nội dung Header & Footer" desc="Thiết lập nhanh nội dung chung. Bố cục chi tiết có thể chỉnh trong trình thiết kế.">
-                            <Field label="Thanh thông báo (đầu trang)" hint="VD: Miễn phí vận chuyển cho đơn từ 500K. Bỏ trống để ẩn.">
+                        <Section title={t('setupWizard.headfootTitle')} desc={t('setupWizard.headfootDesc')}>
+                            <Field label={t('setupWizard.announcementLabel')} hint={t('setupWizard.announcementHint')}>
                                 <input
                                     type="text"
                                     value={form.announcementText}
                                     onChange={(e) => set('announcementText', e.target.value)}
-                                    placeholder="Miễn phí vận chuyển toàn quốc"
+                                    placeholder={t('setupWizard.announcementPlaceholder')}
                                     className={inputCls}
                                 />
                             </Field>
-                            <Field label="Dòng bản quyền (footer)">
+                            <Field label={t('setupWizard.copyrightLabel')}>
                                 <input
                                     type="text"
                                     value={form.copyrightText}
                                     onChange={(e) => set('copyrightText', e.target.value)}
-                                    placeholder={`© ${new Date().getFullYear()} ${form.shopName || 'Cửa hàng của tôi'}`}
+                                    placeholder={`© ${new Date().getFullYear()} ${form.shopName || t('setupWizard.defaultShopName')}`}
                                     className={inputCls}
                                 />
                             </Field>
@@ -378,7 +384,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                         disabled={step === 0 || saving}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
                     >
-                        <ChevronLeft size={16} /> Quay lại
+                        <ChevronLeft size={16} /> {t('setupWizard.back')}
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -388,7 +394,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                                 disabled={saving}
                                 className="text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-2"
                             >
-                                Bỏ qua, vào thiết kế
+                                {t('setupWizard.skip')}
                             </button>
                         )}
                         {isLast ? (
@@ -398,7 +404,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                                 className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                                Hoàn tất & vào thiết kế
+                                {t('setupWizard.finish')}
                             </button>
                         ) : (
                             <button
@@ -406,7 +412,7 @@ export function SetupWizard({ shopId, onComplete }: SetupWizardProps) {
                                 disabled={saving}
                                 className="inline-flex items-center gap-1.5 rounded-lg bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90"
                             >
-                                Tiếp tục <ChevronRight size={16} />
+                                {t('setupWizard.next')} <ChevronRight size={16} />
                             </button>
                         )}
                     </div>
@@ -476,10 +482,11 @@ function FontSelect({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 function UploadRow({
-    label, hint, value, uploading, onFile, onClear, preview,
+    label, hint, value, uploading, onFile, onClear, preview, t,
 }: {
     label: string; hint: string; value: string; uploading: boolean;
     onFile: (f: File) => void; onClear: () => void; preview: 'logo' | 'favicon';
+    t: (key: string) => string;
 }) {
     return (
         <div className="rounded-xl border border-border bg-card p-4">
@@ -499,12 +506,12 @@ function UploadRow({
                     <div className="mt-2 flex items-center gap-2">
                         <label className={`inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-muted transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                             {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-                            {value ? 'Thay ảnh' : 'Tải lên'}
+                            {value ? t('setupWizard.changeImage') : t('setupWizard.upload')}
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
                         </label>
                         {value && (
                             <button onClick={onClear} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors">
-                                <Trash2 size={13} /> Xoá
+                                <Trash2 size={13} /> {t('setupWizard.remove')}
                             </button>
                         )}
                     </div>

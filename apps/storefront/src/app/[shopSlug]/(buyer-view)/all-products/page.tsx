@@ -5,6 +5,8 @@ import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/F
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
 import { getT } from '@/lib/i18n';
+import { shopUrl } from '@/lib/seo';
+import type { Metadata } from 'next';
 
 interface Props {
     params: Promise<{ shopSlug: string }>;
@@ -15,6 +17,20 @@ interface Props {
         minPrice?: string;
         maxPrice?: string;
     }>;
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+    const { shopSlug } = await params;
+    const sp = searchParams ? await searchParams : {};
+    const filtered = !!(sp.q || sp.search || sp.category || sp.minPrice || sp.maxPrice);
+    return {
+        title: 'Tất cả sản phẩm',
+        description: 'Khám phá toàn bộ sản phẩm của cửa hàng.',
+        // Filtered / search views are near-duplicates → don't index them, but
+        // canonicalise back to the clean listing so link equity consolidates.
+        alternates: { canonical: shopUrl(shopSlug, '/all-products') },
+        ...(filtered ? { robots: { index: false, follow: true } } : {}),
+    };
 }
 
 /**

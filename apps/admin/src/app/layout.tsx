@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Toaster } from "@ecommerce/ui-registry/src/components/ui/toaster";
@@ -16,9 +16,39 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Base URL cho metadata tuyệt đối (OG/canonical). Ghi đè bằng NEXT_PUBLIC_ADMIN_URL.
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? "https://admin.localhost";
+
 export const metadata: Metadata = {
-  title: "OmniAdmin — Quản trị cửa hàng",
-  description: "Bảng điều khiển quản trị nền tảng thương mại điện tử",
+  metadataBase: new URL(ADMIN_URL),
+  applicationName: "OmniAdmin",
+  title: {
+    default: "OmniAdmin — Quản trị cửa hàng",
+    template: "%s — OmniAdmin",
+  },
+  description:
+    "Bảng điều khiển quản trị nền tảng thương mại điện tử OmniCommerce.",
+  // Admin là dashboard nội bộ (phải đăng nhập) → không cho search engine index.
+  // Kết hợp robots.ts + header X-Robots-Tag (next.config.ts) để phủ toàn bộ.
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+  openGraph: {
+    type: "website",
+    siteName: "OmniAdmin",
+    title: "OmniAdmin — Quản trị cửa hàng",
+    description:
+      "Bảng điều khiển quản trị nền tảng thương mại điện tử OmniCommerce.",
+  },
+  // icon.svg / apple-icon.tsx / manifest.ts được Next tự nhận qua file-convention.
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default async function RootLayout({

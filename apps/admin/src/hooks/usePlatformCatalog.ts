@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 export interface CatalogProduct {
   id: string;
@@ -31,6 +32,7 @@ export interface DistributeResult {
  * shop của owner + phân phối (sao chép) sang shop khác.
  */
 export function usePlatformCatalog() {
+  const tr = useTranslations("admin");
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [shops, setShops] = useState<CatalogShop[]>([]);
   const [total, setTotal] = useState(0);
@@ -76,7 +78,7 @@ export function usePlatformCatalog() {
       await load();
       return res.data as DistributeResult;
     } catch (err: any) {
-      throw new Error(err.message || "Phân phối thất bại");
+      throw new Error(err.message || tr("hooks.platformDistributeFailed"));
     } finally {
       setDistributing(false);
     }

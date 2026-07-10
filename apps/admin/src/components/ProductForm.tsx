@@ -8,6 +8,7 @@ import { useCollections } from "@/hooks/useCollections";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { ImageUploader } from "./ImageUploader";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -17,6 +18,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormProps) {
+  const t = useTranslations("admin");
   const router = useRouter();
   const { collections, fetchCollections } = useCollections(shopId);
   const { fetchProductById, createProduct, updateProduct } = useProducts(shopId);
@@ -69,7 +71,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             status: product.status || "PUBLISHED",
           });
         } catch (err: any) {
-          setError(err.message || "Failed to load product");
+          setError(err.message || t("productForm.loadFailed"));
         } finally {
           setInitLoading(false);
         }
@@ -164,7 +166,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
       if (mode === 'create') {
         const created = await createProduct(payload);
         if (pendingImages.length > 0) {
-          if (!created?.id) throw new Error("Tạo sản phẩm xong nhưng không nhận được id để upload ảnh");
+          if (!created?.id) throw new Error(t("productForm.uploadNoId"));
           const uploaded: string[] = [];
           for (const { file } of pendingImages) {
             uploaded.push(await uploadFileToMinIO(file, 'product', shopId, created.id));
@@ -184,7 +186,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
         router.push(`/dashboard/${shopId}/products`);
       }
     } catch (err: any) {
-      setError(err.message || `Failed to ${mode} product`);
+      setError(err.message || (mode === 'create' ? t("productForm.createFailed") : t("productForm.updateFailed")));
       setLoading(false);
     }
   };
@@ -208,7 +210,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-2xl font-bold text-white tracking-tight">
-            {mode === 'create' ? 'Add New Product' : 'Edit Product'}
+            {mode === 'create' ? t("productForm.addTitle") : t("productForm.editTitle")}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -216,7 +218,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             href={`/dashboard/${shopId}/products`}
             className="px-6 py-2.5 rounded-full text-sm font-semibold text-slate-300 hover:text-white transition-colors"
           >
-            Discard
+            {t("productForm.discard")}
           </Link>
           <button
             onClick={handleSubmit}
@@ -224,7 +226,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {mode === 'create' ? 'Save Product' : 'Update Product'}
+            {mode === 'create' ? t("productForm.saveProduct") : t("productForm.updateProduct")}
           </button>
         </div>
       </div>
@@ -239,15 +241,15 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
         <div className="lg:col-span-2 space-y-8">
           {/* Basic Info */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Basic Information</h2>
-            
+            <h2 className="text-lg font-bold text-white">{t("productForm.basicInfo")}</h2>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t("productForm.titleLabel")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Short sleeve t-shirt"
+                  placeholder={t("productForm.titlePlaceholder")}
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
@@ -255,10 +257,10 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t("productForm.descLabel")}</label>
                 <textarea
                   rows={4}
-                  placeholder="Describe your product..."
+                  placeholder={t("productForm.descPlaceholder")}
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
@@ -269,7 +271,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
 
           {/* Media */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Media (Images)</h2>
+            <h2 className="text-lg font-bold text-white">{t("productForm.media")}</h2>
             
             <ImageUploader onFileSelected={handleFileSelected} busy={loading} />
 
@@ -277,7 +279,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {formData.images.map((url, i) => (
                   <div key={i} className="relative group aspect-square rounded-xl border border-white/10 bg-black/40 overflow-hidden">
-                    <img src={url} alt={`Product image ${i+1}`} className="w-full h-full object-cover" />
+                    <img src={url} alt={t("productForm.productImageAlt", { n: i + 1 })} className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
@@ -289,8 +291,8 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                 ))}
                 {pendingImages.map(({ preview }, i) => (
                   <div key={preview} className="relative group aspect-square rounded-xl border border-dashed border-indigo-500/40 bg-black/40 overflow-hidden">
-                    <img src={preview} alt={`New image ${i+1}`} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-indigo-500/80 text-[10px] font-bold text-white">Chưa lưu</span>
+                    <img src={preview} alt={t("productForm.newImageAlt", { n: i + 1 })} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-indigo-500/80 text-[10px] font-bold text-white">{t("productForm.unsaved")}</span>
                     <button
                       type="button"
                       onClick={() => removePendingImage(i)}
@@ -304,7 +306,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
             ) : (
               <div className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-slate-500">
                 <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm">No images added yet</p>
+                <p className="text-sm">{t("productForm.noImages")}</p>
               </div>
             )}
           </div>
@@ -312,13 +314,13 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
           {/* Variants */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Variants & Pricing</h2>
+              <h2 className="text-lg font-bold text-white">{t("productForm.variantsPricing")}</h2>
               <button
                 type="button"
                 onClick={addVariant}
                 className="text-sm font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
               >
-                <Plus size={16} /> Add Variant
+                <Plus size={16} /> {t("productForm.addVariant")}
               </button>
             </div>
 
@@ -326,7 +328,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
               {formData.variants.map((variant, index) => (
                 <div key={index} className="p-4 rounded-xl border border-white/5 bg-black/20 space-y-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-slate-300">Variant {index + 1} {index === 0 && "(Master)"}</h3>
+                    <h3 className="text-sm font-semibold text-slate-300">{t("productForm.variantN", { n: index + 1 })} {index === 0 && t("productForm.master")}</h3>
                     {formData.variants.length > 1 && (
                       <button type="button" onClick={() => removeVariant(index)} className="text-rose-400 hover:text-rose-300">
                         <Trash2 size={16} />
@@ -336,17 +338,17 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">SKU</label>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">{t("productForm.sku")}</label>
                       <input
                         type="text"
-                        placeholder="Auto-generated"
+                        placeholder={t("productForm.skuPlaceholder")}
                         value={variant.sku}
                         onChange={(e) => updateVariant(index, 'sku', e.target.value)}
                         className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">Price (VND)</label>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">{t("productForm.priceVnd")}</label>
                       <input
                         type="number"
                         min="0"
@@ -356,7 +358,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">Inventory</label>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">{t("productForm.inventory")}</label>
                       <input
                         type="number"
                         min="0"
@@ -368,7 +370,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                   </div>
 
                   <div className="pt-2 border-t border-white/5">
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Attributes (e.g., Color, Size)</label>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">{t("productForm.attributes")}</label>
                     <div className="flex flex-wrap gap-2 mb-3">
                       {Object.entries(variant.attributes).map(([key, value]) => (
                         <span key={key} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 text-xs font-medium text-slate-200">
@@ -381,13 +383,13 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Name (e.g. Color)"
+                        placeholder={t("productForm.attrNamePlaceholder")}
                         id={`attr-name-${index}`}
                         className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
                       />
                       <input
                         type="text"
-                        placeholder="Value (e.g. Red)"
+                        placeholder={t("productForm.attrValPlaceholder")}
                         id={`attr-val-${index}`}
                         className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
                       />
@@ -404,7 +406,7 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                         }}
                         className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-medium hover:bg-indigo-500/30"
                       >
-                        Add
+                        {t("productForm.add")}
                       </button>
                     </div>
                   </div>
@@ -417,28 +419,28 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
         <div className="space-y-8">
           {/* Status & Organization */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Status</h2>
-            
+            <h2 className="text-lg font-bold text-white">{t("productForm.status")}</h2>
+
             <div>
-              <select 
+              <select
                 value={formData.status}
                 onChange={(e) => setFormData({...formData, status: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none"
               >
-                <option value="PUBLISHED">Active</option>
-                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">{t("productForm.statusActive")}</option>
+                <option value="DRAFT">{t("productForm.statusDraft")}</option>
               </select>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Categories</h2>
-            
+            <h2 className="text-lg font-bold text-white">{t("productForm.categories")}</h2>
+
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Select Categories</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{t("productForm.selectCategories")}</label>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {collections.length === 0 ? (
-                  <div className="text-sm text-slate-500">No categories found. Create one first.</div>
+                  <div className="text-sm text-slate-500">{t("productForm.noCategories")}</div>
                 ) : (
                   collections.map((collection: any) => (
                     <label 

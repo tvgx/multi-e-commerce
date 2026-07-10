@@ -66,6 +66,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1057.0",
     "@prisma/client": "^5.22.0",
+    "@sentry/nestjs": "^10.64.0",
+    "@sentry/profiling-node": "^10.64.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@types/minio": "^7.1.0",

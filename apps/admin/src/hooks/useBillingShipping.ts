@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface BillingShippingInput {
   shipping: {
@@ -30,6 +31,7 @@ export interface BillingShippingInput {
  * Trang chỉ giữ các form field + WizardProgress + điều hướng khi thành công.
  */
 export function useBillingShipping(shopId: string) {
+  const t = useTranslations('admin');
   const [busy, setBusy] = useState(false);
 
   /** Trả về true nếu lưu thành công (trang điều hướng sang Dashboard finalizing). */
@@ -37,15 +39,15 @@ export function useBillingShipping(shopId: string) {
     const { shipping, payment, warehouse } = input;
 
     if (!shopId) {
-      toast.error('Thiếu shopId');
+      toast.error(t('hooks.billingMissingShopId'));
       return false;
     }
     if (!warehouse.addressLine.trim() || !warehouse.provinceCode || !warehouse.wardCode) {
-      toast.error('Vui lòng nhập đầy đủ địa chỉ kho hàng');
+      toast.error(t('hooks.billingRequireWarehouse'));
       return false;
     }
     if (payment.bankEnabled && (!payment.accountHolder.trim() || !payment.accountNumber.trim())) {
-      toast.error('Vui lòng nhập thông tin tài khoản ngân hàng');
+      toast.error(t('hooks.billingRequireBank'));
       return false;
     }
 
@@ -103,7 +105,7 @@ export function useBillingShipping(shopId: string) {
 
       return true;
     } catch (err: any) {
-      toast.error(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      toast.error(err?.message || t('hooks.billingGenericError'));
       setBusy(false);
       return false;
     }

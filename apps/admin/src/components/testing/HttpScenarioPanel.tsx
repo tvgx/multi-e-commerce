@@ -4,10 +4,12 @@ import React from "react";
 import { Play, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { CodeEditor } from "./CodeEditor";
 import { runHttpScenario, type HttpScenario, type HttpRunResult } from "@/lib/testing-api";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 type RunState = { status: "idle" | "running" | "passed" | "failed"; result?: HttpRunResult };
 
 export function HttpScenarioPanel({ scenarios }: { scenarios: HttpScenario[] }) {
+  const t = useTranslations("admin");
   const [selectedId, setSelectedId] = React.useState<string | null>(scenarios[0]?.id ?? null);
   // Editable JSON per scenario (keyed by id), seeded from the catalog.
   const [drafts, setDrafts] = React.useState<Record<string, string>>({});
@@ -22,7 +24,7 @@ export function HttpScenarioPanel({ scenarios }: { scenarios: HttpScenario[] }) 
     } catch {
       setStates((st) => ({
         ...st,
-        [s.id]: { status: "failed", result: { ok: false, actualStatus: 0, actualBody: "JSON không hợp lệ", checks: [] } },
+        [s.id]: { status: "failed", result: { ok: false, actualStatus: 0, actualBody: t("testingTool.invalidJson"), checks: [] } },
       }));
       return;
     }
@@ -33,7 +35,7 @@ export function HttpScenarioPanel({ scenarios }: { scenarios: HttpScenario[] }) 
     } catch (e: any) {
       setStates((st) => ({
         ...st,
-        [s.id]: { status: "failed", result: { ok: false, actualStatus: 0, actualBody: e?.message ?? "Lỗi", checks: [] } },
+        [s.id]: { status: "failed", result: { ok: false, actualStatus: 0, actualBody: e?.message ?? t("testingTool.genericError"), checks: [] } },
       }));
     }
   }
@@ -123,7 +125,7 @@ export function HttpScenarioPanel({ scenarios }: { scenarios: HttpScenario[] }) 
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
-          Không có scenario.
+          {t("testingTool.noScenario")}
         </div>
       )}
     </div>

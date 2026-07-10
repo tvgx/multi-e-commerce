@@ -5,9 +5,11 @@ import { usePromotions, Promotion } from '@/hooks/usePromotions';
 import { Loader2, Ticket, Plus, Save, X, Trash2, Edit } from 'lucide-react';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
 import { confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function PromotionsPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
+  const t = useTranslations('admin');
   const { promotions, loading, error, fetchPromotions, createPromotion, updatePromotion, deletePromotion } = usePromotions(shopId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,9 +64,9 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
   const handleDelete = async (id: string) => {
     if (
       await confirmDialog({
-        title: 'Xoá khuyến mãi',
-        message: 'Bạn có chắc muốn xoá khuyến mãi này?',
-        confirmText: 'Xoá',
+        title: t('promotions.deleteTitle'),
+        message: t('promotions.deleteMessage'),
+        confirmText: t('promotions.deleteConfirm'),
         danger: true,
       })
     ) {
@@ -76,14 +78,14 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 relative">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Promotions</h1>
-          <p className="text-slate-400">Create and manage discount codes for your store.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('promotions.title')}</h1>
+          <p className="text-slate-400">{t('promotions.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-colors font-bold"
         >
-          <Plus size={18} /> New Promotion
+          <Plus size={18} /> {t('promotions.newPromotion')}
         </button>
       </div>
 
@@ -97,17 +99,17 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
         {loading && promotions.length === 0 ? (
           <div className="col-span-full py-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500 mb-4" />
-            <p className="text-slate-400">Loading promotions...</p>
+            <p className="text-slate-400">{t('promotions.loading')}</p>
           </div>
         ) : promotions.length === 0 ? (
           <div className="col-span-full py-12 text-center bg-white/5 rounded-2xl border border-white/10">
             <Ticket className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-400 mb-4">No promotions found.</p>
-            <button 
+            <p className="text-slate-400 mb-4">{t('promotions.none')}</p>
+            <button
               onClick={() => handleOpenModal()}
               className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors"
             >
-              Create your first discount code
+              {t('promotions.createFirst')}
             </button>
           </div>
         ) : (
@@ -120,7 +122,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                     {promo.code}
                   </span>
                   <div className="text-emerald-400 font-medium mt-3">
-                    {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : `${formatPrice(promo.discountValue)} OFF`}
+                    {promo.discountType === 'percentage' ? t('promotions.percentOff', { value: promo.discountValue }) : t('promotions.amountOff', { value: formatPrice(promo.discountValue) })}
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -133,9 +135,9 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                 </div>
               </div>
               <div className="space-y-2 text-sm text-slate-400">
-                <p>Status: <span className={promo.isActive ? 'text-emerald-400' : 'text-slate-500'}>{promo.isActive ? 'Active' : 'Inactive'}</span></p>
-                <p>Used: {promo.usedCount || 0} times</p>
-                {promo.usageLimit && <p>Limit: {promo.usageLimit} uses</p>}
+                <p>{t('promotions.statusLabel')} <span className={promo.isActive ? 'text-emerald-400' : 'text-slate-500'}>{promo.isActive ? t('promotions.active') : t('promotions.inactive')}</span></p>
+                <p>{t('promotions.usedTimes', { count: promo.usedCount || 0 })}</p>
+                {promo.usageLimit && <p>{t('promotions.limitUses', { count: promo.usageLimit })}</p>}
               </div>
             </div>
           ))
@@ -147,7 +149,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-800 shrink-0">
-              <h3 className="text-xl font-bold text-white">{editingPromo ? 'Edit Promotion' : 'New Promotion'}</h3>
+              <h2 className="text-xl font-bold text-white">{editingPromo ? t('promotions.editTitle') : t('promotions.newPromotion')}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X size={20} />
               </button>
@@ -156,43 +158,43 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
             <div className="p-6 overflow-y-auto">
               <form id="promoForm" onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Name</label>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.nameLabel')}</label>
                   <input
                     type="text"
                     required
                     value={formData.name || ''}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Summer Sale"
+                    placeholder={t('promotions.namePlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Discount Code</label>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.codeLabel')}</label>
                   <input
                     type="text"
                     required
                     value={formData.code || ''}
                     onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none uppercase font-mono"
-                    placeholder="SUMMER2026"
+                    placeholder={t('promotions.codePlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-2">Type</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.typeLabel')}</label>
                     <select
                       value={formData.discountType}
                       onChange={(e) => setFormData({...formData, discountType: e.target.value as any})}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     >
-                      <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Fixed Amount</option>
+                      <option value="percentage">{t('promotions.typePercentage')}</option>
+                      <option value="fixed">{t('promotions.typeFixed')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-2">Value</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.valueLabel')}</label>
                     <input
                       type="number"
                       required
@@ -205,14 +207,14 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Usage Limit (Optional)</label>
-                  <input 
+                  <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.usageLimitLabel')}</label>
+                  <input
                     type="number"
                     min="1"
                     value={formData.usageLimit || ''}
                     onChange={(e) => setFormData({...formData, usageLimit: parseInt(e.target.value) || undefined})}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="e.g. 100 uses"
+                    placeholder={t('promotions.usageLimitPlaceholder')}
                   />
                 </div>
 
@@ -225,7 +227,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                     className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
                   />
                   <label htmlFor="isActive" className="text-sm font-medium text-slate-300">
-                    Active (Customers can use this code)
+                    {t('promotions.activeCheckbox')}
                   </label>
                 </div>
               </form>
@@ -237,7 +239,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                 onClick={() => setIsModalOpen(false)}
                 className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors font-medium"
               >
-                Cancel
+                {t('promotions.cancel')}
               </button>
               <button 
                 type="submit"
@@ -246,7 +248,7 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                 className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors font-bold disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                Save Promotion
+                {t('promotions.savePromotion')}
               </button>
             </div>
           </div>

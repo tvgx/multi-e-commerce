@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 // PROMO-1: field names phải khớp BE (DTO + Prisma + order.createOrder).
 // Trước đây FE dùng type/value/startDate/minOrderValue — không khớp DB nên
@@ -22,6 +23,7 @@ export interface Promotion {
 }
 
 export function usePromotions(shopId: string) {
+  const t = useTranslations('admin');
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => [res.data, ...prev]);
       return true;
     } catch (err: any) {
-      toast.error(`Failed to create promotion: ${err.message}`);
+      toast.error(t('hooks.promotionsCreateFailed', { msg: err.message }));
       return false;
     }
   };
@@ -56,7 +58,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => prev.map(p => (p.id === id ? res.data : p)));
       return true;
     } catch (err: any) {
-      toast.error(`Failed to update promotion: ${err.message}`);
+      toast.error(t('hooks.promotionsUpdateFailed', { msg: err.message }));
       return false;
     }
   };
@@ -67,7 +69,7 @@ export function usePromotions(shopId: string) {
       setPromotions(prev => prev.filter(p => p.id !== id));
       return true;
     } catch (err: any) {
-      toast.error(`Failed to delete promotion: ${err.message}`);
+      toast.error(t('hooks.promotionsDeleteFailed', { msg: err.message }));
       return false;
     }
   };

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export interface Shipment {
   id: string;
@@ -53,6 +54,7 @@ export interface Order {
 }
 
 export function useOrders(shopId: string) {
+  const t = useTranslations('admin');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export function useOrders(shopId: string) {
       );
       return true;
     } catch (err: any) {
-      toast.error(`Failed to update order status: ${err.message}`);
+      toast.error(t('hooks.ordersUpdateStatusFailed', { msg: err.message }));
       return false;
     }
   };

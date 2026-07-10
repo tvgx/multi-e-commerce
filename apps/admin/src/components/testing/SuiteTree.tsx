@@ -3,6 +3,7 @@
 import React from "react";
 import { ChevronRight, ChevronDown, Play, FileCode2, Loader2 } from "lucide-react";
 import type { SuiteInfo } from "@/lib/testing-api";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 export type SuiteStatus = "idle" | "running" | "passed" | "failed";
 
@@ -19,6 +20,7 @@ export function SuiteTree({
   onSelect: (specPath: string) => void;
   onRun: (specPath: string) => void;
 }) {
+  const t = useTranslations("admin");
   const flows = React.useMemo(() => {
     const map = new Map<string, SuiteInfo[]>();
     for (const s of suites) {
@@ -46,7 +48,7 @@ export function SuiteTree({
               <span className="capitalize">{flow}</span>
               {documented && (
                 <span className="ml-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300">
-                  đồ án
+                  {t("testingTool.thesisBadge")}
                 </span>
               )}
               <span className="ml-auto text-xs font-normal text-zinc-600">{list.length}</span>

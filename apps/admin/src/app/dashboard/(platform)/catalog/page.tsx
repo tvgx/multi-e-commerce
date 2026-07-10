@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@ecommerce/ui-registry/src/lib/format";
 import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 import {
   usePlatformCatalog,
   type CatalogProduct,
@@ -21,6 +22,7 @@ import {
 } from "@/hooks/usePlatformCatalog";
 
 export default function CatalogPage() {
+  const t = useTranslations("admin");
   const {
     products,
     shops,
@@ -41,13 +43,13 @@ export default function CatalogPage() {
       const res = await distribute(productId, shopIds);
       if (res) {
         const parts: string[] = [];
-        if (res.created) parts.push(`${res.created} đã sao chép`);
-        if (res.skipped) parts.push(`${res.skipped} bỏ qua (trùng)`);
-        toast.success(`Phân phối xong: ${parts.join(", ") || "không có thay đổi"}`);
+        if (res.created) parts.push(`${res.created} ${t("catalog.copied")}`);
+        if (res.skipped) parts.push(`${res.skipped} ${t("catalog.skipped")}`);
+        toast.success(`${t("catalog.distributeDone")} ${parts.join(", ") || t("catalog.noChanges")}`);
       }
       setTarget(null);
     } catch (err: any) {
-      toast.error(err.message || "Phân phối thất bại");
+      toast.error(err.message || t("catalog.distributeFailed"));
     }
   };
 
@@ -60,14 +62,13 @@ export default function CatalogPage() {
             <Package size={22} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Product Catalog</h1>
+            <h1 className="text-2xl font-bold text-white">{t("catalog.title")}</h1>
             <p className="text-sm text-zinc-400">
-              Quản lý sản phẩm trên tất cả cửa hàng và phân phối sang nhiều cửa
-              hàng cùng lúc.
+              {t("catalog.subtitle")}
             </p>
           </div>
         </div>
-        <div className="text-sm text-zinc-500">{total} sản phẩm</div>
+        <div className="text-sm text-zinc-500">{total} {t("catalog.countSuffix")}</div>
       </div>
 
       {/* Filters */}
@@ -80,7 +81,7 @@ export default function CatalogPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm sản phẩm theo tên hoặc mô tả..."
+            placeholder={t("catalog.searchPlaceholder")}
             className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50"
           />
         </div>
@@ -89,7 +90,7 @@ export default function CatalogPage() {
           onChange={(e) => setShopFilter(e.target.value)}
           className="bg-zinc-900/50 border border-zinc-800 rounded-lg py-2.5 px-4 text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50"
         >
-          <option value="">Tất cả cửa hàng</option>
+          <option value="">{t("catalog.allShops")}</option>
           {shops.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -105,13 +106,13 @@ export default function CatalogPage() {
         </div>
       ) : shops.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-16 text-center text-zinc-500">
-          Bạn chưa có cửa hàng nào. Tạo cửa hàng trước để quản lý sản phẩm tập trung.
+          {t("catalog.noShops")}
         </div>
       ) : products.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-16 text-center text-zinc-500">
           {search || shopFilter
-            ? "Không tìm thấy sản phẩm phù hợp."
-            : "Chưa có sản phẩm nào. Thêm sản phẩm trong từng cửa hàng để chúng xuất hiện ở đây."}
+            ? t("catalog.noResults")
+            : t("catalog.empty")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -140,13 +141,13 @@ export default function CatalogPage() {
                       : "bg-zinc-800 text-zinc-400 border border-zinc-700"
                   }`}
                 >
-                  {p.status === "PUBLISHED" ? "Đang bán" : "Nháp"}
+                  {p.status === "PUBLISHED" ? t("catalog.statusPublished") : t("catalog.statusDraft")}
                 </span>
               </div>
               <div className="p-4 flex flex-col flex-1 gap-2">
-                <h3 className="font-semibold text-white text-sm line-clamp-1">
+                <h2 className="font-semibold text-white text-sm line-clamp-1">
                   {p.name}
-                </h3>
+                </h2>
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                   <Store size={12} /> {p.shopName}
                 </div>
@@ -155,7 +156,7 @@ export default function CatalogPage() {
                     {formatPrice(p.minPrice)}
                   </span>
                   <span className="text-[11px] text-zinc-600">
-                    {p.variantCount} biến thể
+                    {p.variantCount} {t("catalog.variants")}
                   </span>
                 </div>
                 <button
@@ -163,12 +164,12 @@ export default function CatalogPage() {
                   disabled={shops.length < 2}
                   title={
                     shops.length < 2
-                      ? "Cần ít nhất 2 cửa hàng để phân phối"
+                      ? t("catalog.needTwoShops")
                       : undefined
                   }
                   className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500/40 px-3 py-2 text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Share2 size={14} /> Phân phối
+                  <Share2 size={14} /> {t("catalog.distribute")}
                 </button>
               </div>
             </div>
@@ -202,6 +203,7 @@ function DistributeModal({
   onClose: () => void;
   onConfirm: (shopIds: string[]) => void;
 }) {
+  const t = useTranslations("admin");
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = (id: string) =>
@@ -219,23 +221,22 @@ function DistributeModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
-          <h2 className="font-bold text-white">Phân phối sản phẩm</h2>
+          <h2 className="font-bold text-white">{t("catalog.modalTitle")}</h2>
           <button
             onClick={onClose}
             className="text-zinc-500 hover:text-white"
-            aria-label="Đóng"
+            aria-label={t("catalog.close")}
           >
             <X size={18} />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <p className="text-sm text-zinc-400">
-            Sao chép <strong className="text-white">{product.name}</strong> sang
-            các cửa hàng khác (tạo bản nháp, không ghi đè sản phẩm trùng).
+            {t("catalog.modalDesc1")} <strong className="text-white">{product.name}</strong> {t("catalog.modalDesc2")}
           </p>
           {shops.length === 0 ? (
             <p className="text-sm text-zinc-500">
-              Không có cửa hàng đích nào khác.
+              {t("catalog.noTargets")}
             </p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -270,7 +271,7 @@ function DistributeModal({
             onClick={onClose}
             className="flex-1 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800"
           >
-            Hủy
+            {t("catalog.cancel")}
           </button>
           <button
             onClick={() => onConfirm(selected)}
@@ -282,7 +283,7 @@ function DistributeModal({
             ) : (
               <Share2 size={15} />
             )}
-            Phân phối ({selected.length})
+            {t("catalog.distribute")} ({selected.length})
           </button>
         </div>
       </div>

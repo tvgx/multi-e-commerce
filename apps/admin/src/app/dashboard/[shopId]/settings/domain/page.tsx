@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
+import { useTranslations } from "@ecommerce/i18n/src/react";
 
 // Đích A/CNAME người bán cần trỏ tên miền về (host storefront của nền tảng).
 const CNAME_TARGET =
@@ -25,6 +26,7 @@ export default function DomainSettings({
   params: Promise<{ shopId: string }>;
 }) {
   const { shopId } = React.use(params);
+  const t = useTranslations("admin");
   const {
     customDomain,
     domainVerified,
@@ -46,20 +48,20 @@ export default function DomainSettings({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Đã sao chép vào clipboard");
+    toast.success(t("domain.copiedClipboard"));
   };
 
   const handleSave = async () => {
     const rec = await saveDomain(domainInput.trim());
     if (rec) {
-      toast.success("Đã lưu tên miền. Hãy thêm bản ghi DNS rồi bấm Xác thực.");
+      toast.success(t("domain.savedDomainToast"));
     }
   };
 
   const handleVerify = async () => {
     const ok = await verify();
     if (ok) {
-      toast.success("Tên miền đã được xác thực!");
+      toast.success(t("domain.verifiedToast"));
     }
   };
 
@@ -70,23 +72,23 @@ export default function DomainSettings({
           href={`/dashboard/${shopId}`}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
         >
-          <ArrowLeft size={16} /> Back to Dashboard
+          <ArrowLeft size={16} /> {t("domain.backToDashboard")}
         </Link>
         <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
-          Domain Verification
+          {t("domain.badge")}
         </div>
       </div>
 
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold text-white">Xác thực Tên miền</h1>
+        <h1 className="text-3xl font-bold text-white">{t("domain.title")}</h1>
         <p className="text-slate-400">
-          Kết nối tên miền riêng của bạn để tạo dựng thương hiệu chuyên nghiệp.
+          {t("domain.subtitle")}
         </p>
       </div>
 
       {loading ? (
         <div className="flex items-center gap-3 text-slate-400 py-16 justify-center">
-          <Loader2 className="w-5 h-5 animate-spin" /> Đang tải...
+          <Loader2 className="w-5 h-5 animate-spin" /> {t("domain.loading")}
         </div>
       ) : domainVerified ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-10 text-center space-y-6">
@@ -95,10 +97,10 @@ export default function DomainSettings({
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-white">
-              Tên miền đã được xác thực!
+              {t("domain.verifiedTitle")}
             </h2>
             <p className="text-emerald-400/60">
-              Cửa hàng của bạn hiện trực tuyến tại{" "}
+              {t("domain.verifiedBody")}{" "}
               <span className="text-white font-mono">{customDomain}</span>
             </p>
           </div>
@@ -109,7 +111,7 @@ export default function DomainSettings({
               rel="noreferrer"
               className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold transition-all"
             >
-              Truy cập Cửa hàng <ExternalLink size={18} />
+              {t("domain.visitStore")} <ExternalLink size={18} />
             </a>
           </div>
         </div>
@@ -122,11 +124,11 @@ export default function DomainSettings({
                 <Globe size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">
-                  Bước 1 — Nhập tên miền của bạn
-                </h3>
+                <h2 className="text-xl font-bold text-white">
+                  {t("domain.step1Title")}
+                </h2>
                 <p className="text-slate-500 text-sm">
-                  Ví dụ: store.example.com hoặc www.tencuahang.vn
+                  {t("domain.step1Desc")}
                 </p>
               </div>
             </div>
@@ -146,10 +148,10 @@ export default function DomainSettings({
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...
+                    <Loader2 className="w-5 h-5 animate-spin" /> {t("domain.saving")}
                   </>
                 ) : (
-                  "Lưu tên miền"
+                  t("domain.saveDomain")
                 )}
               </button>
             </div>
@@ -163,11 +165,11 @@ export default function DomainSettings({
                   <Globe size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">
-                    Bước 2 — Thêm bản ghi vào DNS
-                  </h3>
+                  <h2 className="text-xl font-bold text-white">
+                    {t("domain.step2Title")}
+                  </h2>
                   <p className="text-slate-500 text-sm">
-                    Thêm 2 bản ghi sau tại nhà cung cấp tên miền của bạn.
+                    {t("domain.step2Desc")}
                   </p>
                 </div>
               </div>
@@ -175,16 +177,16 @@ export default function DomainSettings({
               {/* Bản ghi TXT (xác thực sở hữu) */}
               <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-3">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Loại (Type)</span>
+                  <span>{t("domain.typeLabel")}</span>
                   <span className="text-indigo-400">{record.type}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Tên (Host)</span>
+                  <span>{t("domain.hostLabel")}</span>
                   <span className="text-white font-mono">{record.host}</span>
                 </div>
                 <div className="pt-2 border-t border-white/5 space-y-2">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Giá trị (Value) — xác thực sở hữu
+                    {t("domain.valueOwnership")}
                   </span>
                   <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
                     <code className="text-indigo-300 font-mono text-sm break-all">
@@ -203,16 +205,16 @@ export default function DomainSettings({
               {/* Bản ghi CNAME (định tuyến lưu lượng) */}
               <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-3">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Loại (Type)</span>
+                  <span>{t("domain.typeLabel")}</span>
                   <span className="text-indigo-400">CNAME</span>
                 </div>
                 <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Tên (Host)</span>
-                  <span className="text-white font-mono">@ hoặc www</span>
+                  <span>{t("domain.hostLabel")}</span>
+                  <span className="text-white font-mono">{t("domain.hostAtWww")}</span>
                 </div>
                 <div className="pt-2 border-t border-white/5 space-y-2">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Trỏ về (Target) — định tuyến lưu lượng
+                    {t("domain.targetRouting")}
                   </span>
                   <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
                     <code className="text-indigo-300 font-mono text-sm break-all">
@@ -231,10 +233,9 @@ export default function DomainSettings({
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-4">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={20} />
                 <p className="text-amber-200/60 text-xs leading-relaxed">
-                  <strong>Lưu ý:</strong> Thay đổi DNS có thể mất tới 24-48 giờ để
-                  cập nhật toàn cầu. Bản ghi <strong>TXT</strong> dùng để xác thực
-                  bạn sở hữu tên miền; bản ghi <strong>CNAME</strong> để lưu lượng
-                  thực sự đi về cửa hàng.
+                  <strong>{t("domain.noteStrong")}</strong> {t("domain.notePart1")}{" "}
+                  <strong>TXT</strong> {t("domain.notePart2")}{" "}
+                  <strong>CNAME</strong> {t("domain.notePart3")}
                 </p>
               </div>
 
@@ -246,11 +247,11 @@ export default function DomainSettings({
                 >
                   {verifying ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" /> Đang xác thực...
+                      <Loader2 className="w-5 h-5 animate-spin" /> {t("domain.verifying")}
                     </>
                   ) : (
                     <>
-                      <RefreshCcw size={18} /> Xác thực ngay
+                      <RefreshCcw size={18} /> {t("domain.verifyNow")}
                     </>
                   )}
                 </button>

@@ -145,7 +145,7 @@ export default function DashboardLayout({
       >
         <header className="h-20 border-b border-border bg-card/40 backdrop-blur-xl px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold text-foreground">{t("shopNav.shopOverview")}</h2>
+            <span className="text-lg font-bold text-foreground">{t("shopNav.shopOverview")}</span>
             <div className="h-4 w-px bg-border hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted-foreground bg-accent/60 px-3 py-1 rounded-full border border-border">
               <Globe size={12} /> {storefrontHost(shopId)}

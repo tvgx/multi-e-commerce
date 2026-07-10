@@ -1,3 +1,5 @@
+// PHẢI đứng trước mọi import khác — xem apps/api-core/src/instrument.ts
+import './instrument';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';

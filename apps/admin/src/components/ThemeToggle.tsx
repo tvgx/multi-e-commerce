@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { useTranslations } from '@ecommerce/i18n/src/react';
 
 /**
  * Nút chuyển sáng/tối cho admin. Class `dark` trên <html> được script
@@ -9,6 +10,7 @@ import { Sun, Moon } from 'lucide-react';
  * trạng thái hiện có và toggle + lưu localStorage ('admin-theme').
  */
 export function ThemeToggle({ className = '' }: { className?: string }) {
+  const t = useTranslations('admin');
   // Đọc sau mount để tránh lệch SSR/client (server không biết localStorage).
   const [isDark, setIsDark] = useState<boolean | null>(null);
 
@@ -31,7 +33,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+      aria-label={isDark ? t('themeToggle.toLight') : t('themeToggle.toDark')}
       className={`p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors ${className}`}
     >
       {isDark === false ? <Moon size={18} /> : <Sun size={18} />}
