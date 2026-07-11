@@ -3,6 +3,8 @@ import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { ChatService } from './chat.service';
 import { TenantService } from '../../common/services/tenant.service';
+import { PrismaService } from '../../database/prisma.service';
+import { createMockPrisma } from '../../../test/helpers/prisma-mock';
 import { ChatSession, ChatMessage } from '../../database/schemas/chat.schema';
 
 /** A `.find().sort().skip().limit()` chain that resolves to `result`. */
@@ -48,6 +50,7 @@ describe('ChatService', () => {
       providers: [
         ChatService,
         { provide: TenantService, useValue: tenant },
+        { provide: PrismaService, useValue: createMockPrisma() },
         { provide: getModelToken(ChatSession.name), useValue: sessionModel },
         { provide: getModelToken(ChatMessage.name), useValue: messageModel },
       ],
@@ -110,8 +113,11 @@ describe('ChatService', () => {
     });
 
     it('bumps lastMessage on an existing conversation', async () => {
+      // Buyer path giờ luôn resolve session theo customerId (không tin
+      // conversationId từ client — chống post vào phiên của người khác).
+      sessionModel.findOne.mockResolvedValue({ _id: 'sess-x', customerId: USER });
       messageModel.create.mockResolvedValue({ _id: 'm2' });
-      await service.sendMessage(USER, { conversationId: 'sess-x', content: 'yo' } as any);
+      await service.sendMessage(USER, { content: 'yo' } as any);
       expect(sessionModel.findByIdAndUpdate).toHaveBeenCalledWith(
         'sess-x',
         expect.objectContaining({ lastMessage: 'yo' }),

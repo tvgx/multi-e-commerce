@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CDN_BASE, DEFAULT_IMG } from '../../lib/media';
+import { CDN_BASE, DEFAULT_IMG, PLACEHOLDER_DATA_URI } from '../../lib/media';
 
 /**
  * SmartImage — drop-in replacement for `<img>` across section components.
@@ -58,12 +58,18 @@ export function SmartImage({
     quality = 80,
     sizes = '100vw',
     alt = '',
+    style,
     ...rest
 }: SmartImageProps) {
-    // Track failure per-src so slideshows that swap `src` recover automatically.
-    const [failedSrc, setFailedSrc] = useState<string | null>(null);
-    const failed = failedSrc !== null && failedSrc === src;
-    const effectiveSrc = (!src || failed) ? fallbackSrc : src;
+    // Track failures per-URL so slideshows that swap `src` recover automatically,
+    // and so the chain src → fallbackSrc → placeholder advances đúng một nấc mỗi lỗi.
+    const [failedSrcs, setFailedSrcs] = useState<ReadonlySet<string>>(new Set());
+
+    // Nấc cuối là data-URI trong codebase — không bao giờ hỏng vì mạng/CDN.
+    const chain = [src, fallbackSrc, PLACEHOLDER_DATA_URI].filter(
+        (u, i, arr): u is string => !!u && arr.indexOf(u) === i,
+    );
+    const effectiveSrc = chain.find((u) => !failedSrcs.has(u)) ?? PLACEHOLDER_DATA_URI;
     const path = proxyablePath(effectiveSrc);
 
     return (
@@ -75,7 +81,22 @@ export function SmartImage({
             loading={priority ? 'eager' : 'lazy'}
             fetchPriority={priority ? 'high' : undefined}
             decoding="async"
-            onError={() => setFailedSrc(src ?? null)}
+            onError={() =>
+                setFailedSrcs((prev) => {
+                    if (prev.has(effectiveSrc)) return prev;
+                    const next = new Set(prev);
+                    next.add(effectiveSrc);
+                    return next;
+                })
+            }
+            // Placeholder hiển thị làm nền TRƯỚC khi ảnh tải xong; ảnh thật vẽ đè
+            // lên khi load (TODO 10). Không bọc wrapper để khỏi phá layout fill/cover.
+            style={{
+                backgroundImage: `url("${PLACEHOLDER_DATA_URI}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                ...style,
+            }}
             {...rest}
         />
     );

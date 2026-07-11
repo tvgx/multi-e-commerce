@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../../store/cart-store';
 import { useRouter } from 'next/navigation';
 import { SmartImage } from '../blocks/SmartImage';
-import { formatPrice } from '../../lib/format';
+import { usePriceFormatter } from '../../lib/use-price';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlug: string }) {
     const t = useTranslations('order');
+    const formatPrice = usePriceFormatter();
     const { items, totalAmount, clearCart, hasLoaded } = useCartStore();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -29,6 +30,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
     const [paymentMethodId, setPaymentMethodId] = useState<string>('');
     const [orderId, setOrderId] = useState<string | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+    const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
 
     // Shipping state
     const [shippingMethods, setShippingMethods] = useState<any[]>([]);
@@ -201,6 +203,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
 
             setOrderId(order.id);
             setQrCodeUrl(order.qrCodeUrl || null);
+            setConfirmUrl(order.confirmUrl || null);
             setPaidAmount(order.totalAmount ?? 0);
             clearCart();
 
@@ -232,22 +235,7 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                 <p className="text-lg text-slate-600 mb-8">
                     {t('checkoutForm.orderPlacedDetail', { id: orderId.substring(0, 8) })}
                 </p>
-                {selectedPaymentMethod?.type === 'BankTransfer' && qrCodeUrl && (
-                    <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm mb-8">
-                        <h3 className="font-bold text-xl mb-4">{t('checkoutForm.paymentInstructions')}</h3>
-                        <p className="text-slate-600 mb-6">{t('checkoutForm.scanQr')}</p>
-                        <div className="flex justify-center mb-6">
-                            <img src={qrCodeUrl} alt="Payment QR Code" className="w-64 h-64 border rounded-lg shadow-sm" />
-                        </div>
-                        <div className="text-left bg-slate-50 p-6 rounded-xl space-y-3">
-                            <p><strong>{t('checkoutForm.bank')}:</strong> {shopInfo.bankAccount?.bankName || 'N/A'}</p>
-                            <p><strong>{t('checkoutForm.accountName')}:</strong> {shopInfo.bankAccount?.accountHolder || 'N/A'}</p>
-                            <p><strong>{t('checkoutForm.accountNumber')}:</strong> <span className="font-mono font-bold text-brand">{shopInfo.bankAccount?.accountNumber || 'N/A'}</span></p>
-                            <p><strong>{t('checkoutForm.amount')}:</strong> <span className="font-bold text-brand">{formatPrice(paidAmount)}</span></p>
-                        </div>
-                    </div>
-                )}
-                {selectedPaymentMethod?.type === 'BankTransfer' && !qrCodeUrl && (
+                {selectedPaymentMethod?.type === 'BankTransfer' && (
                     <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm mb-8">
                         <h3 className="font-bold text-xl mb-4">{t('checkoutForm.paymentInstructions')}</h3>
                         <p className="text-slate-600 mb-6">{t('checkoutForm.transferInstructions')}</p>
@@ -258,6 +246,27 @@ export function CheckoutDefault({ shopInfo, shopSlug }: { shopInfo: any, shopSlu
                             <p><strong>{t('checkoutForm.amount')}:</strong> <span className="font-bold text-brand">{formatPrice(paidAmount)}</span></p>
                             <p><strong>{t('checkoutForm.transferNote')}:</strong> <span className="font-mono bg-yellow-100 px-2 py-1">ORDER {orderId.substring(0, 8)}</span></p>
                         </div>
+                        {/* QR chỉ mã hoá URL trang xác nhận đã chuyển khoản (self-attested),
+                            KHÔNG phải QR chuyển khoản ngân hàng — copy phải nói rõ để khách không hiểu nhầm. */}
+                        {qrCodeUrl && (
+                            <div className="mt-8 border-t border-slate-100 pt-6">
+                                <h4 className="font-bold text-lg mb-2">{t('checkoutForm.confirmQrTitle')}</h4>
+                                <p className="text-slate-600 mb-4">{t('checkoutForm.confirmQrHint')}</p>
+                                <div className="flex justify-center mb-4">
+                                    <img src={qrCodeUrl} alt={t('checkoutForm.confirmQrTitle')} className="w-48 h-48 border rounded-lg shadow-sm" />
+                                </div>
+                                {confirmUrl && (
+                                    <a
+                                        href={confirmUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block text-brand font-semibold underline hover:opacity-80"
+                                    >
+                                        {t('checkoutForm.openConfirmPage')}
+                                    </a>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
                 <button

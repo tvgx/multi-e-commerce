@@ -6,6 +6,8 @@ import { SmartImage } from '../../blocks/SmartImage';
 import { DEFAULT_IMG } from '../../../lib/media';
 import { formatPrice } from '../../../lib/format';
 import { normalizeProducts, productHref } from '../../../lib/products';
+import { shopHref } from '../../../lib/href';
+import { tFor } from '../../../lib/i18n-server';
 import { sectionStyle } from '../../../lib/section-style';
 
 /** Block con của thẻ sản phẩm (Phase B): bật/tắt, đổi thứ tự, chỉnh props. */
@@ -31,6 +33,7 @@ interface FeaturedProductProps {
     /** Danh sách sản phẩm thật — inject từ pageContext (storefront) / preview (builder). */
     products?: any[];
     basePath?: string;
+    locale?: string;
 }
 
 export function FeaturedProducts({
@@ -39,7 +42,7 @@ export function FeaturedProducts({
     backgroundImageUrl,
     title,
     subtitle,
-    badgeText = 'Limited Stock',
+    badgeText,
     ctaLink,
     paddingY,
     backgroundColor,
@@ -47,8 +50,11 @@ export function FeaturedProducts({
     blocks = [],
     products,
     basePath,
+    locale,
 }: FeaturedProductProps) {
     const isRight = mediaLayout === 'right';
+    const t = tFor(locale);
+    const badge = badgeText || t('shop:featured.badge');
 
     // Sản phẩm hiển thị: ưu tiên sản phẩm owner chọn (productId), fallback sản
     // phẩm đầu tiên của shop. Props (title/ảnh/mô tả) luôn override data thật.
@@ -61,8 +67,11 @@ export function FeaturedProducts({
         subtitle ||
         product?.description ||
         "Engineered for all-day comfort with our proprietary cloud-foam tech. This isn't just a shoe, it's a statement.";
-    const displayPrice = product ? formatPrice(product.basePrice) : '$149.00';
-    const buyLink = ctaLink || (product ? productHref(basePath, product.id) : undefined);
+    // Demo canvas (chưa có sản phẩm) dùng giá mẫu 149.000đ — format theo locale như giá thật.
+    const displayPrice = formatPrice(product ? product.basePrice : 149000, { locale });
+    const buyLink = ctaLink
+        ? shopHref(basePath || '', ctaLink)
+        : (product ? productHref(basePath, product.id) : undefined);
 
     // Layout cũ (chưa có blocks) giữ nguyên; layout mới render theo blocks —
     // block bị ẩn (isHidden) không hiện, thứ tự block quyết định thứ tự phần tử.
@@ -95,11 +104,11 @@ export function FeaturedProducts({
                             </div>
                             {showRating && (
                                 <div className="absolute top-1/4 -left-4 bg-white text-slate-900 px-4 py-2 rounded-xl font-bold shadow-xl rotate-[-5deg]">
-                                    {propsOf('ProductCardRating').label || '★ Top Rated'}
+                                    {propsOf('ProductCardRating').label || t('shop:featured.topRated')}
                                 </div>
                             )}
-                            {badgeText && (
-                                <div className="absolute bottom-1/4 -right-4 bg-brand text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">{badgeText}</div>
+                            {badge && (
+                                <div className="absolute bottom-1/4 -right-4 bg-brand text-white px-4 py-2 rounded-xl font-bold shadow-xl rotate-[5deg]">{badge}</div>
                             )}
                         </div>
                     </div>
@@ -123,7 +132,7 @@ export function FeaturedProducts({
                             {showPrice && <span className="text-4xl font-bold">{displayPrice}</span>}
                             {showButton && (
                                 <ButtonBlock
-                                    label={propsOf('ProductCardButton').label || 'Add To Cart'}
+                                    label={propsOf('ProductCardButton').label || t('shop:featured.addToCart')}
                                     link={buyLink}
                                     style="primary"
                                     size="lg"

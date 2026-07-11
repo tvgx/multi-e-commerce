@@ -3,6 +3,7 @@ import { SmartImage } from '../../blocks/SmartImage';
 import { DEFAULT_IMG } from '../../../lib/media';
 import { formatPrice } from '../../../lib/format';
 import { normalizeProducts, productHref } from '../../../lib/products';
+import { shopHref } from '../../../lib/href';
 import { sectionStyle, headingSizeClass } from '../../../lib/section-style';
 
 interface FeaturedCollectionGridProps {
@@ -21,6 +22,7 @@ interface FeaturedCollectionGridProps {
     /** Sản phẩm thật của shop — inject từ pageContext/preview. */
     products?: any[];
     basePath?: string;
+    locale?: string;
 }
 
 // Demo khi shop chưa có sản phẩm — giữ preview không trống.
@@ -48,6 +50,7 @@ export function FeaturedCollectionGrid({
     textColor,
     products,
     basePath,
+    locale,
 }: FeaturedCollectionGridProps) {
     const catalog = normalizeProducts(products);
     const items =
@@ -55,7 +58,7 @@ export function FeaturedCollectionGrid({
             ? catalog.slice(0, Math.max(1, maxItems)).map((p, i) => ({
                   id: p.id,
                   name: p.name,
-                  price: formatPrice(p.basePrice),
+                  price: formatPrice(p.basePrice, { locale }),
                   image: (i === 0 && backgroundImageUrl) || p.image || DEFAULT_IMG,
                   href: productHref(basePath, p.id),
                   category: p.category,
@@ -65,7 +68,7 @@ export function FeaturedCollectionGrid({
                   image: i === 0 && backgroundImageUrl ? backgroundImageUrl : d.image,
               }));
 
-    const allLink = viewAllLink || `${basePath || ''}/all-products`;
+    const allLink = shopHref(basePath || '', viewAllLink || '/all-products');
 
     return (
         <section className="w-full px-4 md:px-12 bg-white" style={sectionStyle({ paddingY, backgroundColor, textColor })}>

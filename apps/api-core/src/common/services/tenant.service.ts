@@ -9,7 +9,7 @@ export interface TenantContext {
 export class TenantService {
   private static readonly als = new AsyncLocalStorage<TenantContext>();
 
-  run(context: TenantContext, callback: () => void) {
+  run<T>(context: TenantContext, callback: () => T): T {
     return TenantService.als.run(context, callback);
   }
 

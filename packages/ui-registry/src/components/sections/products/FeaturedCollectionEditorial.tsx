@@ -3,6 +3,7 @@ import { SmartImage } from '../../blocks/SmartImage';
 import { DEFAULT_IMG } from '../../../lib/media';
 import { formatPrice } from '../../../lib/format';
 import { normalizeProducts, productHref } from '../../../lib/products';
+import { shopHref } from '../../../lib/href';
 import { headingSizeClass } from '../../../lib/section-style';
 
 interface FeaturedCollectionEditorialProps {
@@ -19,6 +20,7 @@ interface FeaturedCollectionEditorialProps {
     /** Sản phẩm thật của shop — inject từ pageContext/preview. */
     products?: any[];
     basePath?: string;
+    locale?: string;
 }
 
 const DEMO_ITEMS = [1, 2, 3, 4].map((i) => ({
@@ -42,6 +44,7 @@ export function FeaturedCollectionEditorial({
     textColor,
     products,
     basePath,
+    locale,
 }: FeaturedCollectionEditorialProps) {
     const catalog = normalizeProducts(products);
     const items =
@@ -49,7 +52,7 @@ export function FeaturedCollectionEditorial({
             ? catalog.slice(0, Math.max(1, maxItems)).map((p, i) => ({
                   id: p.id,
                   name: p.name,
-                  price: formatPrice(p.basePrice),
+                  price: formatPrice(p.basePrice, { locale }),
                   image: (i === 0 && backgroundImageUrl) || p.image || DEFAULT_IMG,
                   href: productHref(basePath, p.id),
               }))
@@ -58,7 +61,7 @@ export function FeaturedCollectionEditorial({
                   image: i === 0 && backgroundImageUrl ? backgroundImageUrl : d.image,
               }));
 
-    const allLink = ctaLink || `${basePath || ''}/all-products`;
+    const allLink = shopHref(basePath || '', ctaLink || '/all-products');
 
     return (
         <section className="w-full bg-white flex flex-col md:flex-row min-h-[700px]">

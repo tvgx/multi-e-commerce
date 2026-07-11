@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { useShopBase } from '../../lib/use-shop-base';
 
 interface ChatMessage {
   _id: string;
@@ -14,6 +15,7 @@ interface ChatMessage {
 
 export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?: string }) {
   const t = useTranslations('shop');
+  const base = useShopBase();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -21,21 +23,26 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
   const [socket, setSocket] = useState<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize socket connection when chat is opened for the first time
+  // Thêm message không trùng _id (tin của mình quay lại qua broadcast).
+  const appendMessage = (msg: ChatMessage) => {
+    setMessages((prev) => (prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]));
+  };
+
+  // Socket CHỈ để nhận realtime; gửi đi qua BFF HTTP có xác thực (TODO 18).
   useEffect(() => {
     if (isOpen && !socket && customerId) {
-      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/chat', {
+      // Luôn nối vào namespace /chat — trước đây khi NEXT_PUBLIC_API_URL được set,
+      // client nối vào namespace gốc nên không bao giờ nhận được new_message.
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+      const newSocket = io(`${apiBase}/chat`, {
         query: { shopId, userId: customerId, role: 'customer' }
       });
 
       newSocket.on('connect', () => {
-        console.log('Chat connected');
         fetchMessages();
       });
 
-      newSocket.on('new_message', (msg: ChatMessage) => {
-        setMessages((prev) => [...prev, msg]);
-      });
+      newSocket.on('new_message', appendMessage);
 
       setSocket(newSocket);
 
@@ -53,7 +60,8 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch(`/api/api-core/chat/messages?limit=50`);
+      // BFF tự gắn Bearer token từ cookie httpOnly (route cũ /api/api-core/... không tồn tại).
+      const res = await fetch(`${base}/api/store/chat/messages?limit=50`);
       if (res.ok) {
         const data = await res.json();
         setMessages(data.data || []);
@@ -65,19 +73,20 @@ export function ChatWidget({ shopId, customerId }: { shopId: string; customerId?
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !socket) return;
-    
+    if (!input.trim() || loading) return;
+
     setLoading(true);
     try {
-      socket.emit('send_message', {
-        shopId,
-        userId: customerId,
-        content: input,
-        role: 'customer'
-      }, (response: any) => {
-        // Acknowledgement callback
+      const res = await fetch(`${base}/api/store/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: input }),
       });
-      setInput('');
+      if (res.ok) {
+        const body = await res.json();
+        if (body?.data) appendMessage(body.data);
+        setInput('');
+      }
     } catch (e) {
       console.error('Failed to send message', e);
     } finally {

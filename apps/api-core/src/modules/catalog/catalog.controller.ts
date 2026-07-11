@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, StreamableFile, Header } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, StreamableFile, Header, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CatalogService } from './catalog.service';
 import { CatalogStreamService } from './catalog-stream.service';
+import { ProductImportService } from './product-import.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
@@ -16,8 +18,25 @@ import { BaseResponseDto } from '../../common/dto/base-response.dto';
 export class CatalogController {
   constructor(
     private readonly catalogService: CatalogService,
-    private readonly catalogStreamService: CatalogStreamService
+    private readonly catalogStreamService: CatalogStreamService,
+    private readonly productImportService: ProductImportService,
   ) {}
+
+  // --- Bulk import (TODO 9): upload CSV/XLSX, xử lý nền, poll tiến độ ---
+  @RequireRoles('ADMIN', 'OWNER')
+  @Post('products/import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importProducts(@UploadedFile() file: any) {
+    const result = await this.productImportService.startImport(file);
+    return BaseResponseDto.success(result);
+  }
+
+  @RequireRoles('ADMIN', 'OWNER')
+  @Get('products/import/:jobId')
+  async getImportStatus(@Param('jobId') jobId: string) {
+    const result = await this.productImportService.getImportStatus(jobId);
+    return BaseResponseDto.success(result);
+  }
 
   @RequireRoles('ADMIN', 'OWNER')
   @Get('export/stream')

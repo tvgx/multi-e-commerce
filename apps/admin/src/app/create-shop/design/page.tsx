@@ -15,7 +15,8 @@ import { apiClient } from "@/lib/api-client";
 export default function DesignPage() {
   return (
     <BuilderProvider>
-      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+      {/* h-full (không h-screen): layout create-shop đã chiếm 40px cho header quay lại admin */}
+      <div className="h-full flex flex-col bg-background text-foreground overflow-hidden">
         {/* Tiến trình wizard tổng — đồng bộ ở mọi bước (Thiết kế → Điều hướng → Billing) */}
         <div className="h-10 shrink-0 border-b border-border bg-card flex items-center justify-center">
           <WizardProgress current="design" />

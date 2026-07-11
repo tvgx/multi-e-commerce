@@ -3,11 +3,13 @@
 import React, { useEffect, useState, use } from 'react';
 import { usePromotions, Promotion } from '@/hooks/usePromotions';
 import { Loader2, Ticket, Plus, Save, X, Trash2, Edit } from 'lucide-react';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { confirmDialog } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { NumberInput } from '@ecommerce/ui-registry/src/components/blocks/NumberInput';
 
 export default function PromotionsPage({ params }: { params: Promise<{ shopId: string }> }) {
+  const formatPrice = usePriceFormatter();
   const { shopId } = use(params);
   const t = useTranslations('admin');
   const { promotions, loading, error, fetchPromotions, createPromotion, updatePromotion, deletePromotion } = usePromotions(shopId);
@@ -195,12 +197,11 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.valueLabel')}</label>
-                    <input
-                      type="number"
+                    <NumberInput
                       required
-                      min="0"
+                      min={0}
                       value={formData.discountValue}
-                      onChange={(e) => setFormData({...formData, discountValue: parseFloat(e.target.value) || 0})}
+                      onValueChange={(v) => setFormData({...formData, discountValue: v ?? 0})}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
@@ -208,11 +209,11 @@ export default function PromotionsPage({ params }: { params: Promise<{ shopId: s
 
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">{t('promotions.usageLimitLabel')}</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.usageLimit || ''}
-                    onChange={(e) => setFormData({...formData, usageLimit: parseInt(e.target.value) || undefined})}
+                  <NumberInput
+                    min={1}
+                    allowDecimal={false}
+                    value={formData.usageLimit ?? null}
+                    onValueChange={(v) => setFormData({...formData, usageLimit: v ?? undefined})}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     placeholder={t('promotions.usageLimitPlaceholder')}
                   />

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
 import { ProductDetailDefault } from '@ecommerce/ui-registry/src/components/products/ProductDetailDefault';
 import { shopUrl, metaText } from '@/lib/seo';
+import { getLocale } from '@/lib/i18n';
 import { JsonLd } from '@/components/JsonLd';
 import type { Metadata } from 'next';
 import React from 'react';
@@ -116,7 +117,7 @@ export default async function ProductDetailsPage({ params }: Props) {
     return (
       <>
         {jsonLd}
-        <LayoutRenderer pageLayout={pageLayout} pageContext={{ product, shopInfo, basePath: `/${shopSlug}` }} />
+        <LayoutRenderer pageLayout={pageLayout} pageContext={{ product, shopInfo, basePath: `/${shopSlug}`, locale: await getLocale() }} />
       </>
     );
   } catch (error) {

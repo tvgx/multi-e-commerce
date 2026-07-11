@@ -4,7 +4,7 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import { Minus, Plus, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 import { SmartImage } from '../blocks/SmartImage';
-import { formatPrice } from '../../lib/format';
+import { usePriceFormatter } from '../../lib/use-price';
 
 interface CartItem {
     id: string;
@@ -23,6 +23,7 @@ interface StandardCartProps {
 export function StandardCart({ items = [] }: StandardCartProps) {
     const params = useParams();
     const shopSlug = (params?.shopSlug as string) || '';
+    const formatPrice = usePriceFormatter();
 
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shipping = subtotal > 0 ? 10 : 0;

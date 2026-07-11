@@ -19,6 +19,7 @@ interface RecommendedProductsProps {
     /** Sản phẩm thật của shop — inject từ pageContext/preview. */
     products?: any[];
     basePath?: string;
+    locale?: string;
 }
 
 // Demo items — chỉ dùng khi shop chưa có sản phẩm nào (giữ preview không trống).
@@ -41,6 +42,7 @@ export function RecommendedProducts({
     blocks = [],
     products,
     basePath,
+    locale,
 }: RecommendedProductsProps) {
     const catalog = normalizeProducts(products);
     const items =
@@ -48,7 +50,7 @@ export function RecommendedProducts({
             ? catalog.slice(0, Math.max(1, maxItems)).map((p) => ({
                   id: p.id,
                   name: p.name,
-                  price: formatPrice(p.basePrice),
+                  price: formatPrice(p.basePrice, { locale }),
                   image: p.image || defaultAsset('default-3.png'),
                   href: productHref(basePath, p.id),
               }))

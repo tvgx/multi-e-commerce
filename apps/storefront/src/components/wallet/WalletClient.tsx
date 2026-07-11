@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
+import { NumberInput } from '@ecommerce/ui-registry/src/components/blocks/NumberInput';
 import { useTranslations, useLocale } from '@ecommerce/i18n/src/react';
 import { useWallet } from '@/hooks/useWallet';
 
@@ -12,6 +13,7 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
     const t = useTranslations('shop');
     const locale = useLocale();
     const intlLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
+    const formatPrice = usePriceFormatter();
 
     const {
         wallet,
@@ -111,14 +113,15 @@ export function WalletClient({ shopInfo, shopSlug }: { shopInfo: any; shopSlug: 
                             ))}
                         </div>
                         <div className="flex gap-3">
-                            <input
-                                type="number"
+                            <NumberInput
                                 min={1000}
-                                step={1000}
+                                allowDecimal={false}
+                                suffix="đ"
                                 placeholder={t('wallet.enterOtherAmount')}
-                                className="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
-                                value={topupAmount}
-                                onChange={e => setTopupAmount(e.target.value)}
+                                wrapperClassName="flex-1"
+                                className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand"
+                                value={Number(topupAmount) || null}
+                                onValueChange={(v) => setTopupAmount(v != null ? String(v) : '')}
                             />
                             <button
                                 type="submit"

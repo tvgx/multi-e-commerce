@@ -12,7 +12,7 @@ import {
   Store,
   Package,
 } from "lucide-react";
-import { formatPrice } from "@ecommerce/ui-registry/src/lib/format";
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { toast, confirmDialog } from "@ecommerce/ui-registry/src/store/toast-store";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 import {
@@ -45,6 +45,7 @@ function StatusBadge({ value }: { value: string }) {
 }
 
 export default function BillingPage() {
+  const formatPrice = usePriceFormatter();
   const t = useTranslations("admin");
   const { plans, subscription, invoices, loading, error, refresh, subscribe } =
     usePlatformBilling();

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Zap, Target, LayoutTemplate, ShieldCheck, Code2, Rocket, PlayCircle } from "lucide-react";
 import { CreateShopButton } from "@/components/home/CreateShopButton";
 import { getT } from "@/lib/i18n";
+import { storefrontHost } from "@/lib/urls";
 
 
 export default async function PlatformLandingPage() {
@@ -74,7 +75,7 @@ export default async function PlatformLandingPage() {
                   <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 </div>
                 <div className="mx-auto w-1/2 h-5 rounded-md bg-white/5 border border-white/5 flex items-center justify-center">
-                  <span className="text-[10px] text-white/30 font-mono">mystore.omnicommerce.com</span>
+                  <span className="text-[10px] text-white/30 font-mono">{storefrontHost("mystore")}</span>
                 </div>
               </div>
               {/* Fake Content */}

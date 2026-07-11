@@ -13,11 +13,13 @@ import {
   History,
   RefreshCw,
 } from "lucide-react";
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { NumberInput } from '@ecommerce/ui-registry/src/components/blocks/NumberInput';
 import { useWallets, WalletRow, WalletTxRow } from '@/hooks/useWallets';
 
 export default function WalletsPage() {
+  const formatPrice = usePriceFormatter();
   const params = useParams();
   const shopId = params.shopId as string;
   const tr = useTranslations("admin");
@@ -294,13 +296,13 @@ export default function WalletsPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">{tr("wallets.amountLabel")}</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
+                suffix="đ"
                 placeholder={tr("wallets.amountPlaceholder")}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={adjustAmount}
-                onChange={(e) => setAdjustAmount(e.target.value)}
+                value={Number(adjustAmount) || null}
+                onValueChange={(v) => setAdjustAmount(v != null ? String(v) : "")}
               />
             </div>
             <div className="space-y-2">

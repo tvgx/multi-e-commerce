@@ -1,4 +1,4 @@
-import { getShopBootstrapData } from '@/lib/api/storefront.api';
+import { getShopBootstrapData, getShopCategories, getMyProfile } from '@/lib/api/storefront.api';
 import { metaText } from '@/lib/seo';
 import type { Metadata } from 'next';
 import React from 'react';
@@ -83,13 +83,21 @@ export default async function BuyerLayout({ children, params }: Props) {
 
     // These are independent — run them in parallel instead of serially
     // (this layout runs on every storefront page view).
-    const [token, customerData, bootstrapData, t] = await Promise.all([
+    const [token, customerData, bootstrapData, categories, t, ts] = await Promise.all([
         getCustomerSession(shopSlug),
         getCustomerData(shopSlug),
         getShopBootstrapData(shopSlug),
+        getShopCategories(shopSlug),
         getT('common'),
+        getT('shop'),
     ]);
     const customerId = customerData?.sub || customerData?.id;
+    // TODO 16: tên user cho header. Token mới có claim `name`; token cũ (trước
+    // khi thêm claim) fallback gọi /me một lần cho phiên đăng nhập đó.
+    let customerName: string | null = customerData?.name || null;
+    if (customerId && !customerName && token) {
+        customerName = (await getMyProfile(shopSlug, token))?.name || null;
+    }
 
     const shopInfo = bootstrapData?.shop;
     const globalLayout = bootstrapData?.globalLayout;
@@ -136,6 +144,7 @@ export default async function BuyerLayout({ children, params }: Props) {
             {announcementText && (
                 <AnnouncementBar
                     text={announcementText}
+                    basePath={`/${shopSlug}`}
                     backgroundColor={theme.primaryColor || '#059669'}
                     textColor={theme.buttonTextColor || '#ffffff'}
                 />
@@ -145,7 +154,17 @@ export default async function BuyerLayout({ children, params }: Props) {
             <DynamicGlobalHeader initialComponents={globalComponents}>
             {globalComponents.length > 0 ? (
                 <ErrorBoundary componentName="GlobalHeader">
-                    <DynamicRenderer components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('header'))} />
+                    {/* Header builder-driven cần context thật: danh mục cho dropdown,
+                        user đăng nhập cho label tài khoản, basePath cho link nội bộ. */}
+                    <DynamicRenderer
+                        components={globalComponents.filter((c: any) => c.componentId.toLowerCase().includes('header'))}
+                        pageContext={{
+                            basePath: `/${shopSlug}`,
+                            categories,
+                            customerId,
+                            customerName,
+                        }}
+                    />
                 </ErrorBoundary>
             ) : (
                 <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
@@ -162,24 +181,49 @@ export default async function BuyerLayout({ children, params }: Props) {
                         <SearchBar />
 
                         <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
+                            {/* Nav cố định (TODO 15): luôn đủ link các page chính */}
+                            <a href={`/${shopSlug}/all-products`} className="hidden md:inline hover:text-brand transition-colors">
+                                {ts('header.allProducts')}
+                            </a>
+                            {categories.length > 0 && (
+                                <div className="relative group hidden md:block">
+                                    <span className="cursor-default hover:text-brand transition-colors inline-flex items-center gap-1">
+                                        {ts('header.categories')} <span className="text-[10px]">▾</span>
+                                    </span>
+                                    <div className="absolute left-0 top-full pt-2 hidden group-hover:block z-50">
+                                        <div className="min-w-[200px] max-h-[60vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg py-2">
+                                            {categories.map((c: any) => (
+                                                <a
+                                                    key={c.id}
+                                                    href={`/${shopSlug}/all-products?category=${encodeURIComponent(c.id)}`}
+                                                    className="block px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand transition-colors"
+                                                >
+                                                    {c.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <a href={`/${shopSlug}/wishlist`} className="hidden md:inline hover:text-brand transition-colors">
+                                {ts('header.wishlist')}
+                            </a>
                             {mainMenu?.items?.map((item: any, idx: number) => (
-                                <a key={idx} href={`/${shopSlug}${item.url}`} className="hover:text-brand transition-colors">
+                                <a key={idx} href={`/${shopSlug}${item.url}`} className="hidden lg:inline hover:text-brand transition-colors">
                                     {item.title}
                                 </a>
                             ))}
-                            {!mainMenu && (
-                                <a href={`/${shopSlug}/all-products`} className="hover:text-brand transition-colors">
-                                    {t('nav.allProducts')}
-                                </a>
-                            )}
                             <div className="mx-2 w-px h-4 bg-slate-200"></div>
                             <a
                                 href={customerId ? `/${shopSlug}/profile` : `/${shopSlug}/account/login`}
                                 className="flex items-center gap-1.5 hover:text-brand transition-colors"
-                                title={customerId ? 'Tài khoản' : 'Đăng nhập'}
+                                title={customerId ? (customerName || ts('header.account')) : ts('header.login')}
                             >
                                 <User className="h-4 w-4" />
-                                {customerId ? 'Tài khoản' : 'Đăng nhập'}
+                                {/* TODO 16: hiển thị tên user khi đã đăng nhập */}
+                                <span className="max-w-[140px] truncate">
+                                    {customerId ? (customerName || ts('header.account')) : ts('header.login')}
+                                </span>
                             </a>
                             <LanguageSwitcher />
                             <CartTrigger />

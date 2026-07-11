@@ -1,8 +1,10 @@
 import React from 'react';
+import { shopHref } from '../../../lib/href';
 
 export interface AnnouncementBarProps {
     text: string;
     link?: string;
+    basePath?: string;
     backgroundColor?: string;
     textColor?: string;
 }
@@ -10,6 +12,7 @@ export interface AnnouncementBarProps {
 export const AnnouncementBar: React.FC<AnnouncementBarProps> = ({
     text,
     link,
+    basePath,
     backgroundColor = '#000000',
     textColor = '#ffffff'
 }) => {
@@ -24,7 +27,7 @@ export const AnnouncementBar: React.FC<AnnouncementBarProps> = ({
 
     if (link) {
         return (
-            <a href={link} className="block hover:opacity-90 transition-opacity">
+            <a href={shopHref(basePath || '', link)} className="block hover:opacity-90 transition-opacity">
                 {content}
             </a>
         );

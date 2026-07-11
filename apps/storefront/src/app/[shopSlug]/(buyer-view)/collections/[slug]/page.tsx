@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
 import { StandardCategoryPage } from '@ecommerce/ui-registry/src/components/pages/StandardCategoryPage';
 import { shopUrl, metaText } from '@/lib/seo';
+import { getLocale } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import React from 'react';
 
@@ -29,10 +30,11 @@ export default async function CollectionPage({ params }: Props) {
   const { shopSlug, slug } = await params;
 
   try {
-    const [collection, shopInfo, pageLayout] = await Promise.all([
+    const [collection, shopInfo, pageLayout, locale] = await Promise.all([
       getCollectionBySlug(shopSlug, slug),
       getShopInfo(shopSlug),
-      getShopPageLayout(shopSlug, 'product_listing')
+      getShopPageLayout(shopSlug, 'product_listing'),
+      getLocale(),
     ]);
 
     if (!collection || !shopInfo) return notFound();
@@ -49,6 +51,7 @@ export default async function CollectionPage({ params }: Props) {
                 products={products}
                 totalProducts={products.length}
                 basePath={`/${shopSlug}`}
+                locale={locale}
             />
         );
     }
@@ -59,7 +62,8 @@ export default async function CollectionPage({ params }: Props) {
         title: collection.title,
         description: collection.description,
         products,
-        basePath: `/${shopSlug}`
+        basePath: `/${shopSlug}`,
+        locale
     }} />;
   } catch (error) {
     console.error('Error fetching collection details:', error);

@@ -4,7 +4,7 @@ import React, { useEffect, useState, use } from 'react';
 import { useOrders, Order, Shipment } from '@/hooks/useOrders';
 import { Loader2, ArrowLeft, Package, User, CreditCard, Truck, Save } from 'lucide-react';
 import Link from 'next/link';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
@@ -18,6 +18,7 @@ const SHIPMENT_TRANSITIONS: Record<string, string[]> = {
 };
 
 export default function OrderDetailPage({ params }: { params: Promise<{ shopId: string, orderId: string }> }) {
+  const formatPrice = usePriceFormatter();
   const { shopId, orderId } = use(params);
   const { fetchOrderById, updateOrderStatus, updateShipment } = useOrders(shopId);
   const t = useTranslations('admin');

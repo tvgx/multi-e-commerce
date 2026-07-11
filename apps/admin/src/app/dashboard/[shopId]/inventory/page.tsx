@@ -4,6 +4,7 @@ import React, { useEffect, useState, use } from 'react';
 import { useInventory, InventoryItem } from '@/hooks/useInventory';
 import { Loader2, PackageOpen, RefreshCw, Save, X } from 'lucide-react';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { NumberInput } from '@ecommerce/ui-registry/src/components/blocks/NumberInput';
 
 export default function InventoryPage({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = use(params);
@@ -157,11 +158,11 @@ export default function InventoryPage({ params }: { params: Promise<{ shopId: st
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">{t('inventory.newStockQty')}</label>
-                <input 
-                  type="number"
-                  min="0"
+                <NumberInput
+                  min={0}
+                  allowDecimal={false}
                   value={newStock}
-                  onChange={(e) => setNewStock(parseInt(e.target.value) || 0)}
+                  onValueChange={(v) => setNewStock(v ?? 0)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>

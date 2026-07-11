@@ -121,7 +121,9 @@ export function parseUrl(url: string): { pageType: DestinationPage; subSlug?: st
 }
 
 function schemaName(componentId: string, schemaRegistry: Record<string, any>): string {
-  return schemaRegistry?.[componentId]?.name || componentId;
+  // ComponentSchemas dùng `title`, section schema cũ dùng `name` — đọc cả hai.
+  const schema = schemaRegistry?.[componentId];
+  return schema?.title || schema?.name || componentId;
 }
 
 function targetPropKeys(node: UIComponentRef, schemaRegistry: Record<string, any>): string[] {

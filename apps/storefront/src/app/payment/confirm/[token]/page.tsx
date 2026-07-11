@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@ecommerce/ui-registry/src/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@ecommerce/ui-registry/src/components/ui/card';
 import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 
 export default function PaymentConfirmPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
+  const formatPrice = usePriceFormatter();
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');

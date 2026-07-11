@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { formatPrice } from '../../lib/format';
+import { usePriceFormatter } from '../../lib/use-price';
 import { useTranslations, useLocale } from '@ecommerce/i18n/src/react';
 import { OrderActions } from '../account/OrderActions';
 
@@ -43,6 +43,7 @@ function ProfileView({ shopSlug, profile, orders, signOutAction }: {
     const to = useTranslations('order');
     const locale = useLocale();
     const intlLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
+    const formatPrice = usePriceFormatter();
 
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl space-y-12">
@@ -169,6 +170,7 @@ function ProfileView({ shopSlug, profile, orders, signOutAction }: {
 }
 
 function ProfilePreviewMock() {
+    const formatPrice = usePriceFormatter();
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl space-y-12 pointer-events-none select-none">
             <div className="flex justify-between items-center">

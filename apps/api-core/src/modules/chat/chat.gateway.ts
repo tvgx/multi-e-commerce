@@ -3,14 +3,16 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { ChatService } from './chat.service';
 
+/**
+ * Chat gateway — CHỈ để nhận realtime (TODO 18). Gửi tin đi qua HTTP có xác
+ * thực (ChatController): bản cũ nhận `send_message` với userId/role tự khai từ
+ * client nên ai cũng giả danh được. Room theo UUID customer (khó đoán) chỉ dùng
+ * cho chiều broadcast.
+ */
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -22,13 +24,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
-  
-  constructor(private readonly chatService: ChatService) {}
 
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
     const shopId = client.handshake.query.shopId as string;
-    const role = client.handshake.query.role as string || 'customer';
+    const role = (client.handshake.query.role as string) || 'customer';
 
     if (!userId || !shopId) {
       this.logger.warn(`Client disconnected due to missing auth info: ${client.id}`);
@@ -48,23 +48,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('send_message')
-  async handleSendMessage(
-    @MessageBody() data: { conversationId?: string; content: string; shopId: string; userId: string; role: string },
-    @ConnectedSocket() client: Socket
-  ) {
-    const { conversationId, content, shopId, userId, role } = data;
-    
-    // In a real application, you'd want to authenticate this action properly
-    const result = await this.chatService.sendMessage(userId, { conversationId, content });
-    
-    // Broadcast to the customer room and admin room
-    const targetCustomerRoom = `chat_${shopId}_${userId}`;
-    const targetAdminRoom = `chat_admin_${shopId}`;
-    
-    this.server.to(targetCustomerRoom).emit('new_message', result.data);
-    this.server.to(targetAdminRoom).emit('new_message', result.data);
-    
-    return result.data;
+  /** Phát tin nhắn (đã lưu qua HTTP) tới buyer + seller của shop. */
+  broadcastMessage(shopId: string, customerId: string, message: unknown) {
+    this.server.to(`chat_${shopId}_${customerId}`).emit('new_message', message);
+    this.server.to(`chat_admin_${shopId}`).emit('new_message', message);
   }
 }

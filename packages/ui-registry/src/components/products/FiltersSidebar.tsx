@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { NumberInput } from '../blocks/NumberInput';
 
 interface FiltersSidebarProps {
   // Lọc theo id (giá trị lưu trên URL), hiển thị theo name
@@ -75,20 +76,22 @@ export function FiltersSidebar({ categories = [] }: FiltersSidebarProps) {
       <div>
         <h3 className="font-bold mb-4 text-slate-800">{t('filters.price')}</h3>
         <div className="flex items-center gap-2 mb-3">
-          <input 
-            type="number" 
-            placeholder={tc('labels.min')} 
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" 
+          <NumberInput
+            min={0}
+            placeholder={tc('labels.min')}
+            value={Number(minPrice) || null}
+            onValueChange={(v) => setMinPrice(v != null ? String(v) : '')}
+            wrapperClassName="w-full"
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           />
           <span className="text-slate-400">-</span>
-          <input 
-            type="number" 
-            placeholder={tc('labels.max')} 
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" 
+          <NumberInput
+            min={0}
+            placeholder={tc('labels.max')}
+            value={Number(maxPrice) || null}
+            onValueChange={(v) => setMaxPrice(v != null ? String(v) : '')}
+            wrapperClassName="w-full"
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
         <button 

@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
 
 import { DEFAULT_IMG } from '../../../lib/media';
+import { shopHref } from '../../../lib/href';
 
 interface SlideBlock {
     id: string;
@@ -14,6 +15,7 @@ interface CarouselProps {
     title?: string;
     backgroundColor?: string;
     textColor?: string;
+    basePath?: string;
     blocks?: SlideBlock[];
 }
 
@@ -21,6 +23,7 @@ export function Carousel({
     title,
     backgroundColor = '#0f172a',
     textColor = '#ffffff',
+    basePath,
     blocks = [],
 }: CarouselProps) {
     const trackRef = useRef<HTMLDivElement>(null);
@@ -100,7 +103,7 @@ export function Carousel({
                                         {p.subtitle && <p className="text-sm opacity-80 mb-2">{p.subtitle}</p>}
                                         {p.ctaText && (
                                             <a
-                                                href={p.ctaLink || '#'}
+                                                href={p.ctaLink ? shopHref(basePath || '', p.ctaLink) : '#'}
                                                 onClick={e => e.stopPropagation()}
                                                 className="text-sm underline hover:opacity-80 transition-opacity"
                                             >

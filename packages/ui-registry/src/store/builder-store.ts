@@ -16,8 +16,8 @@ export const EDITABLE_PAGES: { key: string; label: string; description: string }
     { key: 'home', label: 'Trang chủ', description: 'Trang đầu tiên khách nhìn thấy' },
     { key: 'product_listing', label: 'Trang danh sách sản phẩm', description: 'Nơi khách duyệt và lọc sản phẩm' },
     { key: 'product_detail', label: 'Trang chi tiết sản phẩm', description: 'Thông tin chi tiết của một sản phẩm' },
-    { key: 'checkout', label: 'Trang thanh toán', description: 'Nơi khách điền thông tin và đặt hàng' },
-    { key: 'profile', label: 'Trang tài khoản', description: 'Thông tin tài khoản và lịch sử đơn hàng của khách' },
+    // checkout/profile cố ý KHÔNG editable: storefront luôn render bản mặc định
+    // (CheckoutDefault/StandardProfile) để luồng thanh toán/tài khoản ổn định.
 ];
 
 export const EDITABLE_PAGE_KEYS = EDITABLE_PAGES.map(p => p.key);
@@ -46,10 +46,6 @@ function defaultSectionsForPage(pageType: string): UIComponentRef[] {
             }, 0)];
         case 'product_detail':
             return [section('StandardProductDetail', {}, 0)];
-        case 'checkout':
-            return [section('StandardCheckout', {}, 0)];
-        case 'profile':
-            return [section('StandardProfile', {}, 0)];
         default:
             return [];
     }

@@ -910,6 +910,7 @@
   },
   "createShop": {
     "backHome": "Trở lại trang chủ",
+    "backToAdmin": "Quay lại trang quản trị",
     "initStore": "Khởi tạo Cửa hàng",
     "title": "Chọn địa chỉ cửa hàng",
     "subtitle": "Khách hàng sẽ truy cập qua địa chỉ này. Tên, logo và màu sắc sẽ được thiết lập ngay sau đó trong trình thiết kế.",
@@ -1094,7 +1095,9 @@
     "revChartTitle": "Biểu đồ doanh thu",
     "orderStatusShort": "Trạng thái đơn",
     "orderEmptyShort": "Chưa có đơn hàng nào.",
-    "chartTotal": "Tổng"
+    "chartTotal": "Tổng",
+    "lastUpdated": "Cập nhật lúc",
+    "refresh": "Làm mới"
   },
   "chatPanel": {
     "title": "Hỗ trợ khách hàng",
@@ -1330,5 +1333,27 @@
     "noScenario": "Không có scenario.",
     "loadingEditor": "Đang tải trình soạn thảo…",
     "thesisBadge": "đồ án"
+  },
+  "import": {
+    "button": "Import hàng loạt",
+    "title": "Import sản phẩm hàng loạt",
+    "subtitle": "Tải lên file CSV hoặc Excel để tạo nhiều sản phẩm trong một lần.",
+    "backToProducts": "Về danh sách sản phẩm",
+    "formatTitle": "Định dạng file",
+    "formatDesc": "Dòng đầu là tên cột (nhận cả tiếng Việt: tên, giá, mô tả, danh mục, tồn kho, ảnh).",
+    "colRequired": "bắt buộc",
+    "colOptional": "tuỳ chọn",
+    "colImages": "danh sách URL ảnh, cách nhau bởi dấu ';' — hệ thống tự tải về",
+    "downloadTemplate": "Tải file mẫu (.csv)",
+    "dropHint": "Bấm để chọn file .csv hoặc .xlsx",
+    "startButton": "Bắt đầu import",
+    "uploadError": "Tải file thất bại",
+    "processing": "Đang xử lý…",
+    "done": "Hoàn tất",
+    "failed": "Thất bại",
+    "summary": "Thành công {{succeeded}} sản phẩm, lỗi {{failed}} dòng.",
+    "colLine": "Dòng",
+    "colError": "Lỗi",
+    "viewProducts": "Xem sản phẩm"
   }
 }

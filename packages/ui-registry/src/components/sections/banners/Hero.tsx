@@ -5,6 +5,7 @@ import { TextBlock } from '../../blocks/text';
 import { ButtonBlock } from '../../blocks/button';
 import { MediaBlock } from '../../blocks/media';
 import { SmartImage } from '../../blocks/SmartImage';
+import { shopHref } from '../../../lib/href';
 
 interface HeroProps {
     backgroundImageUrl?: string;
@@ -18,6 +19,8 @@ interface HeroProps {
     subtitle?: string;
     ctaText?: string;
     ctaLink?: string;
+    /** Base path của shop (vd `/my-shop`) — pageContext truyền xuống để link nội bộ giữ đúng slug. */
+    basePath?: string;
     blocks?: UIComponentRef[];
 }
 
@@ -30,6 +33,7 @@ export function Hero({
     subtitle,
     ctaText,
     ctaLink,
+    basePath,
     blocks = []
 }: HeroProps) {
     const containerStyle = {
@@ -59,7 +63,7 @@ export function Hero({
                 {subtitle && <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">{subtitle}</p>}
                 {ctaText && (
                     <a
-                        href={ctaLink || '#'}
+                        href={ctaLink ? shopHref(basePath || '', ctaLink) : '#'}
                         className="inline-flex items-center justify-center rounded-md bg-white text-zinc-900 px-8 h-12 text-base font-medium shadow hover:bg-white/90 transition-colors mb-2"
                     >
                         {ctaText}

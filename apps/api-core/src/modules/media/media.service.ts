@@ -21,8 +21,14 @@ const LAYOUT_ENTITY_TYPES = new Set([
   'layout',
   'layout_image',
   'shop_logo',
+  'shop_favicon',
   'theme',
 ]);
+
+// TODO 17: kích thước chuẩn hoá cho icon/favicon/logo khi upload.
+const FAVICON_MAIN_SIZE = 48;
+const FAVICON_EXTRA_SIZES = [32, 180]; // 32 tab thường, 180 apple-touch-icon
+const LOGO_MAX_WIDTH = 512;
 
 @Injectable()
 export class MediaService {
@@ -67,9 +73,65 @@ export class MediaService {
     return { bucket: PUBLIC_BUCKET, key: `${shopId}/${randomUUID()}.${ext}` };
   }
 
+  /**
+   * TODO 17: chuẩn hoá icon/favicon/logo lúc upload thay vì lưu file gốc:
+   *  - shop_favicon → PNG vuông 48×48 (bản chính) + bản phụ 32/180 cạnh nó.
+   *  - shop_logo    → thu về tối đa 512px ngang, nén WebP (giữ alpha).
+   * Ảnh khác giữ nguyên. SVG (không decode được bằng sharp) cũng giữ nguyên.
+   */
+  private async preprocessImage(
+    buffer: Buffer,
+    mimeType: string,
+    entityType?: string,
+  ): Promise<{ buffer: Buffer; mimeType: string; ext: string } | null> {
+    if (!mimeType.startsWith('image/') || mimeType === 'image/svg+xml') return null;
+    try {
+      if (entityType === 'shop_favicon') {
+        const out = await sharp(buffer)
+          .resize(FAVICON_MAIN_SIZE, FAVICON_MAIN_SIZE, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .png()
+          .toBuffer();
+        return { buffer: out, mimeType: 'image/png', ext: 'png' };
+      }
+      if (entityType === 'shop_logo') {
+        const out = await sharp(buffer)
+          .resize({ width: LOGO_MAX_WIDTH, withoutEnlargement: true })
+          .webp({ quality: 90 })
+          .toBuffer();
+        return { buffer: out, mimeType: 'image/webp', ext: 'webp' };
+      }
+    } catch (err) {
+      console.warn(`Could not preprocess ${entityType} image, keeping original`, err);
+    }
+    return null;
+  }
+
+  /** Upload các bản favicon phụ (32, 180) cạnh bản chính — best-effort. */
+  private async uploadFaviconVariants(shopId: string, original: Buffer) {
+    for (const size of FAVICON_EXTRA_SIZES) {
+      try {
+        const out = await sharp(original)
+          .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
+        await this.minioService.uploadFile(
+          out,
+          `${shopId}/favicon-${size}.png`,
+          'image/png',
+          LAYOUT_BUCKET,
+        );
+      } catch (err) {
+        console.warn(`Could not upload favicon variant ${size}px`, err);
+      }
+    }
+  }
+
   async uploadFile(file: any, dto: UploadMediaDto) {
     const shopId = this.getShopId();
-    const buffer = file.buffer;
+    let buffer = file.buffer;
 
     // 1. File size limit (10MB)
     const MAX_SIZE = 10 * 1024 * 1024;
@@ -82,7 +144,21 @@ export class MediaService {
     if (!typeInfo) {
       throw new BadRequestException('Could not determine file type');
     }
-    const mimeType = typeInfo.mime;
+    let mimeType = typeInfo.mime;
+    let ext = typeInfo.ext;
+    let fileSize = file.size;
+
+    // 2b. Chuẩn hoá favicon/logo (TODO 17) — trước blurhash để metadata khớp bản lưu.
+    const processed = await this.preprocessImage(buffer, mimeType, dto.entityType);
+    if (processed) {
+      if (dto.entityType === 'shop_favicon') {
+        await this.uploadFaviconVariants(shopId, buffer);
+      }
+      buffer = processed.buffer;
+      mimeType = processed.mimeType;
+      ext = processed.ext;
+      fileSize = buffer.length;
+    }
 
     let blurHash = null;
     let width = null;
@@ -118,11 +194,7 @@ export class MediaService {
     //    - giao diện  → shop-layouts/<shopId>/<uuid>.<ext>
     //    - sản phẩm   → shop-public/<shopId>/<productId>-<n>.<ext>
     //    - còn lại    → shop-public/<shopId>/<uuid>.<ext>
-    const { bucket, key } = await this.buildObjectLocation(
-      shopId,
-      dto,
-      typeInfo.ext,
-    );
+    const { bucket, key } = await this.buildObjectLocation(shopId, dto, ext);
     const publicUrl = await this.minioService.uploadFile(
       buffer,
       key,
@@ -139,7 +211,7 @@ export class MediaService {
           key,
           bucket,
           mimeType,
-          size: file.size,
+          size: fileSize,
           width,
           height,
           blurHash,
@@ -150,7 +222,7 @@ export class MediaService {
       await tx.shop.update({
         where: { id: shopId },
         data: {
-          storageUsedBytes: { increment: file.size },
+          storageUsedBytes: { increment: fileSize },
         },
       });
 

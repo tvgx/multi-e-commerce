@@ -20,6 +20,8 @@ interface StandardCategoryPageProps {
     totalProducts?: number;
     /** Prefix /{shopSlug} cho link nội bộ — inject từ pageContext. */
     basePath?: string;
+    /** Ngôn ngữ UI hiện tại ('vi'|'en') — inject từ pageContext để format giá. */
+    locale?: string;
 }
 
 export function StandardCategoryPage({
@@ -27,7 +29,8 @@ export function StandardCategoryPage({
     description = 'Discover our wide range of products.',
     products = [],
     totalProducts = 0,
-    basePath = ''
+    basePath = '',
+    locale
 }: StandardCategoryPageProps) {
     
     return (
@@ -123,7 +126,7 @@ export function StandardCategoryPage({
                                         </div>
                                         <div className="p-5 flex flex-col flex-grow">
                                             <h3 className="font-semibold text-slate-900 mb-2 truncate group-hover:text-primary transition-colors">{product.name}</h3>
-                                            <div className="text-lg font-bold text-slate-900 mt-auto">{formatPrice(product.basePrice)}</div>
+                                            <div className="text-lg font-bold text-slate-900 mt-auto">{formatPrice(product.basePrice, { locale })}</div>
                                             <a href={`${basePath}/products/${product._id ?? product.id}`} className="mt-4 block w-full text-center bg-slate-50 hover:bg-primary hover:text-white border border-slate-200 hover:border-primary py-2.5 rounded-xl font-medium text-slate-700 transition-all">
                                                 View Details
                                             </a>

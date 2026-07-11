@@ -2,6 +2,7 @@
 import { DEFAULT_IMG } from '../../../lib/media';
 import React, { useState } from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
+import { shopHref } from '../../../lib/href';
 
 interface SlideBlock {
     id: string;
@@ -11,11 +12,13 @@ interface SlideBlock {
 
 interface SlideshowInsetProps {
     backgroundColor?: string;
+    basePath?: string;
     blocks?: SlideBlock[];
 }
 
 export function SlideshowInset({
     backgroundColor = '#ffffff',
+    basePath,
     blocks = [],
 }: SlideshowInsetProps) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -75,7 +78,7 @@ export function SlideshowInset({
                         )}
                         {slide.ctaText && (
                             <a
-                                href={slide.ctaLink || '#'}
+                                href={slide.ctaLink ? shopHref(basePath || '', slide.ctaLink) : '#'}
                                 onClick={e => e.stopPropagation()}
                                 className="font-bold text-xl text-brand hover:text-brand transition-colors"
                             >

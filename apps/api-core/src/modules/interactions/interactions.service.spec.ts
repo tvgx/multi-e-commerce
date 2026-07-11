@@ -193,8 +193,10 @@ describe('InteractionsService', () => {
 
   describe('getReviews', () => {
     it('lists only published reviews with pagination meta', async () => {
-      prisma.productReview.findMany.mockResolvedValue([{ id: 'rev-1' }]);
+      prisma.productReview.findMany.mockResolvedValue([{ id: 'rev-1', customerId: CUSTOMER }]);
       prisma.productReview.count.mockResolvedValue(1);
+      prisma.productReview.aggregate.mockResolvedValue({ _avg: { rating: 4.5 } });
+      prisma.customer.findMany.mockResolvedValue([{ id: CUSTOMER, name: 'An' }]);
 
       const res = await service.getReviews({ productId: 'p1', page: 1, limit: 20 });
 
@@ -206,11 +208,14 @@ describe('InteractionsService', () => {
         }),
       );
       expect(res.meta).toEqual({ total: 1, page: 1, limit: 20, totalPages: 1 });
+      expect(res.stats).toEqual({ average: 4.5, total: 1 });
+      expect(res.data[0].customerName).toBe('An');
     });
 
     it('computes skip from page and totalPages from total', async () => {
       prisma.productReview.findMany.mockResolvedValue([]);
       prisma.productReview.count.mockResolvedValue(45);
+      prisma.productReview.aggregate.mockResolvedValue({ _avg: { rating: null } });
       const res = await service.getReviews({ page: 3, limit: 20 } as any);
       expect(prisma.productReview.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 40, take: 20 }),

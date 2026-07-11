@@ -12,7 +12,7 @@ import {
   X,
   Check,
 } from "lucide-react";
-import { formatPrice } from "@ecommerce/ui-registry/src/lib/format";
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { toast } from "@ecommerce/ui-registry/src/store/toast-store";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/hooks/usePlatformCatalog";
 
 export default function CatalogPage() {
+  const formatPrice = usePriceFormatter();
   const t = useTranslations("admin");
   const {
     products,

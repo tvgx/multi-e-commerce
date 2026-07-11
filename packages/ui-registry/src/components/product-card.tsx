@@ -9,9 +9,11 @@ export interface ProductCardProps {
     slug: string;
     imageUrl?: string;
     description?: string;
+    /** Ngôn ngữ UI hiện tại ('vi'|'en') để format giá — server component không dùng hook được. */
+    locale?: string;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ name, price, imageUrl, description }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ name, price, imageUrl, description, locale }) => {
     const imgSrc = imageUrl || '/product-default.png';
     return (
         <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">
@@ -22,7 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ name, price, imageUrl,
                 <h3 className="text-lg font-semibold text-gray-800 mb-1">{name}</h3>
                 {description && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{description}</p>}
                 <div className="flex items-center justify-between mt-auto">
-                    <span className="text-lg font-bold text-gray-900">{formatPrice(price)}</span>
+                    <span className="text-lg font-bold text-gray-900">{formatPrice(price, { locale })}</span>
                     <button className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition">
                         Add to Cart
                     </button>

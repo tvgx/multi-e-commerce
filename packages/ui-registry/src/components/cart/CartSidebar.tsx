@@ -3,13 +3,14 @@
 import { useCartStore } from '../../store/cart-store';
 import { useParams } from 'next/navigation';
 import { SmartImage } from '../blocks/SmartImage';
-import { formatPrice } from '../../lib/format';
+import { usePriceFormatter } from '../../lib/use-price';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export function CartSidebar() {
   const { items, totalAmount, isOpen, setIsOpen, updateQuantity, removeItem } = useCartStore();
   const params = useParams();
   const t = useTranslations('shop');
+  const formatPrice = usePriceFormatter();
 
   if (!isOpen) return null;
 

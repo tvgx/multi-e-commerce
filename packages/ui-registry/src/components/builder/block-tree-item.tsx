@@ -40,7 +40,9 @@ export function BlockTreeItem({ component, index, depth = 0, parentId = null }: 
 
     const isActive = (depth === 0 ? activeComponentId === component.id : activeBlockId === component.id);
     const schema = schemaRegistry[component.componentId];
-    const displayName = schema?.name || component.componentId;
+    // schemaRegistry trộn 2 kiểu: ComponentSchemas dùng `title`, section schema cũ
+    // dùng `name` — đọc thiếu một trong hai là tên section rơi về componentId (English).
+    const displayName = schema?.title || schema?.name || component.componentId;
     const isLocked = component.isLocked || false;
 
     useEffect(() => {

@@ -1,7 +1,7 @@
 import { LayoutRenderer } from '@/lib/layout/dynamic-loader';
 import { getShopPageLayout, getShopInfo, getShopProducts, getShopBootstrapData } from '@/lib/api/storefront.api';
 import { notFound } from 'next/navigation';
-import { getT } from '@/lib/i18n';
+import { getT, getLocale } from '@/lib/i18n';
 import { shopUrl } from '@/lib/seo';
 import { JsonLd } from '@/components/JsonLd';
 import type { Metadata } from 'next';
@@ -24,11 +24,12 @@ export default async function ShopHomePage({ params }: Props) {
     // Products đi vào pageContext để các section sản phẩm (FeaturedProducts,
     // RecommendedProducts, FeaturedCollection*) hiển thị hàng THẬT thay vì demo.
     // getShopBootstrapData is deduped with the layout's call (same request).
-    const [pageLayout, shopInfo, { products }, bootstrap] = await Promise.all([
+    const [pageLayout, shopInfo, { products }, bootstrap, locale] = await Promise.all([
         getShopPageLayout(shopSlug, 'home'),
         getShopInfo(shopSlug),
         getShopProducts(shopSlug, { limit: 12 }),
         getShopBootstrapData(shopSlug),
+        getLocale(),
     ]);
 
     // If no shop exists at all, show Next.js 404 page
@@ -99,6 +100,7 @@ export default async function ShopHomePage({ params }: Props) {
                     products,
                     totalProducts: products.length,
                     basePath: `/${shopSlug}`,
+                    locale,
                     shopInfo,
                 }}
             />

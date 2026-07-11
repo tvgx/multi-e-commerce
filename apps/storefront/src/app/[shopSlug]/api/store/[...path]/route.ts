@@ -31,6 +31,7 @@ const ALLOWED_PREFIXES = [
   'promotions',
   'interactions',
   'storefront-auth',
+  'chat',
 ];
 
 async function handle(

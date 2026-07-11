@@ -6,7 +6,7 @@ import { ProductReviews } from './ProductReviews';
 import { VariantSelector } from './VariantSelector';
 import { useState } from 'react';
 import { SmartImage } from '../blocks/SmartImage';
-import { formatPrice } from '../../lib/format';
+import { usePriceFormatter } from '../../lib/use-price';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 interface ProductDetailDefaultProps {
@@ -18,6 +18,7 @@ export function ProductDetailDefault({ product, shopInfo }: ProductDetailDefault
   const thumbnail = product.images?.[0] ?? null;
   const inStock = product.variants?.some((v: any) => v.stock > 0);
   const t = useTranslations('shop');
+  const formatPrice = usePriceFormatter();
   
   // Use the first variant for add to cart in the simple fallback
   const firstVariant = product.variants?.[0];

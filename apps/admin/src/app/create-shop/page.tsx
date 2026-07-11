@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Rocket, Link as LinkIcon, Loader2, Sparkles } from "lucide-react";
+import { Rocket, Link as LinkIcon, Loader2, Sparkles } from "lucide-react";
 import { useCreateShop } from "@/hooks/useCreateShop";
 import { useTranslations } from "@ecommerce/i18n/src/react";
+import { storefrontSuffix } from "@/lib/urls";
 
 export default function CreateShopPage() {
   const router = useRouter();
@@ -25,12 +25,9 @@ export default function CreateShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-indigo-500/30 flex flex-col">
-      <nav className="h-20 border-b border-border bg-card/40 px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">{t("createShop.backHome")}</span>
-        </Link>
+    <div className="min-h-full bg-background text-foreground font-sans selection:bg-indigo-500/30 flex flex-col">
+      {/* Nút quay lại admin nằm ở header chung của layout create-shop */}
+      <nav className="h-20 border-b border-border bg-card/40 px-6 flex items-center justify-end">
         <div className="flex gap-2 items-center text-sm font-semibold tracking-wider text-indigo-400">
           <Rocket className="w-5 h-5" /> {t("createShop.initStore")}
         </div>
@@ -67,7 +64,7 @@ export default function CreateShopPage() {
                       onKeyDown={(e) => { if (e.key === "Enter" && domain.trim() && !loading) handleSubmit(); }}
                     />
                     <div className="flex items-center px-4 border-l border-border text-muted-foreground font-mono text-sm bg-secondary/40 rounded-r-xl">
-                      .omnicommerce.com
+                      {storefrontSuffix()}
                     </div>
                   </div>
                   <p className="mt-2 text-xs text-indigo-400">

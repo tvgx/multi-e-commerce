@@ -2,6 +2,7 @@
 import { DEFAULT_IMG } from '../../../lib/media';
 import React, { useState } from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
+import { shopHref } from '../../../lib/href';
 
 interface SlideBlock {
     id: string;
@@ -12,12 +13,14 @@ interface SlideBlock {
 interface SlideshowFullFrameProps {
     backgroundColor?: string;
     height?: string;
+    basePath?: string;
     blocks?: SlideBlock[];
 }
 
 export function SlideshowFullFrame({
     backgroundColor = '#000000',
     height = '100vh',
+    basePath,
     blocks = [],
 }: SlideshowFullFrameProps) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -81,7 +84,7 @@ export function SlideshowFullFrame({
                     )}
                     {slide.ctaText && (
                         <a
-                            href={slide.ctaLink || '#'}
+                            href={slide.ctaLink ? shopHref(basePath || '', slide.ctaLink) : '#'}
                             onClick={e => e.stopPropagation()}
                             className="border-2 border-current px-10 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-white/20 transition-colors inline-block"
                         >

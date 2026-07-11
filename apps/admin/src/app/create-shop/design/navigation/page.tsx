@@ -16,7 +16,7 @@ function NavigationStep() {
   }, [shopId, loadTemplate]);
 
   return (
-    <div className="min-h-screen bg-[#050510] text-white p-6 sm:p-10">
+    <div className="min-h-full bg-[#050510] text-white p-6 sm:p-10">
       <div className="max-w-6xl mx-auto space-y-8">
         <WizardProgress current="navigation" />
         <NavigationEditor shopId={shopId} isWizard />

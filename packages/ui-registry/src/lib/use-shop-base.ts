@@ -1,6 +1,11 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { shopHref } from './href';
+
+// Re-export để giữ import cũ `import { shopHref } from '../lib/use-shop-base'`;
+// bản thân hàm sống ở ./href (module thuần) cho server component dùng được.
+export { shopHref };
 
 /**
  * Base path của shop hiện tại cho link nội bộ.
@@ -15,12 +20,4 @@ export function useShopBase(): string {
     const params = useParams();
     const slug = params?.shopSlug as string | undefined;
     return slug ? `/${slug}` : '';
-}
-
-/** Ghép base + link nội bộ; link ngoài (http…) và link đã prefix giữ nguyên. */
-export function shopHref(base: string, link?: string): string {
-    const l = (link || '/').trim();
-    if (!l.startsWith('/')) return l;
-    if (base && (l === base || l.startsWith(`${base}/`))) return l;
-    return `${base}${l === '/' ? '' : l}` || '/';
 }

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAnalytics, AnalyticsPeriod } from '@/hooks/useAnalytics';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Receipt, UserPlus, ArrowRight } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Receipt, UserPlus, ArrowRight, RefreshCw } from 'lucide-react';
 import {
   formatVND, formatCompactVND, PeriodSelect, KpiCard, BreakdownList, useAnalyticsLabels,
 } from '@/components/analytics/AnalyticsWidgets';
@@ -15,7 +15,7 @@ export function AnalyticsDashboard({ shopId }: { shopId: string }) {
   const t = useTranslations('admin');
   const { orderStateLabels } = useAnalyticsLabels();
   const [period, setPeriod] = useState<AnalyticsPeriod>('30d');
-  const { data, loading, error } = useAnalytics(shopId, period);
+  const { data, loading, error, refresh, lastUpdated } = useAnalytics(shopId, period);
 
   if (loading && !data) {
     return (
@@ -43,6 +43,19 @@ export function AnalyticsDashboard({ shopId }: { shopId: string }) {
       <div className="flex flex-wrap justify-between items-center gap-4">
         <h2 className="text-2xl font-bold text-white">{t('analytics.perfOverview')}</h2>
         <div className="flex items-center gap-3">
+          {/* TODO 3: tự refresh 30s + nút làm mới thủ công */}
+          {lastUpdated && (
+            <span className="text-xs text-slate-500">
+              {t('analytics.lastUpdated')} {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={refresh}
+            title={t('analytics.refresh')}
+            className="p-2 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
           <PeriodSelect value={period} onChange={setPeriod} />
           <Link
             href={`/dashboard/${shopId}/analytics`}

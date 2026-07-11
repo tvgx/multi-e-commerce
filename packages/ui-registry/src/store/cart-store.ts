@@ -21,6 +21,14 @@ export interface AddItemInput {
   imageUrl?: string;
 }
 
+/** Kết quả thao tác giỏ — code/available để FE hiển thị lỗi tồn kho (TODO 8). */
+export interface CartOpResult {
+  ok: boolean;
+  code?: string;
+  available?: number;
+  message?: string;
+}
+
 interface CartState {
   items: CartItem[];
   totalAmount: number;
@@ -33,10 +41,24 @@ interface CartState {
   initialize: (shopSlug: string) => Promise<void>;
   refresh: () => Promise<void>;
   setIsOpen: (isOpen: boolean) => void;
-  addItem: (item: AddItemInput) => Promise<void>;
-  updateQuantity: (productId: string, variantId: string, quantity: number) => Promise<void>;
+  addItem: (item: AddItemInput) => Promise<CartOpResult>;
+  updateQuantity: (productId: string, variantId: string, quantity: number) => Promise<CartOpResult>;
   removeItem: (productId: string, variantId: string) => Promise<void>;
   clearCart: () => Promise<void>;
+}
+
+/** Bóc lỗi từ response BFF/api-core (BadRequestException object hoặc message thường). */
+async function parseCartError(res: Response): Promise<CartOpResult> {
+  try {
+    const body = await res.json();
+    const payload = body?.data ?? body?.message ?? body;
+    if (payload && typeof payload === 'object') {
+      return { ok: false, code: payload.code, available: payload.available, message: payload.message };
+    }
+    return { ok: false, message: typeof payload === 'string' ? payload : undefined };
+  } catch {
+    return { ok: false };
+  }
 }
 
 /**
@@ -94,9 +116,9 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setIsOpen: (isOpen: boolean) => set({ isOpen }),
 
-  addItem: async (item: AddItemInput) => {
+  addItem: async (item: AddItemInput): Promise<CartOpResult> => {
     const { shopSlug } = get();
-    if (!shopSlug) return;
+    if (!shopSlug) return { ok: false };
     set({ isLoading: true });
     try {
       const res = await fetch(bffUrl(shopSlug, 'cart/items'), {
@@ -107,19 +129,22 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (res.ok) {
         await get().refresh();
         set({ isOpen: true });
+        return { ok: true };
       }
+      return await parseCartError(res);
     } catch (error) {
       console.error('Failed to add item', error);
+      return { ok: false };
     } finally {
       set({ isLoading: false });
     }
   },
 
-  updateQuantity: async (_productId: string, variantId: string, quantity: number) => {
+  updateQuantity: async (_productId: string, variantId: string, quantity: number): Promise<CartOpResult> => {
     const { shopSlug, items } = get();
-    if (!shopSlug) return;
+    if (!shopSlug) return { ok: false };
     const target = items.find((i) => i.variantId === variantId);
-    if (!target) return;
+    if (!target) return { ok: false };
     set({ isLoading: true });
     try {
       const res = await fetch(bffUrl(shopSlug, `cart/items/${target.itemId}`), {
@@ -127,9 +152,14 @@ export const useCartStore = create<CartState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
       });
-      if (res.ok) await get().refresh();
+      if (res.ok) {
+        await get().refresh();
+        return { ok: true };
+      }
+      return await parseCartError(res);
     } catch (error) {
       console.error('Failed to update quantity', error);
+      return { ok: false };
     } finally {
       set({ isLoading: false });
     }

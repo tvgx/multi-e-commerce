@@ -8,6 +8,7 @@
   "zipCode": "Vui lòng nhập mã bưu điện hợp lệ",
   "url": "Vui lòng nhập URL hợp lệ",
   "number": "Vui lòng nhập số hợp lệ",
+  "integer": "Vui lòng nhập số nguyên",
   "min": "Phải có ít nhất {{min}}",
   "max": "Không được quá {{max}}",
   "minLength": "Phải có ít nhất {{min}} ký tự",

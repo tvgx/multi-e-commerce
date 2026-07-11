@@ -3,8 +3,9 @@ import { cookies } from 'next/headers';
 import React from 'react';
 import { FiltersSidebar } from '@ecommerce/ui-registry/src/components/products/FiltersSidebar';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
+import { WishlistButton } from '@ecommerce/ui-registry/src/components/products/WishlistButton';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
-import { getT } from '@/lib/i18n';
+import { getT, getLocale } from '@/lib/i18n';
 import { shopUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 
@@ -71,6 +72,7 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
 
     const shopName = shopInfo?.name || shopSlug.toUpperCase();
     const t = await getT('shop');
+    const locale = await getLocale();
 
     return (
         <div className="container mx-auto px-4 py-12">
@@ -135,6 +137,10 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                                                 </span>
                                             </div>
                                         )}
+                                        {/* TODO 6: nút yêu thích ngay trên card */}
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <WishlistButton productId={product._id} className="!p-2 shadow-sm" />
+                                        </div>
                                     </div>
 
                                     {/* Product Info */}
@@ -144,7 +150,7 @@ export default async function AllProductsPage({ params, searchParams }: Props) {
                                             {product.name || product.title}
                                         </h2>
                                         <p className="font-bold text-brand">
-                                            {formatPrice(product.basePrice)}
+                                            {formatPrice(product.basePrice, { locale })}
                                         </p>
                                     </div>
                                 </a>

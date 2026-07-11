@@ -38,8 +38,15 @@ export class StorefrontAuthService {
     return shopId;
   }
 
-  private issueToken(customer: { id: string; email: string; shopId: string }) {
-    return signJwt({ sub: customer.id, email: customer.email, shopId: customer.shopId });
+  private issueToken(customer: { id: string; email: string; shopId: string; name?: string | null }) {
+    // Claim `name` để storefront hiển thị tên user trên header mà không cần
+    // gọi /me mỗi page view (TODO 16). Token cũ không có claim này — FE fallback /me.
+    return signJwt({
+      sub: customer.id,
+      email: customer.email,
+      shopId: customer.shopId,
+      ...(customer.name ? { name: customer.name } : {}),
+    });
   }
 
   async register(body: any): Promise<BaseResponseDto<any>> {
@@ -316,7 +323,7 @@ export class StorefrontAuthService {
     });
 
     return {
-      token: this.issueToken({ id: customer.id, email: customer.email, shopId: customer.shopId }),
+      token: this.issueToken({ id: customer.id, email: customer.email, shopId: customer.shopId, name: customer.name }),
       shopSlug,
       redirect: redirect || '',
     };

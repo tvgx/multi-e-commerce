@@ -138,11 +138,15 @@ export interface AnalyticsDashboardData {
   topSearches: TopSearch[];
 }
 
+/** Chu kỳ tự refresh cho dashboard (TODO 3) — 30s là đủ "real-time" cho báo cáo. */
+const AUTO_REFRESH_MS = 30_000;
+
 export function useAnalytics(shopId: string, period: AnalyticsPeriod = '30d') {
   const [data, setData] = useState<AnalyticsDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -150,8 +154,9 @@ export function useAnalytics(shopId: string, period: AnalyticsPeriod = '30d') {
     if (!shopId) return;
 
     let isMounted = true;
-    const fetchAnalytics = async () => {
-      setLoading(true);
+    const fetchAnalytics = async (background = false) => {
+      // Refresh nền không bật spinner để chart không nhấp nháy mỗi 30s.
+      if (!background) setLoading(true);
       try {
         const res = await apiClient.get<AnalyticsDashboardData>(
           `/api/analytics/dashboard?period=${period}`,
@@ -161,18 +166,27 @@ export function useAnalytics(shopId: string, period: AnalyticsPeriod = '30d') {
         if (isMounted) {
           setData(res.data);
           setError(null);
+          setLastUpdated(new Date());
         }
       } catch (err: any) {
         if (isMounted) setError(err.message);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted && !background) setLoading(false);
       }
     };
 
     fetchAnalytics();
 
-    return () => { isMounted = false; };
+    // TODO 3: dashboard tự cập nhật — polling khi tab đang hiển thị.
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchAnalytics(true);
+    }, AUTO_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, [shopId, period, refreshKey]);
 
-  return { data, loading, error, refresh };
+  return { data, loading, error, refresh, lastUpdated };
 }

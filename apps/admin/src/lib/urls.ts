@@ -22,6 +22,11 @@ export function storefrontHost(subdomain: string): string {
   return `${subdomain}.${HOST}`;
 }
 
+/** Suffix hiển thị cạnh ô nhập subdomain, e.g. ".tvgx1.id.vn". */
+export function storefrontSuffix(): string {
+  return `.${HOST}`;
+}
+
 /** Public URL for a shop, honoring a custom domain or a path-based base URL. */
 export function shopPublicUrl(shop: { id?: string; domain?: string | null }): string {
   if (shop.domain?.includes('.')) return `https://${shop.domain}`;

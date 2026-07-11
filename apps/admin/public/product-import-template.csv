@@ -1,0 +1,4 @@
+name,description,price,category,sku,stock,images,status
+Áo thun cotton nam,"Áo thun 100% cotton, thoáng mát",149000,Thời trang nam,AT-COTTON-01,50,https://example.com/ao-thun-1.jpg;https://example.com/ao-thun-2.jpg,PUBLISHED
+Quần jean nữ ống rộng,"Quần jean nữ chất liệu denim co giãn",329000,Thời trang nữ,QJ-NU-01,30,https://example.com/quan-jean.jpg,PUBLISHED
+Tai nghe Bluetooth X200,"Tai nghe không dây pin 24h, chống ồn",590000,Phụ kiện điện tử,,100,,DRAFT

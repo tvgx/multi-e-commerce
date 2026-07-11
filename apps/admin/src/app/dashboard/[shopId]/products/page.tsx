@@ -3,7 +3,7 @@
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon, Pencil, Archive } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, PackageOpen, Loader2, Image as ImageIcon, Pencil, Archive, Upload } from "lucide-react";
 import { useTranslations } from "@ecommerce/i18n/src/react";
 import { useProducts } from "@/hooks/useProducts";
 
@@ -52,13 +52,23 @@ export default function ProductsPage({ params }: { params: Promise<{ shopId: str
           <h1 className="text-2xl font-bold text-white tracking-tight">{t("products.title")}</h1>
           <p className="text-sm text-slate-400 mt-1">{t("products.subtitle")}</p>
         </div>
-        <Link
-          href={`/dashboard/${shopId}/products/new`}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 hover:-translate-y-0.5"
-        >
-          <Plus size={16} />
-          {t("products.addProduct")}
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* TODO 9: import hàng loạt từ CSV/XLSX */}
+          <Link
+            href={`/dashboard/${shopId}/products/import`}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+          >
+            <Upload size={16} />
+            {t("import.button")}
+          </Link>
+          <Link
+            href={`/dashboard/${shopId}/products/new`}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-indigo-500/25 hover:-translate-y-0.5"
+          >
+            <Plus size={16} />
+            {t("products.addProduct")}
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden">

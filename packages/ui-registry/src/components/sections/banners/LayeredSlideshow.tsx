@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
 
 import { DEFAULT_IMG } from '../../../lib/media';
+import { shopHref } from '../../../lib/href';
 
 interface LayeredSlideshowProps {
     backgroundColor?: string;
     height?: string;
+    basePath?: string;
     blocks?: {
         id: string;
         componentId: string;
@@ -17,6 +19,7 @@ interface LayeredSlideshowProps {
 export function LayeredSlideshow({
     backgroundColor = '#f8fafc',
     height = '80vh',
+    basePath,
     blocks = []
 }: LayeredSlideshowProps) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -59,7 +62,7 @@ export function LayeredSlideshow({
                     <h2 className="text-5xl font-bold mb-6 leading-tight whitespace-pre-line">{activeSlide.title || 'Slide Title'}</h2>
                     <p className="opacity-80 mb-8 text-lg">{activeSlide.subtitle || 'Slide subtitle goes here.'}</p>
                     <a
-                        href={activeSlide.ctaLink || '#'}
+                        href={activeSlide.ctaLink ? shopHref(basePath || '', activeSlide.ctaLink) : '#'}
                         className="bg-slate-900 text-white px-8 py-4 rounded-full font-medium hover:bg-brand transition-colors shadow-lg shadow-brand/20 inline-block"
                     >
                         {activeSlide.ctaText || 'View Lookbook'}

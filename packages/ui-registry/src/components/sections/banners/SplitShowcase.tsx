@@ -2,6 +2,7 @@ import React from 'react';
 import { SmartImage } from '../../blocks/SmartImage';
 
 import { DEFAULT_IMG } from '../../../lib/media';
+import { shopHref } from '../../../lib/href';
 
 interface SplitShowcaseProps {
     title?: string;
@@ -9,6 +10,7 @@ interface SplitShowcaseProps {
     backgroundImageUrl?: string;
     ctaText?: string;
     ctaLink?: string;
+    basePath?: string;
     backgroundColor?: string;
     textColor?: string;
     fontFamily?: string;
@@ -20,6 +22,7 @@ export function SplitShowcase({
     backgroundImageUrl,
     ctaText,
     ctaLink,
+    basePath,
     backgroundColor,
     textColor,
     fontFamily
@@ -52,7 +55,7 @@ export function SplitShowcase({
                     {subtitle || 'Bold, sophisticated, and unapologetically green. Discover the limited edition pieces that define the season.'}
                 </p>
                 <a
-                    href={ctaLink || '#'}
+                    href={ctaLink ? shopHref(basePath || '', ctaLink) : '#'}
                     className="self-start border px-8 py-3 rounded-none font-medium transition-colors uppercase tracking-widest inline-block"
                     style={{ borderColor: containerStyle.color }}
                 >

@@ -203,19 +203,32 @@ export class InteractionsService {
     const where: any = { shopId, status: 'published' };
     if (productId) where.productId = productId;
 
-    const [items, total] = await Promise.all([
+    const [items, total, agg] = await Promise.all([
       this.prisma.productReview.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      this.prisma.productReview.count({ where })
+      this.prisma.productReview.count({ where }),
+      // Điểm trung bình cho header sản phẩm (TODO 1) — tính trên toàn bộ, không chỉ trang hiện tại.
+      this.prisma.productReview.aggregate({ where, _avg: { rating: true } }),
     ]);
 
+    // ProductReview không có relation tới Customer — map tên hiển thị thủ công.
+    const customerIds = [...new Set(items.map((i) => i.customerId))];
+    const customers = customerIds.length
+      ? await this.prisma.customer.findMany({
+          where: { id: { in: customerIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(customers.map((c) => [c.id, c.name]));
+
     return {
-      data: items,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
+      data: items.map((i) => ({ ...i, customerName: nameById.get(i.customerId) || null })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      stats: { average: agg._avg.rating ?? 0, total },
     };
   }
 

@@ -8,6 +8,7 @@
   "zipCode": "Please enter a valid zip code",
   "url": "Please enter a valid URL",
   "number": "Please enter a valid number",
+  "integer": "Please enter a whole number",
   "min": "Must be at least {{min}}",
   "max": "Must be no more than {{max}}",
   "minLength": "Must be at least {{min}} characters",

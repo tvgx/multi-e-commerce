@@ -22,7 +22,15 @@
     "specifications": "Specifications",
     "reviews": "Reviews",
     "rating": "Rating",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "buyNow": "Buy It Now",
+    "relatedProducts": "You May Also Like",
+    "notFound": "Product not found.",
+    "stockLeft": "{{count}} left in stock",
+    "exceedStock": "Only {{count}} left in stock",
+    "freeShipping": "Free Shipping",
+    "warranty": "2-Year Warranty",
+    "returns": "30-Day Returns"
   },
   "categories": {
     "title": "Categories",
@@ -127,7 +135,13 @@
     "reviewPlaceholder": "What did you like or dislike?",
     "submitting": "Submitting...",
     "submitReview": "Submit Review",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "empty": "No reviews yet. Be the first to review this product!",
+    "loginToReview": "Sign in to write a review",
+    "count": "({{count}} reviews)",
+    "loadError": "Could not load reviews",
+    "submitError": "Failed to submit review, please try again",
+    "anonymous": "Customer"
   },
   "txTypes": {
     "deposit": "Deposit",
@@ -144,5 +158,22 @@
     "openAria": "Open chat",
     "closeAria": "Close chat",
     "sendAria": "Send message"
+  },
+  "header": {
+    "home": "Home",
+    "allProducts": "All Products",
+    "categories": "Categories",
+    "wishlist": "Wishlist",
+    "cart": "Cart",
+    "account": "Account",
+    "login": "Sign in",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "search": "Search"
+  },
+  "featured": {
+    "badge": "Limited Stock",
+    "addToCart": "Add To Cart",
+    "topRated": "★ Top Rated"
   }
 }

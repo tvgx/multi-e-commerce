@@ -4,11 +4,12 @@ import React, { useEffect, use } from 'react';
 import { useOrders, Order } from '@/hooks/useOrders';
 import { Loader2, Package, RefreshCw, Eye } from 'lucide-react';
 import Link from 'next/link';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 export default function OrdersPage({ params }: { params: Promise<{ shopId: string }> }) {
+  const formatPrice = usePriceFormatter();
   const { shopId } = use(params);
   const { orders, loading, error, fetchOrders, updateOrderStatus } = useOrders(shopId);
   const t = useTranslations('admin');

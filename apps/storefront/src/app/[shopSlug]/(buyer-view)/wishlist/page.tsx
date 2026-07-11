@@ -5,7 +5,7 @@ import { getWishlist, getShopInfo } from '@/lib/api/storefront.api';
 import Link from 'next/link';
 import { SmartImage } from '@ecommerce/ui-registry/src/components/blocks/SmartImage';
 import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
-import { getT } from '@/lib/i18n';
+import { getT, getLocale } from '@/lib/i18n';
 
 export default async function WishlistPage({ params }: { params: Promise<{ shopSlug: string }> }) {
     const { shopSlug } = await params;
@@ -22,6 +22,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ shopS
     const wishlist = await getWishlist(shopSlug, token);
     const t = await getT('shop');
     const tc = await getT('common');
+    const locale = await getLocale();
 
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -59,7 +60,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ shopS
                                     <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">{item.product.name}</h3>
                                 </Link>
                                 <div className="mt-2 text-lg font-bold text-slate-900">
-                                    {formatPrice(Number(item.product.variants?.[0]?.price ?? 0))}
+                                    {formatPrice(Number(item.product.variants?.[0]?.price ?? 0), { locale })}
                                 </div>
                             </div>
                         </div>

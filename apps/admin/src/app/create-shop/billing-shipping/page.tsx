@@ -7,6 +7,7 @@ import { useGeo } from "@/hooks/useGeo";
 import { useBillingShipping } from "@/hooks/useBillingShipping";
 import { WizardProgress } from "../components/wizard-progress";
 import { useTranslations } from "@ecommerce/i18n/src/react";
+import { NumberInput } from "@ecommerce/ui-registry/src/components/blocks/NumberInput";
 
 // Danh sách ngân hàng được hỗ trợ (theo yêu cầu): Agribank, VietinBank, Vietcombank, MB.
 const BANKS = ["Agribank", "VietinBank", "Vietcombank", "MB"];
@@ -61,7 +62,7 @@ function BillingShippingForm() {
     "rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-7 backdrop-blur-xl space-y-5";
 
   return (
-    <div className="min-h-screen bg-[#050510] text-white p-6 sm:p-10">
+    <div className="min-h-full bg-[#050510] text-white p-6 sm:p-10">
       <div className="max-w-3xl mx-auto space-y-8">
         <WizardProgress current="billing" />
 
@@ -88,15 +89,16 @@ function BillingShippingForm() {
             <div className="flex-1">
               <span className="text-sm font-medium">{t("billingShipping.fixedRate")}</span>
               {fixedEnabled && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400">{t("billingShipping.feeLabel")}</span>
-                  <input
-                    type="number"
-                    value={fixedFee}
-                    onChange={(e) => setFixedFee(e.target.value)}
-                    className={`${inputCls} max-w-[180px]`}
+                <div className="mt-2 flex items-start gap-2">
+                  <span className="text-xs text-slate-400 mt-3">{t("billingShipping.feeLabel")}</span>
+                  <NumberInput
+                    min={0}
+                    value={Number(fixedFee) || null}
+                    onValueChange={(v) => setFixedFee(v != null ? String(v) : "")}
+                    wrapperClassName="max-w-[180px]"
+                    className={inputCls}
                   />
-                  <span className="text-xs text-slate-400">{t("billingShipping.vnd")}</span>
+                  <span className="text-xs text-slate-400 mt-3">{t("billingShipping.vnd")}</span>
                 </div>
               )}
             </div>
@@ -112,15 +114,16 @@ function BillingShippingForm() {
             <div className="flex-1">
               <span className="text-sm font-medium">{t("billingShipping.freeship")}</span>
               {freeshipEnabled && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400">{t("billingShipping.freeshipFrom")}</span>
-                  <input
-                    type="number"
-                    value={freeThreshold}
-                    onChange={(e) => setFreeThreshold(e.target.value)}
-                    className={`${inputCls} max-w-[180px]`}
+                <div className="mt-2 flex items-start gap-2">
+                  <span className="text-xs text-slate-400 mt-3">{t("billingShipping.freeshipFrom")}</span>
+                  <NumberInput
+                    min={0}
+                    value={Number(freeThreshold) || null}
+                    onValueChange={(v) => setFreeThreshold(v != null ? String(v) : "")}
+                    wrapperClassName="max-w-[180px]"
+                    className={inputCls}
                   />
-                  <span className="text-xs text-slate-400">{t("billingShipping.vnd")}</span>
+                  <span className="text-xs text-slate-400 mt-3">{t("billingShipping.vnd")}</span>
                 </div>
               )}
             </div>

@@ -97,6 +97,14 @@ export class CartService {
 
     const cart = await this.getOrCreateCart(identity);
 
+    // TODO 8: chặn thêm vượt tồn kho ngay từ giỏ hàng (trước đây chỉ chặn lúc
+    // đặt hàng → khách chỉ biết hết hàng ở bước checkout). Tính cả số lượng đã
+    // nằm sẵn trong giỏ. Variant không theo dõi kho / backorderable thì bỏ qua.
+    const existing = await this.prisma.cartItem.findUnique({
+      where: { cartId_variantId: { cartId: cart.id, variantId: dto.variantId } },
+    });
+    await this.assertStockAvailable(dto.variantId, (existing?.quantity ?? 0) + dto.quantity, shopId);
+
     const item = await this.prisma.cartItem.upsert({
       where: { cartId_variantId: { cartId: cart.id, variantId: dto.variantId } },
       create: { cartId: cart.id, variantId: dto.variantId, quantity: dto.quantity },
@@ -104,6 +112,25 @@ export class CartService {
     });
 
     return { status: 'added', item };
+  }
+
+  /** Ném INSUFFICIENT_STOCK nếu tổng số lượng yêu cầu vượt tồn kho khả dụng (TODO 8). */
+  private async assertStockAvailable(variantId: string, requestedTotal: number, shopId: string) {
+    const stockItems = await this.prisma.stockItem.findMany({
+      where: { variantId, stockLocation: { shopId } },
+      select: { countOnHand: true, backorderable: true },
+    });
+    // Không có bản ghi kho = không theo dõi; có nơi cho backorder = không chặn.
+    if (stockItems.length === 0 || stockItems.some((si) => si.backorderable)) return;
+
+    const available = stockItems.reduce((acc, si) => acc + si.countOnHand, 0);
+    if (requestedTotal > available) {
+      throw new BadRequestException({
+        code: 'INSUFFICIENT_STOCK',
+        available,
+        message: `Insufficient stock: only ${available} available`,
+      });
+    }
   }
 
   async updateItem(identity: CartIdentity, itemId: string, dto: UpdateCartItemDto) {
@@ -122,6 +149,9 @@ export class CartService {
       await this.prisma.cartItem.delete({ where: { id: existing.id } });
       return { status: 'removed', itemId };
     }
+
+    // Guard tồn kho khi tăng số lượng trực tiếp trong giỏ.
+    await this.assertStockAvailable(existing.variantId, dto.quantity, this.getShopId());
 
     const item = await this.prisma.cartItem.update({
       where: { id: existing.id },

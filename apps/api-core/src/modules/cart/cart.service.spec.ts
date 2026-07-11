@@ -94,6 +94,8 @@ describe('CartService', () => {
 
     it('upserts the cart item, incrementing quantity on conflict', async () => {
       prisma.variant.findFirst.mockResolvedValue({ id: 'v1', shopId: 'shop-1' });
+      prisma.cartItem.findUnique.mockResolvedValue(null);
+      prisma.stockItem.findMany.mockResolvedValue([]); // không theo dõi kho
       prisma.cartItem.upsert.mockResolvedValue({ id: 'item-1', quantity: 3 });
 
       const res = await service.addItem(IDENTITY, { variantId: 'v1', quantity: 3 });
@@ -104,6 +106,30 @@ describe('CartService', () => {
         update: { quantity: { increment: 3 } },
       });
       expect(res).toEqual({ status: 'added', item: { id: 'item-1', quantity: 3 } });
+    });
+
+    // TODO 8: guard tồn kho ngay từ giỏ hàng.
+    it('rejects when requested quantity (plus existing in cart) exceeds stock', async () => {
+      prisma.variant.findFirst.mockResolvedValue({ id: 'v1', shopId: 'shop-1' });
+      prisma.cartItem.findUnique.mockResolvedValue({ quantity: 2 });
+      prisma.stockItem.findMany.mockResolvedValue([
+        { countOnHand: 3, backorderable: false },
+      ]);
+      await expect(
+        service.addItem(IDENTITY, { variantId: 'v1', quantity: 2 }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.cartItem.upsert).not.toHaveBeenCalled();
+    });
+
+    it('allows exceeding stock when a location is backorderable', async () => {
+      prisma.variant.findFirst.mockResolvedValue({ id: 'v1', shopId: 'shop-1' });
+      prisma.cartItem.findUnique.mockResolvedValue(null);
+      prisma.stockItem.findMany.mockResolvedValue([
+        { countOnHand: 0, backorderable: true },
+      ]);
+      prisma.cartItem.upsert.mockResolvedValue({ id: 'item-1', quantity: 10 });
+      const res = await service.addItem(IDENTITY, { variantId: 'v1', quantity: 10 });
+      expect(res.status).toBe('added');
     });
   });
 
@@ -129,7 +155,8 @@ describe('CartService', () => {
     });
 
     it('updates the quantity when positive', async () => {
-      prisma.cartItem.findFirst.mockResolvedValue({ id: 'item-1' });
+      prisma.cartItem.findFirst.mockResolvedValue({ id: 'item-1', variantId: 'v1' });
+      prisma.stockItem.findMany.mockResolvedValue([]);
       prisma.cartItem.update.mockResolvedValue({ id: 'item-1', quantity: 5 });
       const res = await service.updateItem(IDENTITY, 'item-1', { quantity: 5 });
       expect(prisma.cartItem.update).toHaveBeenCalledWith({

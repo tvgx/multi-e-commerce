@@ -23,6 +23,24 @@ const SAMPLE_PRODUCTS = SAMPLE_NAMES.map((name, i) => ({
     variants: [] as any[],
 }));
 
+// sectionsTODO 2: các section rất cao (hero 600px, slideshow 100vh, mega page
+// min-h-screen) chiếm trọn canvas làm khó thao tác. Khi KHÔNG được chọn, thu
+// gọn về maxHeight dưới đây (kèm fade); click chọn section → bung đầy đủ.
+const CANVAS_COLLAPSED_MAX_HEIGHT: Record<string, number> = {
+    Hero: 420,
+    HeroBottomAligned: 420,
+    HeroMarquee: 420,
+    LargeLogo: 320,
+    LayeredSlideshow: 460,
+    SlideshowFullFrame: 460,
+    SlideshowInset: 460,
+    SplitShowcase: 460,
+    FeaturedCollectionEditorial: 560,
+    FeaturedProducts: 560,
+    StandardProductDetail: 720,
+    StandardCategoryPage: 720,
+};
+
 function previewContextForPage(activePage: string, products: any[]): Record<string, any> {
     if (activePage === 'product_listing') return { products, totalProducts: products.length };
     if (activePage === 'product_detail') return { product: products[0], relatedProducts: products.slice(1, 5) };
@@ -231,9 +249,25 @@ const CanvasBlock = React.memo(function CanvasBlock({
                 </div>
             )}
 
-            <div className={isActive ? '' : 'pointer-events-none'}>
-                <Component {...(previewContext || {})} {...(component.props || {})} previewMode blocks={(component.blocks || []).filter((b) => !b.isHidden)} />
-            </div>
+            {(() => {
+                const collapsedMax = CANVAS_COLLAPSED_MAX_HEIGHT[component.componentId];
+                const collapsed = !!collapsedMax && !isActive && !isBlockSelected;
+                return (
+                    <div
+                        className={`${isActive ? '' : 'pointer-events-none'} ${collapsed ? 'relative overflow-hidden' : ''}`}
+                        style={collapsed ? { maxHeight: collapsedMax } : undefined}
+                    >
+                        <Component {...(previewContext || {})} {...(component.props || {})} previewMode blocks={(component.blocks || []).filter((b) => !b.isHidden)} />
+                        {collapsed && (
+                            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/90 to-transparent flex items-end justify-center pb-1">
+                                <span className="text-[10px] font-medium text-slate-500 bg-white/80 rounded-full px-2 py-0.5 shadow-sm">
+                                    Đã thu gọn — bấm để xem đầy đủ
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 });

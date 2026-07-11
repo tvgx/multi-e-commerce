@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { CheckCircle2, XCircle, Loader2, AlertCircle, QrCode } from 'lucide-react';
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { useTranslations } from '@ecommerce/i18n/src/react';
 
 /**
@@ -12,6 +12,7 @@ import { useTranslations } from '@ecommerce/i18n/src/react';
  * → "Đã thanh toán" → Invoice PAID + Subscription ACTIVE.
  */
 export default function BillingConfirmPage({ params }: { params: Promise<{ token: string }> }) {
+  const formatPrice = usePriceFormatter();
   const { token } = use(params);
   const t = useTranslations('admin');
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';

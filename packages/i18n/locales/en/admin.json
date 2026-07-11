@@ -910,6 +910,7 @@
   },
   "createShop": {
     "backHome": "Back to home",
+    "backToAdmin": "Back to admin dashboard",
     "initStore": "Create Store",
     "title": "Choose your store address",
     "subtitle": "Customers will visit through this address. Name, logo, and colors are set right after in the designer.",
@@ -1094,7 +1095,9 @@
     "revChartTitle": "Revenue chart",
     "orderStatusShort": "Order status",
     "orderEmptyShort": "No orders yet.",
-    "chartTotal": "Total"
+    "chartTotal": "Total",
+    "lastUpdated": "Updated at",
+    "refresh": "Refresh"
   },
   "chatPanel": {
     "title": "Customer support",
@@ -1330,5 +1333,27 @@
     "noScenario": "No scenario.",
     "loadingEditor": "Loading editor…",
     "thesisBadge": "thesis"
+  },
+  "import": {
+    "button": "Bulk import",
+    "title": "Bulk product import",
+    "subtitle": "Upload a CSV or Excel file to create many products at once.",
+    "backToProducts": "Back to products",
+    "formatTitle": "File format",
+    "formatDesc": "First row is the header (Vietnamese aliases accepted: tên, giá, mô tả, danh mục, tồn kho, ảnh).",
+    "colRequired": "required",
+    "colOptional": "optional",
+    "colImages": "image URLs separated by ';' — downloaded automatically",
+    "downloadTemplate": "Download template (.csv)",
+    "dropHint": "Click to choose a .csv or .xlsx file",
+    "startButton": "Start import",
+    "uploadError": "Upload failed",
+    "processing": "Processing…",
+    "done": "Completed",
+    "failed": "Failed",
+    "summary": "{{succeeded}} products imported, {{failed}} rows failed.",
+    "colLine": "Line",
+    "colError": "Error",
+    "viewProducts": "View products"
   }
 }

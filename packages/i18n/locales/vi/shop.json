@@ -22,7 +22,15 @@
     "specifications": "Thông số kỹ thuật",
     "reviews": "Đánh giá",
     "rating": "Xếp hạng",
-    "quantity": "Số lượng"
+    "quantity": "Số lượng",
+    "buyNow": "Mua ngay",
+    "relatedProducts": "Có thể bạn cũng thích",
+    "notFound": "Không tìm thấy sản phẩm.",
+    "stockLeft": "Còn {{count}} sản phẩm",
+    "exceedStock": "Chỉ còn {{count}} sản phẩm trong kho",
+    "freeShipping": "Miễn phí vận chuyển",
+    "warranty": "Bảo hành 2 năm",
+    "returns": "Đổi trả trong 30 ngày"
   },
   "categories": {
     "title": "Danh mục",
@@ -127,7 +135,13 @@
     "reviewPlaceholder": "Bạn thích hoặc không thích điều gì?",
     "submitting": "Đang gửi...",
     "submitReview": "Gửi đánh giá",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "empty": "Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá sản phẩm này!",
+    "loginToReview": "Đăng nhập để viết đánh giá",
+    "count": "({{count}} đánh giá)",
+    "loadError": "Không tải được đánh giá",
+    "submitError": "Gửi đánh giá thất bại, vui lòng thử lại",
+    "anonymous": "Khách hàng"
   },
   "txTypes": {
     "deposit": "Nạp tiền",
@@ -144,5 +158,22 @@
     "openAria": "Mở trò chuyện",
     "closeAria": "Đóng trò chuyện",
     "sendAria": "Gửi tin nhắn"
+  },
+  "header": {
+    "home": "Trang chủ",
+    "allProducts": "Tất cả sản phẩm",
+    "categories": "Danh mục",
+    "wishlist": "Yêu thích",
+    "cart": "Giỏ hàng",
+    "account": "Tài khoản",
+    "login": "Đăng nhập",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "search": "Tìm kiếm"
+  },
+  "featured": {
+    "badge": "Số lượng có hạn",
+    "addToCart": "Thêm vào giỏ",
+    "topRated": "★ Đánh giá cao"
   }
 }

@@ -15,9 +15,10 @@ import {
   CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
-import { formatPrice } from '@ecommerce/ui-registry/src/lib/format';
+import { usePriceFormatter } from '@ecommerce/ui-registry/src/lib/use-price';
 import { toast } from '@ecommerce/ui-registry/src/store/toast-store';
 import { useTranslations } from '@ecommerce/i18n/src/react';
+import { NumberInput } from '@ecommerce/ui-registry/src/components/blocks/NumberInput';
 import { useOnboardingAutoNav } from "@/hooks/useOnboardingAutoNav";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useGeo } from "@/hooks/useGeo";
@@ -33,6 +34,7 @@ const EMPTY_FORM: MethodFormValues = {
 };
 
 export default function ShippingSettingsPage() {
+  const formatPrice = usePriceFormatter();
   const params = useParams();
   const shopId = params.shopId as string;
   const t = useTranslations("admin");
@@ -339,24 +341,24 @@ export default function ShippingSettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">{t("shipping.feeFieldLabel")}</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     min={0}
-                    placeholder="30000"
+                    suffix="đ"
+                    placeholder="30.000"
                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={form.baseFee}
-                    onChange={(e) => setForm({ ...form, baseFee: e.target.value })}
+                    value={Number(form.baseFee) || null}
+                    onValueChange={(v) => setForm({ ...form, baseFee: v != null ? String(v) : "" })}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">{t("shipping.freeThresholdLabel")}</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     min={0}
+                    suffix="đ"
                     placeholder={t("shipping.freeThresholdPlaceholder")}
                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={form.freeThreshold}
-                    onChange={(e) => setForm({ ...form, freeThreshold: e.target.value })}
+                    value={Number(form.freeThreshold) || null}
+                    onValueChange={(v) => setForm({ ...form, freeThreshold: v != null ? String(v) : "" })}
                   />
                 </div>
               </div>

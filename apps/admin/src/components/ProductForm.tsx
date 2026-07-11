@@ -9,6 +9,7 @@ import { useProducts, Product } from "@/hooks/useProducts";
 import { ImageUploader } from "./ImageUploader";
 import { uploadFileToMinIO } from "@/lib/upload-minio";
 import { useTranslations } from "@ecommerce/i18n/src/react";
+import { NumberInput } from "@ecommerce/ui-registry/src/components/blocks/NumberInput";
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -349,21 +350,21 @@ export function ProductForm({ mode, shopId, productId, onSuccess }: ProductFormP
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-400 mb-1">{t("productForm.priceVnd")}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.price || ''}
-                        onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                      <NumberInput
+                        min={0}
+                        suffix="đ"
+                        value={Number(variant.price) || null}
+                        onValueChange={(v) => updateVariant(index, 'price', v ?? 0)}
                         className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-400 mb-1">{t("productForm.inventory")}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.inStock || ''}
-                        onChange={(e) => updateVariant(index, 'inStock', e.target.value)}
+                      <NumberInput
+                        min={0}
+                        allowDecimal={false}
+                        value={Number(variant.inStock) || null}
+                        onValueChange={(v) => updateVariant(index, 'inStock', v ?? 0)}
                         className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
                       />
                     </div>
