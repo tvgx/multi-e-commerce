@@ -1,0 +1,48 @@
+path: C:/Users/ADMIN/Desktop/Github/multi-e-commerce/gen_fe_module/yolo_dataset
+train: images/train
+val: images/val
+nc: 43
+names:
+  - AnnouncementBar
+  - BlogPostCarousel
+  - BlogPostEditorial
+  - BlogPostGrid
+  - Carousel
+  - CollectionLinksSpotlight
+  - CollectionLinksText
+  - CollectionListsBento
+  - CollectionListsCarousel
+  - CollectionListsEditorial
+  - CollectionListsGrid
+  - Editorial
+  - EditorialJumboText
+  - FAQ
+  - FeaturedCollectionCarousel
+  - FeaturedCollectionEditorial
+  - FeaturedCollectionGrid
+  - FeaturedProducts
+  - FiltersSidebar
+  - Footer
+  - Header
+  - Hero
+  - HeroBottomAligned
+  - HeroMarquee
+  - IconsWithText
+  - ImageCompare
+  - ImageWithText
+  - LargeLogo
+  - LayeredSlideshow
+  - Marquee
+  - Multicolumn
+  - ProductHighlight
+  - ProductHotspot
+  - PullQuote
+  - RecommendedProducts
+  - RichText
+  - SlideshowFullFrame
+  - SlideshowInset
+  - SplitShowcase
+  - StandardCategoryPage
+  - StandardCheckout
+  - StandardProductDetail
+  - StandardProfile

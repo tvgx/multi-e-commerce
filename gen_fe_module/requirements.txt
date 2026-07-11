@@ -1,0 +1,13 @@
+# detect_component_module + server.py — nhận diện component UI trong ảnh trang web.
+# torch/pillow/numpy có thể đã có sẵn qua 1 bản cài khác (vd conda) — pip sẽ bỏ qua nếu bản hiện
+# tại đã thoả mãn version. Cài GPU (CUDA) build của torch riêng theo hướng dẫn tại
+# https://pytorch.org/get-started/locally/ nếu muốn chạy nhanh hơn trên GPU.
+torch>=2.1.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+ultralytics>=8.2.0  # xem yolo_dataset/README.md để tự train weights
+
+# Trang test "nhập URL" (POST /detect-url) — server tự chụp ảnh URL bằng Chromium headless.
+# Sau khi pip install, chạy thêm 1 lần: python -m playwright install chromium
+playwright>=1.45.0
