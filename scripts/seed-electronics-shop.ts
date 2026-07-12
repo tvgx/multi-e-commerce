@@ -21,6 +21,9 @@ import {
 const prisma = new PrismaClient();
 
 const SHOP_ID = process.argv[2] || '2935f8bc-1924-4d52-9fb6-23849aec2927';
+// --keep: KHÔNG dọn catalog cũ — dùng khi shop đã có đơn hàng thật (xoá product
+// dính line_items sẽ vỡ FK), chỉ bổ sung thêm sản phẩm mới.
+const KEEP_EXISTING = process.argv.includes('--keep');
 const PUBLIC_BUCKET = 'shop-public';
 const IMAGES_PER_PRODUCT = 2;
 
@@ -225,10 +228,14 @@ async function main() {
 
   await ensurePublicBucket();
 
-  // Xoá dữ liệu catalog cũ của shop (idempotent re-run). Cascade gỡ variants/stock.
-  const delP = await prisma.product.deleteMany({ where: { shopId: SHOP_ID } });
-  const delC = await prisma.category.deleteMany({ where: { shopId: SHOP_ID } });
-  console.log(`🧹 Cleared ${delP.count} products, ${delC.count} categories`);
+  if (KEEP_EXISTING) {
+    console.log('🧹 --keep: giữ nguyên catalog hiện có, chỉ bổ sung sản phẩm mới');
+  } else {
+    // Xoá dữ liệu catalog cũ của shop (idempotent re-run). Cascade gỡ variants/stock.
+    const delP = await prisma.product.deleteMany({ where: { shopId: SHOP_ID } });
+    const delC = await prisma.category.deleteMany({ where: { shopId: SHOP_ID } });
+    console.log(`🧹 Cleared ${delP.count} products, ${delC.count} categories`);
+  }
 
   // Stock location mặc định
   let location = await prisma.stockLocation.findFirst({
