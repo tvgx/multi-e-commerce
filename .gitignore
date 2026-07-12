@@ -31,6 +31,15 @@ dist
 # lives under a src/ tree, so re-include any build/dist dir that does.
 !**/src/**/build/
 !**/src/**/dist/
+gen_fe_module/yolo_dataset/raw_crops/
+gen_fe_module/yolo_dataset/images/
+gen_fe_module/yolo_dataset/labels/
+gen_fe_module/yolo_dataset/runs/
+gen_fe_module/yolo_dataset/manifest.json
+gen_fe_module/yolo_dataset/data.yaml
+gen_fe_module/**/*.pt
+gen_fe_module/tools/url_debug/
+gen_fe_module/tools/review/
 
 
 # Debug

@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Section/block component thật sống trong packages/ui-registry — quét thẳng source của nó để
+   Tailwind sinh đủ các utility class chỉ dùng trong đó (bg-brand, ring-brand/20...), giống hệt
+   cách apps/storefront/src/app/globals.css làm (xem file đó để đối chiếu). */
+@source "../../../../packages/ui-registry/src";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111111;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Theme mỗi shop — mặc định set trực tiếp bằng inline style trên layout wrapper (xem
+     src/app/preview/[componentId]/page.tsx), mỗi CSS var fallback về màu emerald như storefront. */
+  --color-brand: var(--theme-primary, #059669);
+  --color-brand-fg: var(--theme-button-text, #ffffff);
+  --color-button: var(--theme-button, var(--theme-primary, #059669));
+  --color-button-fg: var(--theme-button-text, #ffffff);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-full: 8px;
+  --radius-3xl: 8px;
+  --radius-2xl: 8px;
+  --radius-xl: 8px;
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.03);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.04);
+  --shadow-xl: 0 12px 32px rgba(0,0,0,0.05);
+  --shadow-2xl: 0 16px 48px rgba(0,0,0,0.06);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Geist Sans", "SF Pro Display", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+}

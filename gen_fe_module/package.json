@@ -1,0 +1,15 @@
+{
+  "name": "gen-fe-module",
+  "private": true,
+  "description": "Sample component library (sample/) + demo gallery app (app/) — độc lập với workspaces chính của repo.",
+  "workspaces": [
+    "app"
+  ],
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "^5.9.2"
+  }
+}
